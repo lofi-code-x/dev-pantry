@@ -1,0 +1,5 @@
+server_port = 8000
+postgres_conn = "postgres://admin:admin@localhost:5432/dev-pantry"
+
+jwt_secret = "aa07b6a1c73ed82273e5d13847399090965bfdb75795a63c7a0a9e574b58e96b" # openssl rand -hex 32
+jwt_lifetime = 7 # day
