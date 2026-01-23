@@ -63,8 +63,8 @@ pub struct PostCreateRequest {
     pub author: String,
 }
 
-impl From<PostCreateRequest> for InsertParams {
-    fn from(req: PostCreateRequest) -> InsertParams {
+impl InsertParams {
+    pub fn new(req: PostCreateRequest, is_published: bool) -> Self {
         let preview_text = make_preview_text(&req.content_markdown, 300);
 
         Self {
@@ -73,9 +73,36 @@ impl From<PostCreateRequest> for InsertParams {
             preview_text,
             category_tag: req.category_tag,
             author: req.author,
-            is_published: true,
+            is_published,
         }
     }
+}
+
+pub struct UpdateParams {
+    pub title: String,
+    pub content_markdown: String,
+    pub preview_text: String,
+    pub category_tag: String,
+    pub author: String,
+}
+
+impl From<PostCreateRequest> for UpdateParams {
+    fn from(req: PostCreateRequest) -> Self {
+        let preview_text = make_preview_text(&req.content_markdown, 300);
+
+        Self {
+            title: req.title,
+            content_markdown: req.content_markdown,
+            preview_text,
+            category_tag: req.category_tag,
+            author: req.author,
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct PostSetPublicRequest {
+    pub is_public: bool,
 }
 
 fn make_preview_text(md: &str, max_chars: usize) -> String {

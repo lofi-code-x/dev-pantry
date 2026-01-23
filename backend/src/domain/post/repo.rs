@@ -1,4 +1,4 @@
-use crate::domain::post::dto::{InsertParams, SearchParams};
+use crate::domain::post::dto::{InsertParams, SearchParams, UpdateParams};
 use crate::domain::post::model::Post;
 use crate::error;
 use sqlx::PgPool;
@@ -42,7 +42,7 @@ pub async fn search(pool: &PgPool, params: SearchParams) -> error::Result<Vec<Po
     .bind(params.query) // $1 query text
     .bind(params.tag) // $2 tag or NULL
     .bind(params.has_query) // $3 enable/disable FTS part
-    .bind((params.limit + 1) as i64) // $4
+    .bind((params.limit + 1) as i64) // $4 (берём +1 для next-page)
     .bind(params.offset as i64) // $5
     .fetch_all(pool)
     .await?)
@@ -63,7 +63,7 @@ pub async fn select_by_id(pool: &PgPool, id: i64) -> error::Result<Option<Post>>
             created_at,
             updated_at
         FROM posts
-        WHERE id = $1
+        WHERE id = $1 AND is_published = true
         "#,
     )
     .bind(id)
@@ -90,14 +90,18 @@ pub async fn insert(pool: &PgPool, params: InsertParams) -> error::Result<i64> {
     .bind(params.content_markdown)
     .bind(params.preview_text)
     .bind(params.category_tag)
-    .bind(params.author) // NEW
+    .bind(params.author)
     .bind(params.is_published)
     .fetch_one(pool)
     .await?)
 }
 
-pub async fn update_by_id(pool: &PgPool, params: InsertParams, id: i64) -> error::Result<i64> {
-    let updated_id = sqlx::query_scalar::<_, i64>(
+pub async fn update_by_id(
+    pool: &PgPool,
+    params: UpdateParams,
+    id: i64,
+) -> error::Result<Option<i64>> {
+    Ok(sqlx::query_scalar::<_, i64>(
         r#"
         UPDATE posts
         SET
@@ -106,8 +110,8 @@ pub async fn update_by_id(pool: &PgPool, params: InsertParams, id: i64) -> error
             preview_text     = $3,
             category_tag     = $4,
             author           = $5,
-            is_published     = $6
-        WHERE id = $7
+            updated_at       = NOW()
+        WHERE id = $6
         RETURNING id
         "#,
     )
@@ -115,13 +119,27 @@ pub async fn update_by_id(pool: &PgPool, params: InsertParams, id: i64) -> error
     .bind(params.content_markdown)
     .bind(params.preview_text)
     .bind(params.category_tag)
-    .bind(params.author) // NEW
-    .bind(params.is_published)
+    .bind(params.author)
     .bind(id)
-    .fetch_one(pool)
-    .await?;
+    .fetch_optional(pool)
+    .await?)
+}
 
-    Ok(updated_id)
+pub async fn set_public_by_id(pool: &PgPool, id: i64, is_published: bool) -> error::Result<u64> {
+    Ok(sqlx::query(
+        r#"
+        UPDATE posts
+        SET
+            is_published = $1,
+            updated_at   = NOW()
+        WHERE id = $2
+        "#,
+    )
+    .bind(is_published)
+    .bind(id)
+    .execute(pool)
+    .await?
+    .rows_affected())
 }
 
 pub async fn delete_by_id(pool: &PgPool, id: i64) -> error::Result<u64> {

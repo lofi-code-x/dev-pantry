@@ -1,4 +1,4 @@
-use crate::api::{category, post, user};
+use crate::api::{category, post, uploads, user};
 use crate::app::Context;
 use axum::Router;
 
@@ -7,11 +7,13 @@ pub fn routes() -> Router<Context> {
         .nest("/auth", user::routes())
         .nest("/category", category::routes())
         .nest("/post", post::routes())
+        .nest("/uploads", uploads::routes())
 
-    // .nest("/links", links::routes())
-    // .nest("/uploads", uploads::routes())
     // .nest("/modules", modules::module_routes())
     // .nest("/module-items", modules::item_routes())
+    
+    
+    
     // // --- me ---
     // .nest("/me", me::routes())
     // .nest("/me/bookmarks", me::me_bookmark_routes())
@@ -24,4 +26,7 @@ pub fn routes() -> Router<Context> {
     // .nest("/me/modules", me::me_module_progress_routes())
     // // ✅ module bookmarks (saved modules)
     // .nest("/me/module-bookmarks", me::me_module_bookmark_routes())
+
+
+    
 }
