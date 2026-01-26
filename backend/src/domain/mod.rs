@@ -1,5 +1,6 @@
 pub mod category;
-pub mod user;
+pub mod module;
 pub mod post;
 pub mod uploads;
-mod module;
+pub mod user;
+pub mod me;

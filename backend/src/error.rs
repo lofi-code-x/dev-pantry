@@ -20,7 +20,7 @@ pub enum Error {
     Config(#[from] toml::de::Error),
     #[error("{0}")]
     JsonWebToken(String),
-    
+
     #[error("{0}")]
     BadRequest(String),
     #[error("{0}")]

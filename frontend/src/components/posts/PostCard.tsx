@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import type { Post } from "@/lib/api/posts";
+import type {Post} from "@/lib/api/posts";
 
 function formatDate(iso: string) {
     try {
@@ -20,7 +20,27 @@ function cn(...parts: Array<string | false | null | undefined>) {
     return parts.filter(Boolean).join(" ");
 }
 
-export function PostCard({ post }: { post: Post }) {
+function IconCheck(props: React.SVGProps<SVGSVGElement>) {
+    return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+            <path
+                d="M20 7 10 17l-5-5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </svg>
+    );
+}
+
+export function PostCard({
+                             post,
+                             isCompleted,
+                         }: {
+    post: Post;
+    isCompleted?: boolean;
+}) {
     const href = `/posts/${post.id}`;
 
     return (
@@ -33,14 +53,26 @@ export function PostCard({ post }: { post: Post }) {
             )}
             aria-label={`Open post: ${post.title}`}
         >
-            <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-600">
-        <span className="rounded-md border border-neutral-200 bg-white px-2 py-1">
-          {post.category_tag}
-        </span>
-                <span>•</span>
-                <span className="truncate">by {post.author}</span>
-                <span>•</span>
-                <span>updated {formatDate(post.updated_at)}</span>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-600">
+                    <span className="rounded-md border border-neutral-200 bg-white px-2 py-1">
+                        {post.category_tag}
+                    </span>
+                    <span>•</span>
+                    <span className="truncate">by {post.author}</span>
+                    <span>•</span>
+                    <span>updated {formatDate(post.updated_at)}</span>
+                </div>
+
+                {isCompleted ? (
+                    <span
+                        className="inline-flex items-center gap-1 rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs text-neutral-700"
+                        title="Completed"
+                    >
+                        <IconCheck className="h-4 w-4 text-neutral-900"/>
+                        <span>done</span>
+                    </span>
+                ) : null}
             </div>
 
             <h3 className="mt-3 text-lg font-semibold tracking-tight text-neutral-950">

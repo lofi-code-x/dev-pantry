@@ -24,6 +24,19 @@ function IconUser(props: React.SVGProps<SVGSVGElement>) {
     );
 }
 
+function IconBookmark(props: React.SVGProps<SVGSVGElement>) {
+    return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+            <path
+                d="M7.5 4.5h9A2 2 0 0 1 18.5 6.5v15l-6.5-4-6.5 4v-15a2 2 0 0 1 2-2Z"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinejoin="round"
+            />
+        </svg>
+    );
+}
+
 function IconLogout(props: React.SVGProps<SVGSVGElement>) {
     return (
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
@@ -65,7 +78,6 @@ export function NavbarAuth() {
     const [open, setOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement | null>(null);
 
-    // Закрытие по клику вне меню
     useEffect(() => {
         function onDocClick(e: MouseEvent) {
             if (!open) return;
@@ -124,9 +136,7 @@ export function NavbarAuth() {
                     className="absolute right-0 top-11 w-48 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm"
                 >
                     <div className="border-b border-neutral-200 px-3 py-2">
-                        <div className="text-sm font-semibold text-neutral-950">
-                            {user.login}
-                        </div>
+                        <div className="text-sm font-semibold text-neutral-950">{user.login}</div>
                         <div className="text-xs text-neutral-600">{user.role}</div>
                     </div>
 
@@ -138,6 +148,16 @@ export function NavbarAuth() {
                     >
                         <IconUser className="h-4 w-4 text-neutral-700" />
                         View profile
+                    </Link>
+
+                    <Link
+                        href="/me/saved"
+                        role="menuitem"
+                        onClick={() => setOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-neutral-950 hover:bg-neutral-50"
+                    >
+                        <IconBookmark className="h-4 w-4 text-neutral-700" />
+                        Saved
                     </Link>
 
                     <button

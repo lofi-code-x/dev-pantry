@@ -1,7 +1,7 @@
 // src/app/posts/page.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PostPrimaryAction } from "@/components/posts/PostPrimaryAction";
 import { PostCard } from "@/components/posts/PostCard";
 import type { Category } from "@/lib/api/category";
@@ -9,6 +9,8 @@ import { getAllCategories } from "@/lib/api/category";
 import type { Post, PostRequest } from "@/lib/api/posts";
 import { searchPosts } from "@/lib/api/posts";
 import { ApiError } from "@/lib/apiClient";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { listMyReads } from "@/lib/api/me";
 
 function cn(...parts: Array<string | false | null | undefined>) {
     return parts.filter(Boolean).join(" ");
@@ -17,6 +19,8 @@ function cn(...parts: Array<string | false | null | undefined>) {
 const PAGE_SIZE = 10;
 
 export default function PostsExplorePage() {
+    const { user, ready } = useAuth();
+
     const [query, setQuery] = useState("");
     const [tag, setTag] = useState<string>("all");
 
@@ -24,13 +28,17 @@ export default function PostsExplorePage() {
     const [catLoading, setCatLoading] = useState(false);
 
     const [items, setItems] = useState<Post[]>([]);
-    const [offset, setOffset] = useState(0);
-
     const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(true);
 
+    // post_id -> completed
+    const [progressMap, setProgressMap] = useState<Map<number, boolean>>(new Map());
+
     const [error, setError] = useState<string | null>(null);
+
+    // sentinel ref for infinite scroll
+    const sentinelRef = useRef<HTMLDivElement | null>(null);
 
     // загрузка категорий
     useEffect(() => {
@@ -61,45 +69,75 @@ export default function PostsExplorePage() {
         };
     }, []);
 
-    // дебаунс query (простая версия)
+    // ✅ загрузка прогресса пользователя (только completed) — один раз при логине/готовности
+    useEffect(() => {
+        if (!ready) return;
+
+        // если юзера нет — очищаем статусики
+        if (!user) {
+            setProgressMap(new Map());
+            return;
+        }
+
+        let cancelled = false;
+
+        async function loadProgress() {
+            try {
+                // только завершенные, чтобы не тащить лишнее
+                const reads = await listMyReads({
+                    only_published: false,
+                    only_completed: true,
+                });
+
+                if (cancelled) return;
+
+                const m = new Map<number, boolean>();
+                for (const r of reads) {
+                    // is_completed уже true, но на всякий случай проверим
+                    if (r.is_completed) m.set(r.post_id, true);
+                }
+                setProgressMap(m);
+            } catch {
+                // не валим страницу: просто не показываем completed
+                if (!cancelled) setProgressMap(new Map());
+            }
+        }
+
+        loadProgress();
+        return () => {
+            cancelled = true;
+        };
+    }, [ready, user?.id]);
+
+    // debounce query
     const debouncedQuery = useDebouncedValue(query, 250);
 
-    const params: PostRequest = useMemo(
+    const baseReq: Omit<PostRequest, "offset" | "limit"> = useMemo(
         () => ({
             query: debouncedQuery || undefined,
             tag: tag !== "all" ? tag : undefined,
-            offset,
-            limit: PAGE_SIZE,
         }),
-        [debouncedQuery, tag, offset]
+        [debouncedQuery, tag]
     );
 
-    // initial load / reload when filters change (query/tag)
-    useEffect(() => {
-        // при смене query/tag сбрасываем ленту и offset
-        setOffset(0);
-    }, [debouncedQuery, tag]);
-
+    // reload when filters change
     useEffect(() => {
         let cancelled = false;
 
         async function loadFirstPage() {
-            // грузим только когда offset=0 (после сброса)
-            if (offset !== 0) return;
-
             setError(null);
             setLoading(true);
+            setHasMore(true);
+
             try {
                 const res = await searchPosts({
-                    query: params.query,
-                    tag: params.tag,
+                    ...baseReq,
                     offset: 0,
                     limit: PAGE_SIZE,
                 });
 
                 if (cancelled) return;
 
-                // если бэк не возвращает "limit+1", то просто определяем hasMore по размеру
                 setItems(res);
                 setHasMore(res.length >= PAGE_SIZE);
             } catch (e) {
@@ -116,24 +154,31 @@ export default function PostsExplorePage() {
         return () => {
             cancelled = true;
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedQuery, tag, offset === 0]);
+    }, [baseReq]);
 
     async function loadMore() {
-        if (loadingMore || loading || !hasMore) return;
+        if (loading || loadingMore || !hasMore) return;
 
         setError(null);
         setLoadingMore(true);
+
         try {
             const nextOffset = items.length;
+
             const res = await searchPosts({
-                query: debouncedQuery || undefined,
-                tag: tag !== "all" ? tag : undefined,
+                ...baseReq,
                 offset: nextOffset,
                 limit: PAGE_SIZE,
             });
 
-            setItems((prev) => [...prev, ...res]);
+            setItems((prev) => {
+                if (prev.length !== nextOffset) return prev;
+
+                const seen = new Set(prev.map((p) => p.id));
+                const appended = res.filter((p) => !seen.has(p.id));
+                return [...prev, ...appended];
+            });
+
             setHasMore(res.length >= PAGE_SIZE);
         } catch (e) {
             setError(e instanceof ApiError ? e.message : "Failed to load more posts.");
@@ -141,6 +186,29 @@ export default function PostsExplorePage() {
             setLoadingMore(false);
         }
     }
+
+    // IntersectionObserver -> auto loadMore
+    useEffect(() => {
+        const el = sentinelRef.current;
+        if (!el) return;
+        if (loading) return;
+
+        const obs = new IntersectionObserver(
+            (entries) => {
+                const e = entries[0];
+                if (!e) return;
+                if (e.isIntersecting) loadMore();
+            },
+            {
+                root: null,
+                rootMargin: "400px 0px",
+                threshold: 0,
+            }
+        );
+
+        obs.observe(el);
+        return () => obs.disconnect();
+    }, [loading, loadingMore, hasMore, items.length, baseReq]);
 
     return (
         <main className="mx-auto w-full max-w-6xl px-6 py-10">
@@ -208,23 +276,29 @@ export default function PostsExplorePage() {
                         No posts found.
                     </div>
                 ) : (
-                    items.map((p) => <PostCard key={p.id} post={p} />)
+                    items.map((p) => (
+                        <PostCard
+                            key={p.id}
+                            post={p}
+                            isCompleted={progressMap.get(p.id) === true}
+                        />
+                    ))
                 )}
 
+                {/* sentinel for infinite scroll */}
+                <div ref={sentinelRef} className="h-1" />
+
+                {/* footer status */}
                 {!loading && items.length > 0 ? (
                     <div className="flex justify-center pt-2">
-                        <button
-                            type="button"
-                            onClick={loadMore}
-                            disabled={!hasMore || loadingMore}
+                        <div
                             className={cn(
-                                "inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium",
-                                "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200",
-                                "disabled:cursor-not-allowed disabled:opacity-60"
+                                "rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm",
+                                "text-neutral-700"
                             )}
                         >
-                            {loadingMore ? "Loading…" : hasMore ? "Load more" : "No more"}
-                        </button>
+                            {loadingMore ? "Loading…" : hasMore ? "Scroll to load more" : "No more"}
+                        </div>
                     </div>
                 ) : null}
             </section>
