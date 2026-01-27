@@ -93,3 +93,31 @@ export async function deletePost(id: number): Promise<void> {
         method: "DELETE",
     });
 }
+
+// --- Module navigation for post page ---
+
+export type PostNav = {
+    id: number;
+    title: string;
+};
+
+export type ModulePostNav = {
+    module_id: number;
+    prev: PostNav | null;
+    next: PostNav | null;
+};
+
+// GET /api/module/nav/by-post/{post_id}?module_id=5
+export async function getPostModuleNav(
+    postId: number,
+    moduleId?: number
+): Promise<ModulePostNav> {
+    const sp = new URLSearchParams();
+    if (typeof moduleId === "number" && Number.isFinite(moduleId)) {
+        sp.set("module_id", String(moduleId));
+    }
+
+    const qs = sp.toString();
+    return apiFetch<ModulePostNav>(`/api/module/nav/by-post/${postId}${qs ? `?${qs}` : ""}`);
+}
+

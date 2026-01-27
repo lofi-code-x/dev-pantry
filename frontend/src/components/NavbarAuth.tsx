@@ -6,62 +6,9 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 
-function IconUser(props: React.SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-            <path
-                d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"
-                stroke="currentColor"
-                strokeWidth="1.8"
-            />
-            <path
-                d="M20 20.5c0-4-3.6-6.5-8-6.5s-8 2.5-8 6.5"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-            />
-        </svg>
-    );
-}
-
-function IconBookmark(props: React.SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-            <path
-                d="M7.5 4.5h9A2 2 0 0 1 18.5 6.5v15l-6.5-4-6.5 4v-15a2 2 0 0 1 2-2Z"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinejoin="round"
-            />
-        </svg>
-    );
-}
-
-function IconLogout(props: React.SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-            <path
-                d="M10 7V6a2.5 2.5 0 0 1 2.5-2.5H18A2.5 2.5 0 0 1 20.5 6v12A2.5 2.5 0 0 1 18 20.5h-5.5A2.5 2.5 0 0 1 10 18v-1"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinejoin="round"
-            />
-            <path
-                d="M3.5 12h10"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-            />
-            <path
-                d="M10.5 8.8 13.5 12l-3 3.2"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-        </svg>
-    );
-}
+import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
+import LogoutIcon from "@mui/icons-material/Logout";
 
 function cn(...parts: Array<string | false | null | undefined>) {
     return parts.filter(Boolean).join(" ");
@@ -146,7 +93,7 @@ export function NavbarAuth() {
                         onClick={() => setOpen(false)}
                         className="flex items-center gap-2 px-3 py-2 text-sm text-neutral-950 hover:bg-neutral-50"
                     >
-                        <IconUser className="h-4 w-4 text-neutral-700" />
+                        <PersonOutlineIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
                         View profile
                     </Link>
 
@@ -156,7 +103,7 @@ export function NavbarAuth() {
                         onClick={() => setOpen(false)}
                         className="flex items-center gap-2 px-3 py-2 text-sm text-neutral-950 hover:bg-neutral-50"
                     >
-                        <IconBookmark className="h-4 w-4 text-neutral-700" />
+                        <BookmarkBorderIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
                         Saved
                     </Link>
 
@@ -166,7 +113,7 @@ export function NavbarAuth() {
                         onClick={onLogout}
                         className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-950 hover:bg-neutral-50"
                     >
-                        <IconLogout className="h-4 w-4 text-neutral-700" />
+                        <LogoutIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
                         Log out
                     </button>
                 </div>

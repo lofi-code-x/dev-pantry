@@ -1,13 +1,19 @@
 "use client";
 
-import React, {useEffect, useMemo, useState} from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {useParams, useRouter} from "next/navigation";
-import {ApiError} from "@/lib/apiClient";
-import type {Post} from "@/lib/api/posts";
-import {deletePost, getPost, setPostPublic} from "@/lib/api/posts";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { ApiError } from "@/lib/apiClient";
+import type { Post } from "@/lib/api/posts";
+import {
+    deletePost,
+    getPost,
+    setPostPublic,
+    getPostModuleNav,
+    type ModulePostNav,
+} from "@/lib/api/posts";
 import MdPreview from "@/components/posts/MdPreview";
-import {useAuth} from "@/components/auth/AuthProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 // me api (только нужное)
 import {
@@ -17,6 +23,22 @@ import {
     uncompleteMyRead,
     getMyPostState,
 } from "@/lib/api/me";
+
+// ✅ Icons (MUI)
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
+import BookmarkIcon from "@mui/icons-material/Bookmark";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
+import EditIcon from "@mui/icons-material/Edit";
+import PublicIcon from "@mui/icons-material/Public";
+import LockIcon from "@mui/icons-material/Lock";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+
+// ✅ Module nav icons
+import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
+import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import MenuBookIcon from "@mui/icons-material/MenuBook";
 
 const STAFF_ROLES = ["admin", "moderator", "editor"] as const;
 
@@ -45,10 +67,18 @@ function formatDateTime(iso: string) {
 export default function PostPage() {
     const params = useParams<{ id: string }>();
     const router = useRouter();
-    const {user, ready} = useAuth();
+    const sp = useSearchParams();
+    const { user, ready } = useAuth();
 
     const postId = Number(params.id);
     const staff = useMemo(() => (user ? isStaff(user.role) : false), [user]);
+
+    const moduleIdFromQs = useMemo(() => {
+        const raw = sp.get("module_id");
+        if (!raw) return undefined;
+        const n = Number(raw);
+        return Number.isFinite(n) ? n : undefined;
+    }, [sp]);
 
     const [post, setPost] = useState<Post | null>(null);
     const [loading, setLoading] = useState(false);
@@ -59,6 +89,10 @@ export default function PostPage() {
     // user-specific state
     const [saved, setSaved] = useState(false);
     const [completed, setCompleted] = useState(false);
+
+    // module navigation
+    const [nav, setNav] = useState<ModulePostNav | null>(null);
+    const [navLoading, setNavLoading] = useState(false);
 
     // load post
     useEffect(() => {
@@ -105,7 +139,6 @@ export default function PostPage() {
         async function loadMeState() {
             try {
                 const st = await getMyPostState(postId);
-                console.log(st);
                 if (cancelled) return;
                 setSaved(Boolean(st.saved));
                 setCompleted(Boolean(st.completed));
@@ -119,6 +152,34 @@ export default function PostPage() {
             cancelled = true;
         };
     }, [ready, user, postId]);
+
+    // ✅ load module nav (prev/next) via backend endpoint
+    useEffect(() => {
+        if (!Number.isFinite(postId)) return;
+
+        let cancelled = false;
+
+        async function loadNav() {
+            setNav(null);
+            setNavLoading(true);
+            try {
+                const n = await getPostModuleNav(postId, moduleIdFromQs);
+                if (cancelled) return;
+                setNav(n);
+            } catch (e) {
+                // если пост не в модуле -> 404, это норм, просто не показываем навигацию
+                if (cancelled) return;
+                setNav(null);
+            } finally {
+                if (!cancelled) setNavLoading(false);
+            }
+        }
+
+        loadNav();
+        return () => {
+            cancelled = true;
+        };
+    }, [postId, moduleIdFromQs]);
 
     async function onDelete() {
         if (!post) return;
@@ -146,7 +207,7 @@ export default function PostPage() {
         try {
             const next = !post.is_published;
             await setPostPublic(postId, next);
-            setPost((prev) => (prev ? {...prev, is_published: next} : prev));
+            setPost((prev) => (prev ? { ...prev, is_published: next } : prev));
         } catch (e) {
             setErr(e instanceof ApiError ? e.message : "Update failed.");
         } finally {
@@ -203,16 +264,17 @@ export default function PostPage() {
     return (
         <main className="mx-auto w-full max-w-6xl px-6 py-10">
             {/* Управляющий бар */}
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <button
                     type="button"
                     onClick={() => router.back()}
                     className={cn(
-                        "inline-flex items-center rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
+                        "inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
                         "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200"
                     )}
                 >
-                    ← Back
+                    <ArrowBackIcon sx={{ fontSize: 18 }} />
+                    Back
                 </button>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -224,12 +286,17 @@ export default function PostPage() {
                                 onClick={onToggleSaved}
                                 disabled={actionPending}
                                 className={cn(
-                                    "inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
+                                    "inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
                                     "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200",
                                     "disabled:cursor-not-allowed disabled:opacity-60"
                                 )}
                                 title={saved ? "Remove from saved" : "Save post"}
                             >
+                                {saved ? (
+                                    <BookmarkIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                                ) : (
+                                    <BookmarkBorderIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                                )}
                                 {saved ? "Unsave" : "Save"}
                             </button>
 
@@ -238,12 +305,17 @@ export default function PostPage() {
                                 onClick={onToggleCompleted}
                                 disabled={actionPending}
                                 className={cn(
-                                    "inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
+                                    "inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
                                     "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200",
                                     "disabled:cursor-not-allowed disabled:opacity-60"
                                 )}
-                                title="Mark post as completed"
+                                title={completed ? "Mark as not completed" : "Mark post as completed"}
                             >
+                                {completed ? (
+                                    <RemoveCircleOutlineIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                                ) : (
+                                    <CheckCircleOutlineIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                                )}
                                 {completed ? "Uncomplete" : "Mark completed"}
                             </button>
                         </>
@@ -252,15 +324,16 @@ export default function PostPage() {
                     {/* Staff actions */}
                     {staff && post ? (
                         <>
-                            <span className="mx-1 h-6 w-px bg-neutral-200"/>
+                            <span className="mx-1 h-6 w-px bg-neutral-200" />
 
                             <Link
                                 href={`/posts/${postId}/edit`}
                                 className={cn(
-                                    "inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
+                                    "inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
                                     "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200"
                                 )}
                             >
+                                <EditIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
                                 Edit post
                             </Link>
 
@@ -269,12 +342,17 @@ export default function PostPage() {
                                 onClick={onTogglePublic}
                                 disabled={actionPending}
                                 className={cn(
-                                    "inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
+                                    "inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
                                     "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200",
                                     "disabled:cursor-not-allowed disabled:opacity-60"
                                 )}
                                 title="Toggle public/private"
                             >
+                                {post.is_published ? (
+                                    <LockIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                                ) : (
+                                    <PublicIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                                )}
                                 {post.is_published ? "Make private" : "Make public"}
                             </button>
 
@@ -283,17 +361,106 @@ export default function PostPage() {
                                 onClick={onDelete}
                                 disabled={actionPending}
                                 className={cn(
-                                    "inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
+                                    "inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
                                     "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200",
                                     "disabled:cursor-not-allowed disabled:opacity-60"
                                 )}
                             >
+                                <DeleteOutlineIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
                                 Delete post
                             </button>
                         </>
                     ) : null}
                 </div>
             </div>
+
+            {/* ✅ Навигация по модулю (если пост входит в модуль) */}
+            {nav ? (
+                <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-neutral-200 bg-white p-3 shadow-sm">
+                    {/* Prev */}
+                    {nav.prev ? (
+                        <Link
+                            href={
+                                moduleIdFromQs
+                                    ? `/posts/${nav.prev.id}?module_id=${nav.module_id}`
+                                    : `/posts/${nav.prev.id}`
+                            }
+                            className={cn(
+                                "inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
+                                "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                            )}
+                            title={nav.prev.title}
+                        >
+                            <NavigateBeforeIcon sx={{ fontSize: 20 }} />
+                            Prev
+                        </Link>
+                    ) : (
+                        <button
+                            type="button"
+                            disabled
+                            className={cn(
+                                "inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
+                                "text-neutral-950 disabled:cursor-not-allowed disabled:opacity-60"
+                            )}
+                        >
+                            <NavigateBeforeIcon sx={{ fontSize: 20 }} />
+                            Prev
+                        </button>
+                    )}
+
+                    {/* Module */}
+                    <Link
+                        href={`/learn/${nav.module_id}`}
+                        className={cn(
+                            "inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-medium",
+                            "text-neutral-950 hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                        )}
+                        title={`Open module #${nav.module_id}`}
+                    >
+                        <MenuBookIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                        <span className="text-neutral-800">Module</span>
+                    </Link>
+
+                    {/* Next */}
+                    {nav.next ? (
+                        <Link
+                            href={
+                                moduleIdFromQs
+                                    ? `/posts/${nav.next.id}?module_id=${nav.module_id}`
+                                    : `/posts/${nav.next.id}`
+                            }
+                            className={cn(
+                                "inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
+                                "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                            )}
+                            title={nav.next.title}
+                        >
+                            Next
+                            <NavigateNextIcon sx={{ fontSize: 20 }} />
+                        </Link>
+                    ) : (
+                        <button
+                            type="button"
+                            disabled
+                            className={cn(
+                                "inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
+                                "text-neutral-950 disabled:cursor-not-allowed disabled:opacity-60"
+                            )}
+                        >
+                            Next
+                            <NavigateNextIcon sx={{ fontSize: 20 }} />
+                        </button>
+                    )}
+
+                    <div className="ml-auto text-xs text-neutral-600">
+                        {navLoading ? "Loading nav…" : null}
+                    </div>
+                </div>
+            ) : navLoading ? (
+                <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-3 text-xs text-neutral-600 shadow-sm">
+                    Loading module navigation…
+                </div>
+            ) : null}
 
             {loading ? (
                 <section className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
@@ -335,7 +502,7 @@ export default function PostPage() {
                     </header>
 
                     <div className="pt-5">
-                        <MdPreview source={post.content_markdown ?? ""}/>
+                        <MdPreview source={post.content_markdown ?? ""} />
                     </div>
                 </article>
             )}

@@ -4,6 +4,9 @@
 import Link from "next/link";
 import type {Post} from "@/lib/api/posts";
 
+// ✅ MUI icon
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+
 function formatDate(iso: string) {
     try {
         return new Date(iso).toLocaleDateString("ru-RU", {
@@ -18,20 +21,6 @@ function formatDate(iso: string) {
 
 function cn(...parts: Array<string | false | null | undefined>) {
     return parts.filter(Boolean).join(" ");
-}
-
-function IconCheck(props: React.SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-            <path
-                d="M20 7 10 17l-5-5"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-        </svg>
-    );
 }
 
 export function PostCard({
@@ -55,9 +44,9 @@ export function PostCard({
         >
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-600">
-                    <span className="rounded-md border border-neutral-200 bg-white px-2 py-1">
-                        {post.category_tag}
-                    </span>
+          <span className="rounded-md border border-neutral-200 bg-white px-2 py-1">
+            {post.category_tag}
+          </span>
                     <span>•</span>
                     <span className="truncate">by {post.author}</span>
                     <span>•</span>
@@ -69,20 +58,16 @@ export function PostCard({
                         className="inline-flex items-center gap-1 rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs text-neutral-700"
                         title="Completed"
                     >
-                        <IconCheck className="h-4 w-4 text-neutral-900"/>
-                        <span>done</span>
-                    </span>
+            <CheckCircleOutlineIcon sx={{fontSize: 18}} className="text-neutral-900"/>
+            <span>done</span>
+          </span>
                 ) : null}
             </div>
 
-            <h3 className="mt-3 text-lg font-semibold tracking-tight text-neutral-950">
-                {post.title}
-            </h3>
+            <h3 className="mt-3 text-lg font-semibold tracking-tight text-neutral-950">{post.title}</h3>
 
             {post.preview_text ? (
-                <p className="mt-2 text-sm leading-relaxed text-neutral-700">
-                    {post.preview_text}
-                </p>
+                <p className="mt-2 text-sm leading-relaxed text-neutral-700">{post.preview_text}</p>
             ) : (
                 <p className="mt-2 text-sm text-neutral-600">No preview.</p>
             )}

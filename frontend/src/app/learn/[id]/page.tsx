@@ -18,6 +18,12 @@ import type { UserRole } from "@/lib/types";
 import { PostCard } from "@/components/posts/PostCard";
 import { listMyReads } from "@/lib/api/me";
 
+// ✅ Icons (MUI)
+import EditIcon from "@mui/icons-material/Edit";
+import PublicIcon from "@mui/icons-material/Public";
+import LockIcon from "@mui/icons-material/Lock";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+
 const STAFF_ROLES: UserRole[] = ["admin", "moderator", "editor"];
 
 function isStaff(role: unknown) {
@@ -189,9 +195,9 @@ export default function ModulePage() {
 
                         {mod ? (
                             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-neutral-600">
-                                <span className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-0.5">
-                                    {mod.is_published ? "public" : "draft"}
-                                </span>
+                <span className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-0.5">
+                  {mod.is_published ? "public" : "draft"}
+                </span>
                                 <span>author: {mod.author}</span>
                                 <span>updated: {formatDate(mod.updated_at)}</span>
                             </div>
@@ -203,9 +209,10 @@ export default function ModulePage() {
                         <div className="flex shrink-0 flex-wrap items-center gap-2">
                             <Link
                                 href={`/learn/${moduleId}/edit`}
-                                className="inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-950 hover:bg-neutral-50"
+                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-950 hover:bg-neutral-50"
                                 aria-disabled={pending}
                             >
+                                <EditIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
                                 Edit module
                             </Link>
 
@@ -213,8 +220,13 @@ export default function ModulePage() {
                                 type="button"
                                 onClick={onTogglePublic}
                                 disabled={pending || !mod}
-                                className="inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-950 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-950 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
                             >
+                                {mod?.is_published ? (
+                                    <LockIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                                ) : (
+                                    <PublicIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                                )}
                                 {mod?.is_published ? "Set draft" : "Set public"}
                             </button>
 
@@ -222,8 +234,9 @@ export default function ModulePage() {
                                 type="button"
                                 onClick={onDelete}
                                 disabled={pending || !mod}
-                                className="inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-950 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-950 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
                             >
+                                <DeleteOutlineIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
                                 Delete
                             </button>
                         </div>
@@ -249,11 +262,7 @@ export default function ModulePage() {
                     </div>
                 ) : (
                     posts.map((p) => (
-                        <PostCard
-                            key={p.id}
-                            post={p}
-                            isCompleted={progressMap.get(p.id) === true}
-                        />
+                        <PostCard key={p.id} post={p} isCompleted={progressMap.get(p.id) === true} />
                     ))
                 )}
             </section>

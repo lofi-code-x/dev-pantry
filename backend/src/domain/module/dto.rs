@@ -35,3 +35,21 @@ pub struct OnlyPublishedQuery {
 pub struct ModuleSetPublicRequest {
     pub is_public: bool,
 }
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct PostNav {
+    pub id: i64,
+    pub title: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ModulePostNav {
+    pub module_id: i64,
+    pub prev: Option<PostNav>,
+    pub next: Option<PostNav>,
+}
+
+#[derive(serde::Deserialize)]
+pub struct NavByPostQuery {
+    pub module_id: Option<i64>,
+}

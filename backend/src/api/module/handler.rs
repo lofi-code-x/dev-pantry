@@ -4,8 +4,8 @@ use crate::api::error::{ApiError, JsonResult, StatusResult};
 use crate::app::Context;
 use crate::auth::extractor::StaffUser;
 use crate::domain::module::dto::{
-    InsertModuleItemParams, InsertModuleParams, ModuleSetPublicRequest, OnlyPublishedQuery,
-    UpdateModuleItemParams, UpdateModuleParams,
+    InsertModuleItemParams, InsertModuleParams, ModulePostNav, ModuleSetPublicRequest,
+    NavByPostQuery, OnlyPublishedQuery, UpdateModuleItemParams, UpdateModuleParams,
 };
 use crate::domain::module::model::{Module, ModuleItem};
 use crate::domain::module::service;
@@ -154,4 +154,16 @@ pub async fn delete_item(
         .map_err(ApiError::map)?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn nav_by_post(
+    State(ctx): State<Context>,
+    Path(post_id): Path<i64>,
+    Query(q): Query<NavByPostQuery>,
+) -> JsonResult<ModulePostNav> {
+    let nav = service::get_post_nav(&ctx.pool, post_id, q.module_id)
+        .await
+        .map_err(ApiError::map)?;
+
+    Ok((StatusCode::OK, Json(nav)))
 }

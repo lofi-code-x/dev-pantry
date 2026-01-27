@@ -5,6 +5,10 @@ import React, { useRef, useState } from "react";
 import { uploadImage } from "@/lib/api/uploads";
 import { ApiError } from "@/lib/apiClient";
 
+import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+
 type UploadedImage = {
     name: string;
     url: string; // то, что вернул сервер (часто это "/uploads/images/..." или "uploads/images/...")
@@ -97,11 +101,12 @@ export default function UploadImagesPanel({
                     onClick={openPicker}
                     disabled={disabled || pending}
                     className={cn(
-                        "inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
+                        "inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
                         "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200",
                         "disabled:cursor-not-allowed disabled:opacity-60"
                     )}
                 >
+                    <CloudUploadOutlinedIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
                     {pending ? "Uploading..." : "Upload image"}
                 </button>
 
@@ -132,16 +137,18 @@ export default function UploadImagesPanel({
                                     href={toAbsolute(it.url)}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="text-xs text-neutral-700 underline underline-offset-4 hover:text-neutral-950"
+                                    className="inline-flex items-center gap-1 text-xs text-neutral-700 underline underline-offset-4 hover:text-neutral-950"
                                 >
+                                    <OpenInNewIcon sx={{ fontSize: 16 }} className="text-neutral-600" />
                                     Open
                                 </a>
 
                                 <button
                                     type="button"
                                     onClick={() => copyMarkdown(it.url)}
-                                    className="ml-auto text-xs font-medium text-neutral-950 underline underline-offset-4 hover:text-neutral-700"
+                                    className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-neutral-950 underline underline-offset-4 hover:text-neutral-700"
                                 >
+                                    <ContentCopyIcon sx={{ fontSize: 16 }} className="text-neutral-600" />
                                     Copy markdown
                                 </button>
                             </li>

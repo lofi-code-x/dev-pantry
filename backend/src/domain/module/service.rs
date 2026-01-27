@@ -1,13 +1,15 @@
 // src/domain/module/service.rs
 
 use crate::domain::module::dto::{
-    InsertModuleItemParams, InsertModuleParams, UpdateModuleItemParams, UpdateModuleParams,
+    InsertModuleItemParams, InsertModuleParams, ModulePostNav, PostNav, UpdateModuleItemParams,
+    UpdateModuleParams,
 };
 use crate::domain::module::model::{Module, ModuleItem};
 use crate::domain::module::repo;
 use crate::domain::post::model::Post;
 use crate::error;
 use sqlx::PgPool;
+use std::collections::HashMap;
 
 //---------------------------------------- Module ----------------------------------------------------
 
@@ -95,4 +97,70 @@ pub async fn set_public(pool: &PgPool, id: i64, is_public: bool) -> error::Resul
         return Err(error::Error::NotFound(format!("Module {} not found.", id)));
     }
     Ok(())
+}
+
+pub async fn get_post_nav(
+    pool: &PgPool,
+    post_id: i64,
+    module_id: Option<i64>,
+) -> error::Result<ModulePostNav> {
+    // 1) module_id
+    let module_id = match module_id {
+        Some(mid) => mid,
+        None => {
+            let mids = repo::list_module_ids_by_post_id(pool, post_id).await?;
+            mids.into_iter()
+                .next()
+                .ok_or(error::Error::NotFound(format!(
+                    "Post {} is not in any module.",
+                    post_id
+                )))?
+        }
+    };
+
+    // 2) список post_id по порядку
+    let post_ids = repo::list_post_ids_by_module_id(pool, module_id).await?;
+    let idx = post_ids
+        .iter()
+        .position(|&id| id == post_id)
+        .ok_or(error::Error::NotFound(format!(
+            "Post {} is not in module {}.",
+            post_id, module_id
+        )))?;
+
+    let prev_id = if idx > 0 {
+        Some(post_ids[idx - 1])
+    } else {
+        None
+    };
+    let next_id = if idx + 1 < post_ids.len() {
+        Some(post_ids[idx + 1])
+    } else {
+        None
+    };
+
+    // Если titles не нужны — можно вернуть сразу.
+    // Но ты добавил 3-й запрос, поэтому соберём title для prev/next.
+    let mut need: Vec<i64> = Vec::with_capacity(2);
+    if let Some(id) = prev_id {
+        need.push(id);
+    }
+    if let Some(id) = next_id {
+        // если вдруг prev == next (не должно быть, но на всякий)
+        if !need.contains(&id) {
+            need.push(id);
+        }
+    }
+
+    let titles = repo::list_post_titles_by_ids(pool, &need).await?;
+    let map: HashMap<i64, String> = titles.into_iter().collect();
+
+    let prev = prev_id.and_then(|id| map.get(&id).cloned().map(|title| PostNav { id, title }));
+    let next = next_id.and_then(|id| map.get(&id).cloned().map(|title| PostNav { id, title }));
+
+    Ok(ModulePostNav {
+        module_id,
+        prev,
+        next,
+    })
 }

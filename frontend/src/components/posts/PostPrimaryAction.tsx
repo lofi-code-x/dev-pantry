@@ -1,68 +1,15 @@
 // src/components/posts/PostPrimaryAction.tsx
 "use client";
 
-import React, {useState} from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import {useAuth} from "@/components/auth/AuthProvider";
-import type {UserRole} from "@/lib/types";
+import { useAuth } from "@/components/auth/AuthProvider";
+import type { UserRole } from "@/lib/types";
 import CategoryManageModal from "@/components/category/CategoryManageModal";
 
-function IconPencil(props: React.SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-            <path
-                d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.8l-.2-.2a2 2 0 0 0-2.8 0L5 17v3Z"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinejoin="round"
-            />
-            <path
-                d="M13.5 6.5 17.5 10.5"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-            />
-        </svg>
-    );
-}
-
-function IconIdea(props: React.SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-            <path
-                d="M12 3a7 7 0 0 0-4 12.7V18a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2.3A7 7 0 0 0 12 3Z"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinejoin="round"
-            />
-            <path
-                d="M9 23h6"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-            />
-        </svg>
-    );
-}
-
-function IconTag(props: React.SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-            <path
-                d="M20 13 11 22 2 13V2h11l7 7v4Z"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinejoin="round"
-            />
-            <path
-                d="M7.5 7.5h.01"
-                stroke="currentColor"
-                strokeWidth="3.2"
-                strokeLinecap="round"
-            />
-        </svg>
-    );
-}
+import EditIcon from "@mui/icons-material/Edit";
+import LightbulbOutlineIcon from "@mui/icons-material/LightbulbOutline";
+import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 
 const STAFF_ROLES: UserRole[] = ["admin", "moderator", "editor"];
 
@@ -75,7 +22,7 @@ function cn(...parts: Array<string | false | null | undefined>) {
 }
 
 export function PostPrimaryAction() {
-    const {user} = useAuth();
+    const { user } = useAuth();
     const [catOpen, setCatOpen] = useState(false);
 
     // гость: ничего
@@ -94,7 +41,7 @@ export function PostPrimaryAction() {
                         "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200"
                     )}
                 >
-                    <IconPencil className="h-4 w-4"/>
+                    <EditIcon sx={{ fontSize: 18 }} />
                     New post
                 </Link>
             ) : (
@@ -105,7 +52,7 @@ export function PostPrimaryAction() {
                         "hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200"
                     )}
                 >
-                    <IconIdea className="h-4 w-4 text-neutral-700"/>
+                    <LightbulbOutlineIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
                     Suggest post
                 </Link>
             )}
@@ -121,11 +68,11 @@ export function PostPrimaryAction() {
                             "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200"
                         )}
                     >
-                        <IconTag className="h-4 w-4 text-neutral-700"/>
+                        <LocalOfferIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
                         New Category
                     </button>
 
-                    <CategoryManageModal open={catOpen} onOpenChange={setCatOpen}/>
+                    <CategoryManageModal open={catOpen} onOpenChange={setCatOpen} />
                 </>
             ) : null}
         </div>

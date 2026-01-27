@@ -1,15 +1,22 @@
 // src/components/posts/PostEditor.tsx
 "use client";
 
-import React, {useEffect, useMemo, useState} from "react";
-import {useRouter} from "next/navigation";
+import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import MdEditor from "@/components/posts/MdEditor";
-import {useAuth} from "@/components/auth/AuthProvider";
-import {ApiError} from "@/lib/apiClient";
-import type {PostCreateRequest} from "@/lib/api/posts";
-import {createPost, suggestPost, updatePost} from "@/lib/api/posts";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { ApiError } from "@/lib/apiClient";
+import type { PostCreateRequest } from "@/lib/api/posts";
+import { createPost, suggestPost, updatePost } from "@/lib/api/posts";
 import UploadImagesPanel from "@/components/posts/UploadImagesPanel";
-import {getAllCategories} from "@/lib/api/category";
+import { getAllCategories } from "@/lib/api/category";
+
+// ✅ Icons (MUI)
+import PublishIcon from "@mui/icons-material/Publish";
+import SendIcon from "@mui/icons-material/Send";
+import SaveIcon from "@mui/icons-material/Save";
+import EditIcon from "@mui/icons-material/Edit";
+import LightbulbOutlineIcon from "@mui/icons-material/LightbulbOutline";
 
 type Mode = "create" | "suggest" | "edit";
 
@@ -19,6 +26,14 @@ type Category = {
     tag: string;
     title: string;
 };
+
+function cn(...parts: Array<string | false | null | undefined>) {
+    return parts.filter(Boolean).join(" ");
+}
+
+function isStaff(role: unknown) {
+    return (STAFF_ROLES as readonly string[]).includes(String(role).toLowerCase());
+}
 
 export default function PostEditor({
                                        mode,
@@ -30,7 +45,7 @@ export default function PostEditor({
     initial?: Partial<PostCreateRequest>;
 }) {
     const router = useRouter();
-    const {user} = useAuth();
+    const { user } = useAuth();
 
     const [title, setTitle] = useState(initial?.title ?? "");
     const [categoryTag, setCategoryTag] = useState(initial?.category_tag ?? "");
@@ -61,6 +76,24 @@ export default function PostEditor({
     const submitLabel =
         mode === "create" ? "Publish" : mode === "suggest" ? "Submit suggestion" : "Save changes";
 
+    const submitIcon =
+        mode === "create" ? (
+            <PublishIcon sx={{ fontSize: 18 }} />
+        ) : mode === "suggest" ? (
+            <SendIcon sx={{ fontSize: 18 }} />
+        ) : (
+            <SaveIcon sx={{ fontSize: 18 }} />
+        );
+
+    const headingIcon =
+        mode === "create" ? (
+            <EditIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+        ) : mode === "suggest" ? (
+            <LightbulbOutlineIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+        ) : (
+            <EditIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+        );
+
     // Load categories (dropdown options)
     useEffect(() => {
         let cancelled = false;
@@ -72,11 +105,10 @@ export default function PostEditor({
                 if (cancelled) return;
 
                 // ожидаем формат [{ tag, title } ...]
-                const normalized = (list ?? [])
-                    .map((c: any) => ({
-                        tag: String(c.tag ?? "").trim(),
-                        title: String(c.title ?? c.tag ?? "").trim(),
-                    }));
+                const normalized = (list ?? []).map((c: any) => ({
+                    tag: String(c.tag ?? "").trim(),
+                    title: String(c.title ?? c.tag ?? "").trim(),
+                }));
 
                 setCategories(normalized);
 
@@ -95,7 +127,6 @@ export default function PostEditor({
         return () => {
             cancelled = true;
         };
-        // initial categoryTag уже выставлен выше, тут не надо зависеть от него
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -152,7 +183,12 @@ export default function PostEditor({
     return (
         <main className="mx-auto w-full max-w-6xl px-4 py-8">
             <header className="mb-6">
-                <h1 className="text-2xl font-semibold tracking-tight text-neutral-950">{heading}</h1>
+                <div className="flex items-center gap-2">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 bg-white">
+            {headingIcon}
+          </span>
+                    <h1 className="text-2xl font-semibold tracking-tight text-neutral-950">{heading}</h1>
+                </div>
                 <p className="mt-2 text-sm text-neutral-600">{subtitle}</p>
             </header>
 
@@ -204,13 +240,12 @@ export default function PostEditor({
 
                             {/* Upload images full width */}
                             <div className="lg:col-span-12">
-                                <UploadImagesPanel disabled={pending}/>
+                                <UploadImagesPanel disabled={pending} />
                             </div>
                         </div>
 
                         {error ? (
-                            <div
-                                className="mt-5 rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-800">
+                            <div className="mt-5 rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-800">
                                 {error}
                             </div>
                         ) : null}
@@ -218,7 +253,7 @@ export default function PostEditor({
 
                     {/* Editor */}
                     <section className="rounded-xl border border-neutral-200 bg-white p-3 shadow-sm">
-                        <MdEditor value={content} onChange={setContent}/>
+                        <MdEditor value={content} onChange={setContent} />
                     </section>
 
                     {/* Bottom actions */}
@@ -227,12 +262,13 @@ export default function PostEditor({
                             type="submit"
                             disabled={pending}
                             className={cn(
-                                "inline-flex items-center justify-center rounded-lg border border-neutral-200",
+                                "inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200",
                                 "bg-neutral-950 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-900",
                                 "disabled:cursor-not-allowed disabled:opacity-60",
                                 "focus:outline-none focus:ring-2 focus:ring-neutral-200"
                             )}
                         >
+                            {submitIcon}
                             {pending ? "Saving..." : submitLabel}
                         </button>
                     </div>
@@ -240,12 +276,4 @@ export default function PostEditor({
             )}
         </main>
     );
-}
-
-function isStaff(role: unknown) {
-    return (STAFF_ROLES as readonly string[]).includes(String(role).toLowerCase());
-}
-
-function cn(...parts: Array<string | false | null | undefined>) {
-    return parts.filter(Boolean).join(" ");
 }

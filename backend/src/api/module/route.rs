@@ -20,4 +20,5 @@ pub fn routes() -> Router<Context> {
         .route("/item/create", post(handler::create_item))
         .route("/item/update/{id}", put(handler::update_item))
         .route("/item/delete/{id}", delete(handler::delete_item))
+        .route("/nav/by-post/{post_id}", get(handler::nav_by_post))
 }

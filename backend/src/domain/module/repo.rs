@@ -4,7 +4,7 @@ use crate::domain::module::dto::{
 use crate::domain::module::model::{Module, ModuleItem};
 use crate::domain::post::model::Post;
 use crate::error;
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 
 //---------------------------------------- Module ----------------------------------------------------
 
@@ -161,9 +161,9 @@ pub async fn select_module_items(pool: &PgPool, module_id: i64) -> error::Result
         ORDER BY sort_order ASC, id ASC
         "#,
     )
-        .bind(module_id)
-        .fetch_all(pool)
-        .await?)
+    .bind(module_id)
+    .fetch_all(pool)
+    .await?)
 }
 
 pub async fn insert_module_item(
@@ -239,4 +239,72 @@ pub async fn set_public_module_by_id(
     .execute(pool)
     .await?
     .rows_affected())
+}
+pub async fn list_module_ids_by_post_id(pool: &PgPool, post_id: i64) -> error::Result<Vec<i64>> {
+    let rows = sqlx::query(
+        r#"
+        SELECT module_id
+        FROM module_items
+        WHERE post_id = $1
+        ORDER BY module_id
+        "#,
+    )
+    .bind(post_id)
+    .fetch_all(pool)
+    .await?;
+
+    let ids = rows
+        .into_iter()
+        .map(|r| r.get::<i64, _>("module_id"))
+        .collect();
+
+    Ok(ids)
+}
+
+pub async fn list_post_ids_by_module_id(pool: &PgPool, module_id: i64) -> error::Result<Vec<i64>> {
+    let rows = sqlx::query(
+        r#"
+        SELECT post_id
+        FROM module_items
+        WHERE module_id = $1
+        ORDER BY sort_order NULLS LAST, id
+        "#,
+    )
+    .bind(module_id)
+    .fetch_all(pool)
+    .await?;
+
+    let ids = rows
+        .into_iter()
+        .map(|r| r.get::<i64, _>("post_id"))
+        .collect();
+
+    Ok(ids)
+}
+
+pub async fn list_post_titles_by_ids(
+    pool: &PgPool,
+    ids: &[i64],
+) -> error::Result<Vec<(i64, String)>> {
+    if ids.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let rows = sqlx::query(
+        r#"
+        SELECT id, title
+        FROM posts
+        WHERE id = ANY($1)
+        "#,
+    )
+    .bind(ids)
+    .fetch_all(pool)
+    .await?;
+
+    let out = rows
+        .into_iter()
+        .map(|r| (r.get::<i64, _>("id"), r.get::<String, _>("title")))
+        .collect();
+
+    Ok(out)
 }
