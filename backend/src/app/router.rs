@@ -10,8 +10,8 @@ use tower_http::services::ServeDir;
 pub fn build_router(ctx: Context) -> Router {
     let cors = CorsLayer::new()
         .allow_origin([
-            "http://localhost:3001".parse::<HeaderValue>().unwrap(),
-            "http://127.0.0.1:3001".parse::<HeaderValue>().unwrap(),
+            "http://localhost:3000".parse::<HeaderValue>().unwrap(),
+            "http://127.0.0.1:3000".parse::<HeaderValue>().unwrap(),
         ])
         .allow_credentials(true)
         .allow_methods([
