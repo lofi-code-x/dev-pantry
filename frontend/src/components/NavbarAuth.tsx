@@ -50,9 +50,8 @@ export function NavbarAuth() {
             <Link
                 href="/login"
                 className={cn(
-                    "inline-flex items-center rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
-                    "text-neutral-950 hover:bg-neutral-50",
-                    "focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                    "inline-flex items-center rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
+                    "text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                 )}
             >
                 LogIn
@@ -68,9 +67,9 @@ export function NavbarAuth() {
                 aria-haspopup="menu"
                 aria-expanded={open}
                 className={cn(
-                    "inline-flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 bg-white",
-                    "text-sm font-semibold text-neutral-950 hover:bg-neutral-50",
-                    "focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                    "inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card",
+                    "text-sm font-semibold text-fg hover:bg-muted",
+                    "focus:outline-none focus:ring-2 focus:ring-ring"
                 )}
                 title={user.login}
             >
@@ -80,20 +79,22 @@ export function NavbarAuth() {
             {open ? (
                 <div
                     role="menu"
-                    className="absolute right-0 top-11 w-48 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm"
+                    className={cn(
+                        "absolute right-0 top-11 w-48 overflow-hidden rounded-xl border border-border bg-card shadow-sm"
+                    )}
                 >
-                    <div className="border-b border-neutral-200 px-3 py-2">
-                        <div className="text-sm font-semibold text-neutral-950">{user.login}</div>
-                        <div className="text-xs text-neutral-600">{user.role}</div>
+                    <div className="border-b border-border px-3 py-2">
+                        <div className="text-sm font-semibold text-fg">{user.login}</div>
+                        <div className="text-xs text-muted-fg">{user.role}</div>
                     </div>
 
                     <Link
                         href="/me"
                         role="menuitem"
                         onClick={() => setOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-neutral-950 hover:bg-neutral-50"
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-fg hover:bg-muted"
                     >
-                        <PersonOutlineIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                        <PersonOutlineIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                         View profile
                     </Link>
 
@@ -101,9 +102,9 @@ export function NavbarAuth() {
                         href="/me/saved"
                         role="menuitem"
                         onClick={() => setOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-neutral-950 hover:bg-neutral-50"
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-fg hover:bg-muted"
                     >
-                        <BookmarkBorderIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                        <BookmarkBorderIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                         Saved
                     </Link>
 
@@ -111,9 +112,9 @@ export function NavbarAuth() {
                         type="button"
                         role="menuitem"
                         onClick={onLogout}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-950 hover:bg-neutral-50"
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-fg hover:bg-muted"
                     >
-                        <LogoutIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                        <LogoutIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                         Log out
                     </button>
                 </div>

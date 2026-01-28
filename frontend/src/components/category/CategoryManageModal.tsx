@@ -6,41 +6,12 @@ import { ApiError } from "@/lib/apiClient";
 import type { Category } from "@/lib/api/category";
 import { createCategory, deleteCategory, getAllCategories } from "@/lib/api/category";
 
+// ✅ Google (MUI) icons
+import CloseIcon from "@mui/icons-material/Close";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+
 function cn(...parts: Array<string | false | null | undefined>) {
     return parts.filter(Boolean).join(" ");
-}
-
-function IconX(props: React.SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-            <path
-                d="M6 6l12 12M18 6 6 18"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-            />
-        </svg>
-    );
-}
-
-function IconTrash(props: React.SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-            <path
-                d="M9 3h6m-9 4h12m-1 0-1 14H8L7 7"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-            <path
-                d="M10 11v7M14 11v7"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-            />
-        </svg>
-    );
 }
 
 export default function CategoryManageModal({
@@ -64,9 +35,7 @@ export default function CategoryManageModal({
         setLoading(true);
         try {
             const list = await getAllCategories();
-            setItems(
-                (list ?? []).filter((c) => String((c as any).tag ?? "") !== "all")
-            );
+            setItems((list ?? []).filter((c) => String((c as any).tag ?? "") !== "all"));
         } catch (e) {
             setError(e instanceof ApiError ? e.message : "Failed to load categories.");
         } finally {
@@ -126,22 +95,20 @@ export default function CategoryManageModal({
             role="dialog"
             aria-modal="true"
         >
-            <div className="w-full max-w-xl rounded-xl border border-neutral-200 bg-white shadow-lg">
-                <div className="flex items-start justify-between gap-4 border-b border-neutral-200 p-4">
+            <div className="w-full max-w-xl rounded-xl border border-border bg-card shadow-lg">
+                <div className="flex items-start justify-between gap-4 border-b border-border p-4">
                     <div>
-                        <div className="text-base font-semibold text-neutral-950">Manage categories</div>
-                        <div className="mt-1 text-sm text-neutral-600">
-                            Add a new category or delete existing ones.
-                        </div>
+                        <div className="text-base font-semibold text-fg">Manage categories</div>
+                        <div className="mt-1 text-sm text-muted-fg">Add a new category or delete existing ones.</div>
                     </div>
 
                     <button
                         type="button"
                         onClick={() => onOpenChange(false)}
-                        className="rounded-lg p-2 text-neutral-700 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                        className="rounded-lg p-2 text-muted-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                         aria-label="Close"
                     >
-                        <IconX className="h-5 w-5" />
+                        <CloseIcon sx={{ fontSize: 20 }} />
                     </button>
                 </div>
 
@@ -149,12 +116,12 @@ export default function CategoryManageModal({
                     {/* Create */}
                     <form onSubmit={onCreate} className="flex flex-col gap-3 sm:flex-row sm:items-end">
                         <div className="flex-1">
-                            <label className="block text-sm font-medium text-neutral-950">New category title</label>
+                            <label className="block text-sm font-medium text-fg">New category title</label>
                             <input
                                 value={newTitle}
                                 onChange={(e) => setNewTitle(e.target.value)}
                                 placeholder="e.g. Backend"
-                                className="mt-2 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-950 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                                className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-fg placeholder:text-muted-fg focus:outline-none focus:ring-2 focus:ring-ring"
                             />
                         </div>
 
@@ -162,10 +129,10 @@ export default function CategoryManageModal({
                             type="submit"
                             disabled={pendingCreate || !newTitle.trim()}
                             className={cn(
-                                "inline-flex items-center justify-center rounded-lg border border-neutral-200",
-                                "bg-neutral-950 px-3 py-2 text-sm font-medium text-white hover:bg-neutral-900",
+                                "inline-flex items-center justify-center rounded-lg border border-border",
+                                "bg-primary px-3 py-2 text-sm font-medium text-primary-fg hover:bg-primary/90",
                                 "disabled:cursor-not-allowed disabled:opacity-60",
-                                "focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                                "focus:outline-none focus:ring-2 focus:ring-ring"
                             )}
                         >
                             {pendingCreate ? "Adding..." : "Add"}
@@ -174,29 +141,25 @@ export default function CategoryManageModal({
 
                     {/* Error */}
                     {error ? (
-                        <div className="mt-4 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-800">
-                            {error}
-                        </div>
+                        <div className="mt-4 rounded-lg border border-border bg-muted px-3 py-2 text-sm text-fg">{error}</div>
                     ) : null}
 
                     {/* List */}
                     <div className="mt-4">
-                        <div className="text-sm font-medium text-neutral-950">All categories</div>
+                        <div className="text-sm font-medium text-fg">All categories</div>
 
-                        <div className="mt-2 max-h-85 overflow-auto rounded-lg border border-neutral-200">
+                        <div className="mt-2 max-h-85 overflow-auto rounded-lg border border-border">
                             {loading ? (
-                                <div className="p-3 text-sm text-neutral-700">Loading…</div>
+                                <div className="p-3 text-sm text-muted-fg">Loading…</div>
                             ) : sorted.length === 0 ? (
-                                <div className="p-3 text-sm text-neutral-700">No categories.</div>
+                                <div className="p-3 text-sm text-muted-fg">No categories.</div>
                             ) : (
-                                <ul className="divide-y divide-neutral-200">
+                                <ul className="divide-y divide-border">
                                     {sorted.map((c) => (
                                         <li key={c.tag} className="flex items-center gap-3 p-3">
                                             <div className="min-w-0 flex-1">
-                                                <div className="truncate text-sm font-medium text-neutral-950">
-                                                    {c.title}
-                                                </div>
-                                                <div className="truncate text-xs text-neutral-600">{c.tag}</div>
+                                                <div className="truncate text-sm font-medium text-fg">{c.title}</div>
+                                                <div className="truncate text-xs text-muted-fg">{c.tag}</div>
                                             </div>
 
                                             <button
@@ -204,13 +167,13 @@ export default function CategoryManageModal({
                                                 onClick={() => onDelete(c.tag)}
                                                 disabled={pendingDeleteTag === c.tag}
                                                 className={cn(
-                                                    "inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs font-medium",
-                                                    "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200",
+                                                    "inline-flex items-center gap-2 rounded-lg border border-border bg-card px-2 py-1.5 text-xs font-medium",
+                                                    "text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring",
                                                     "disabled:cursor-not-allowed disabled:opacity-60"
                                                 )}
                                                 aria-label={`Delete category ${c.title}`}
                                             >
-                                                <IconTrash className="h-4 w-4 text-neutral-700" />
+                                                <DeleteOutlineIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                                                 {pendingDeleteTag === c.tag ? "Deleting..." : "Delete"}
                                             </button>
                                         </li>
@@ -219,17 +182,17 @@ export default function CategoryManageModal({
                             )}
                         </div>
 
-                        <div className="mt-2 text-xs text-neutral-600">
+                        <div className="mt-2 text-xs text-muted-fg">
                             Note: deleting a category may fail if posts reference it (depends on backend constraints).
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 border-t border-neutral-200 p-4">
+                <div className="flex items-center justify-end gap-2 border-t border-border p-4">
                     <button
                         type="button"
                         onClick={load}
-                        className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                        className="rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                     >
                         Refresh
                     </button>
@@ -237,7 +200,7 @@ export default function CategoryManageModal({
                     <button
                         type="button"
                         onClick={() => onOpenChange(false)}
-                        className="rounded-lg border border-neutral-200 bg-neutral-950 px-3 py-2 text-sm font-medium text-white hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                        className="rounded-lg border border-border bg-primary px-3 py-2 text-sm font-medium text-primary-fg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring"
                     >
                         Done
                     </button>

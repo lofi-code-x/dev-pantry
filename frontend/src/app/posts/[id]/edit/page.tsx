@@ -78,8 +78,8 @@ export default function EditPostPage() {
     if (err) {
         return (
             <main className="mx-auto w-full max-w-6xl px-6 py-10">
-                <section className="rounded-xl border border-neutral-200 bg-neutral-50 p-6 shadow-sm">
-                    <div className="text-sm text-neutral-800">{err}</div>
+                <section className="rounded-xl border border-border bg-muted p-6 shadow-sm">
+                    <div className="text-sm text-fg">{err}</div>
                 </section>
             </main>
         );

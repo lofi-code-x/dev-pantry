@@ -64,6 +64,14 @@ function formatDateTime(iso: string) {
     }
 }
 
+const btnBase =
+    "inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-fg " +
+    "hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60";
+
+const btnBaseLeft =
+    "inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-fg " +
+    "hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring";
+
 export default function PostPage() {
     const params = useParams<{ id: string }>();
     const router = useRouter();
@@ -143,7 +151,7 @@ export default function PostPage() {
                 setSaved(Boolean(st.saved));
                 setCompleted(Boolean(st.completed));
             } catch {
-                // не валим страницу — просто не показываем стейт
+                // best-effort
             }
         }
 
@@ -166,8 +174,7 @@ export default function PostPage() {
                 const n = await getPostModuleNav(postId, moduleIdFromQs);
                 if (cancelled) return;
                 setNav(n);
-            } catch (e) {
-                // если пост не в модуле -> 404, это норм, просто не показываем навигацию
+            } catch {
                 if (cancelled) return;
                 setNav(null);
             } finally {
@@ -265,14 +272,7 @@ export default function PostPage() {
         <main className="mx-auto w-full max-w-6xl px-6 py-10">
             {/* Управляющий бар */}
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <button
-                    type="button"
-                    onClick={() => router.back()}
-                    className={cn(
-                        "inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
-                        "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200"
-                    )}
-                >
+                <button type="button" onClick={() => router.back()} className={btnBaseLeft}>
                     <ArrowBackIcon sx={{ fontSize: 18 }} />
                     Back
                 </button>
@@ -285,17 +285,13 @@ export default function PostPage() {
                                 type="button"
                                 onClick={onToggleSaved}
                                 disabled={actionPending}
-                                className={cn(
-                                    "inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
-                                    "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200",
-                                    "disabled:cursor-not-allowed disabled:opacity-60"
-                                )}
+                                className={btnBase}
                                 title={saved ? "Remove from saved" : "Save post"}
                             >
                                 {saved ? (
-                                    <BookmarkIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                                    <BookmarkIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                                 ) : (
-                                    <BookmarkBorderIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                                    <BookmarkBorderIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                                 )}
                                 {saved ? "Unsave" : "Save"}
                             </button>
@@ -304,17 +300,13 @@ export default function PostPage() {
                                 type="button"
                                 onClick={onToggleCompleted}
                                 disabled={actionPending}
-                                className={cn(
-                                    "inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
-                                    "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200",
-                                    "disabled:cursor-not-allowed disabled:opacity-60"
-                                )}
+                                className={btnBase}
                                 title={completed ? "Mark as not completed" : "Mark post as completed"}
                             >
                                 {completed ? (
-                                    <RemoveCircleOutlineIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                                    <RemoveCircleOutlineIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                                 ) : (
-                                    <CheckCircleOutlineIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                                    <CheckCircleOutlineIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                                 )}
                                 {completed ? "Uncomplete" : "Mark completed"}
                             </button>
@@ -324,16 +316,10 @@ export default function PostPage() {
                     {/* Staff actions */}
                     {staff && post ? (
                         <>
-                            <span className="mx-1 h-6 w-px bg-neutral-200" />
+                            <span className="mx-1 h-6 w-px bg-border" />
 
-                            <Link
-                                href={`/posts/${postId}/edit`}
-                                className={cn(
-                                    "inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
-                                    "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200"
-                                )}
-                            >
-                                <EditIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                            <Link href={`/posts/${postId}/edit`} className={btnBaseLeft}>
+                                <EditIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                                 Edit post
                             </Link>
 
@@ -341,32 +327,19 @@ export default function PostPage() {
                                 type="button"
                                 onClick={onTogglePublic}
                                 disabled={actionPending}
-                                className={cn(
-                                    "inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
-                                    "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200",
-                                    "disabled:cursor-not-allowed disabled:opacity-60"
-                                )}
+                                className={btnBase}
                                 title="Toggle public/private"
                             >
                                 {post.is_published ? (
-                                    <LockIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                                    <LockIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                                 ) : (
-                                    <PublicIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                                    <PublicIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                                 )}
                                 {post.is_published ? "Make private" : "Make public"}
                             </button>
 
-                            <button
-                                type="button"
-                                onClick={onDelete}
-                                disabled={actionPending}
-                                className={cn(
-                                    "inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
-                                    "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200",
-                                    "disabled:cursor-not-allowed disabled:opacity-60"
-                                )}
-                            >
-                                <DeleteOutlineIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                            <button type="button" onClick={onDelete} disabled={actionPending} className={btnBase}>
+                                <DeleteOutlineIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                                 Delete post
                             </button>
                         </>
@@ -376,18 +349,14 @@ export default function PostPage() {
 
             {/* ✅ Навигация по модулю (если пост входит в модуль) */}
             {nav ? (
-                <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-neutral-200 bg-white p-3 shadow-sm">
+                <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-3 shadow-sm">
                     {/* Prev */}
                     {nav.prev ? (
                         <Link
-                            href={
-                                moduleIdFromQs
-                                    ? `/posts/${nav.prev.id}?module_id=${nav.module_id}`
-                                    : `/posts/${nav.prev.id}`
-                            }
+                            href={moduleIdFromQs ? `/posts/${nav.prev.id}?module_id=${nav.module_id}` : `/posts/${nav.prev.id}`}
                             className={cn(
-                                "inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
-                                "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                                "inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
+                                "text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                             )}
                             title={nav.prev.title}
                         >
@@ -399,8 +368,8 @@ export default function PostPage() {
                             type="button"
                             disabled
                             className={cn(
-                                "inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
-                                "text-neutral-950 disabled:cursor-not-allowed disabled:opacity-60"
+                                "inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
+                                "text-fg disabled:cursor-not-allowed disabled:opacity-60"
                             )}
                         >
                             <NavigateBeforeIcon sx={{ fontSize: 20 }} />
@@ -412,26 +381,22 @@ export default function PostPage() {
                     <Link
                         href={`/learn/${nav.module_id}`}
                         className={cn(
-                            "inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-medium",
-                            "text-neutral-950 hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                            "inline-flex items-center gap-2 rounded-lg border border-border bg-muted px-3 py-2 text-sm font-medium",
+                            "text-fg hover:bg-muted/80 focus:outline-none focus:ring-2 focus:ring-ring"
                         )}
                         title={`Open module #${nav.module_id}`}
                     >
-                        <MenuBookIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
-                        <span className="text-neutral-800">Module</span>
+                        <MenuBookIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
+                        <span className="text-fg">Module</span>
                     </Link>
 
                     {/* Next */}
                     {nav.next ? (
                         <Link
-                            href={
-                                moduleIdFromQs
-                                    ? `/posts/${nav.next.id}?module_id=${nav.module_id}`
-                                    : `/posts/${nav.next.id}`
-                            }
+                            href={moduleIdFromQs ? `/posts/${nav.next.id}?module_id=${nav.module_id}` : `/posts/${nav.next.id}`}
                             className={cn(
-                                "inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
-                                "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                                "inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
+                                "text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                             )}
                             title={nav.next.title}
                         >
@@ -443,8 +408,8 @@ export default function PostPage() {
                             type="button"
                             disabled
                             className={cn(
-                                "inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
-                                "text-neutral-950 disabled:cursor-not-allowed disabled:opacity-60"
+                                "inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
+                                "text-fg disabled:cursor-not-allowed disabled:opacity-60"
                             )}
                         >
                             Next
@@ -452,31 +417,27 @@ export default function PostPage() {
                         </button>
                     )}
 
-                    <div className="ml-auto text-xs text-neutral-600">
-                        {navLoading ? "Loading nav…" : null}
-                    </div>
+                    <div className="ml-auto text-xs text-muted-fg">{navLoading ? "Loading nav…" : null}</div>
                 </div>
             ) : navLoading ? (
-                <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-3 text-xs text-neutral-600 shadow-sm">
+                <div className="mb-6 rounded-xl border border-border bg-card p-3 text-xs text-muted-fg shadow-sm">
                     Loading module navigation…
                 </div>
             ) : null}
 
             {loading ? (
-                <section className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-                    <div className="text-sm text-neutral-700">Loading…</div>
+                <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                    <div className="text-sm text-muted-fg">Loading…</div>
                 </section>
             ) : err ? (
-                <section className="rounded-xl border border-neutral-200 bg-neutral-50 p-6 shadow-sm">
-                    <div className="text-sm text-neutral-800">{err}</div>
+                <section className="rounded-xl border border-border bg-muted p-6 shadow-sm">
+                    <div className="text-sm text-fg">{err}</div>
                 </section>
             ) : !post ? null : (
-                <article className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-                    <header className="border-b border-neutral-200 pb-4">
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-600">
-              <span className="rounded-md border border-neutral-200 bg-white px-2 py-1">
-                {post.category_tag}
-              </span>
+                <article className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                    <header className="border-b border-border pb-4">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-fg">
+                            <span className="rounded-md border border-border bg-card px-2 py-1">{post.category_tag}</span>
                             <span>•</span>
                             <span className="truncate">by {post.author}</span>
                             <span>•</span>
@@ -485,20 +446,16 @@ export default function PostPage() {
                             {staff ? (
                                 <>
                                     <span>•</span>
-                                    <span className="rounded-md border border-neutral-200 bg-white px-2 py-1">
+                                    <span className="rounded-md border border-border bg-card px-2 py-1">
                     {post.is_published ? "public" : "private"}
                   </span>
                                 </>
                             ) : null}
                         </div>
 
-                        <h1 className="mt-3 text-2xl font-semibold tracking-tight text-neutral-950">
-                            {post.title}
-                        </h1>
+                        <h1 className="mt-3 text-2xl font-semibold tracking-tight text-fg">{post.title}</h1>
 
-                        {post.preview_text ? (
-                            <p className="mt-2 text-sm text-neutral-700">{post.preview_text}</p>
-                        ) : null}
+                        {post.preview_text ? <p className="mt-2 text-sm text-muted-fg">{post.preview_text}</p> : null}
                     </header>
 
                     <div className="pt-5">

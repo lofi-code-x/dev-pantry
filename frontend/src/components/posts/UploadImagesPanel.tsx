@@ -11,7 +11,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
 type UploadedImage = {
     name: string;
-    url: string; // то, что вернул сервер (часто это "/uploads/images/..." или "uploads/images/...")
+    url: string; // то, что вернул сервер
 };
 
 function cn(...parts: Array<string | false | null | undefined>) {
@@ -23,14 +23,8 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"
 function toAbsolute(url: string) {
     const u = String(url ?? "").trim();
     if (!u) return u;
-
-    // уже абсолютный URL
     if (u.startsWith("http://") || u.startsWith("https://")) return u;
-
-    // путь от корня (например "/uploads/images/..")
     if (u.startsWith("/")) return `${API_BASE}${u}`;
-
-    // относительный путь (например "uploads/images/..")
     return `${API_BASE}/${u}`;
 }
 
@@ -87,13 +81,7 @@ export default function UploadImagesPanel({
 
     return (
         <div className="sm:col-span-3">
-            <input
-                ref={inputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={onPick}
-            />
+            <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
 
             <div className="flex flex-wrap items-center gap-2">
                 <button
@@ -101,63 +89,59 @@ export default function UploadImagesPanel({
                     onClick={openPicker}
                     disabled={disabled || pending}
                     className={cn(
-                        "inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
-                        "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200",
+                        "inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
+                        "text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring",
                         "disabled:cursor-not-allowed disabled:opacity-60"
                     )}
                 >
-                    <CloudUploadOutlinedIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                    <CloudUploadOutlinedIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                     {pending ? "Uploading..." : "Upload image"}
                 </button>
 
-                <span className="text-xs text-neutral-600">PNG/JPG/WebP, up to 10MB</span>
+                <span className="text-xs text-muted-fg">PNG/JPG/WebP, up to 10MB</span>
             </div>
 
             {err ? (
-                <div className="mt-2 text-sm text-neutral-800">
-          <span className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1">
-            {err}
-          </span>
+                <div className="mt-2 text-sm text-fg">
+                    <span className="rounded-md border border-border bg-muted px-2 py-1">{err}</span>
                 </div>
             ) : null}
 
             {items.length ? (
                 <div className="mt-3">
-                    <div className="text-xs font-medium text-neutral-700">Uploaded images</div>
+                    <div className="text-xs font-medium text-muted-fg">Uploaded images</div>
 
                     <ul className="mt-2 space-y-2">
                         {items.map((it, idx) => (
                             <li
                                 key={`${it.url}-${idx}`}
-                                className="flex flex-wrap items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2"
+                                className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card px-3 py-2"
                             >
-                                <span className="text-sm text-neutral-950">{it.name}</span>
+                                <span className="text-sm text-fg">{it.name}</span>
 
                                 <a
                                     href={toAbsolute(it.url)}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="inline-flex items-center gap-1 text-xs text-neutral-700 underline underline-offset-4 hover:text-neutral-950"
+                                    className="inline-flex items-center gap-1 text-xs text-muted-fg underline underline-offset-4 hover:text-fg"
                                 >
-                                    <OpenInNewIcon sx={{ fontSize: 16 }} className="text-neutral-600" />
+                                    <OpenInNewIcon sx={{ fontSize: 16 }} className="text-muted-fg" />
                                     Open
                                 </a>
 
                                 <button
                                     type="button"
                                     onClick={() => copyMarkdown(it.url)}
-                                    className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-neutral-950 underline underline-offset-4 hover:text-neutral-700"
+                                    className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-fg underline underline-offset-4 hover:text-muted-fg"
                                 >
-                                    <ContentCopyIcon sx={{ fontSize: 16 }} className="text-neutral-600" />
+                                    <ContentCopyIcon sx={{ fontSize: 16 }} className="text-muted-fg" />
                                     Copy markdown
                                 </button>
                             </li>
                         ))}
                     </ul>
 
-                    <div className="mt-2 text-xs text-neutral-600">
-                        Tip: paste copied markdown into your content.
-                    </div>
+                    <div className="mt-2 text-xs text-muted-fg">Tip: paste copied markdown into your content.</div>
                 </div>
             ) : null}
         </div>

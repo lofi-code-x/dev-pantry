@@ -12,13 +12,19 @@ import {
     updateModule,
     createModuleItem,
     deleteModuleItem,
-    // Нужны для edit, чтобы пересобрать items корректно:
     listModuleItems,
     type ModuleItem,
     type ModuleCreateRequest,
     type ModuleUpdateRequest,
     type ModuleItemCreateRequest,
 } from "@/lib/api/modules";
+
+// ✅ Google (MUI) icons
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import CloseIcon from "@mui/icons-material/Close";
+import AddIcon from "@mui/icons-material/Add";
+import CheckIcon from "@mui/icons-material/Check";
 
 type Mode = "create" | "edit";
 
@@ -34,6 +40,10 @@ function useDebounced<T>(value: T, delayMs: number) {
         return () => window.clearTimeout(t);
     }, [value, delayMs]);
     return v;
+}
+
+function cn(...parts: Array<string | false | null | undefined>) {
+    return parts.filter(Boolean).join(" ");
 }
 
 export default function ModuleEditor({
@@ -187,16 +197,13 @@ export default function ModuleEditor({
             }
 
             // ---------------- EDIT ----------------
-            // 1) update module fields
             const updateBody: ModuleUpdateRequest = {
                 title: t,
                 description: description.trim() ? description.trim() : null,
-                // is_published: isPublished  <-- если update API не поддерживает, меняй отдельным set-public
+                // is_published: isPublished
             };
             await updateModule(moduleId!, updateBody);
 
-            // 2) sync module items:
-            // стратегия: удалить все item записи и создать заново в порядке selected
             const currentItems: ModuleItem[] = await listModuleItems(moduleId!);
             for (const it of currentItems) {
                 await deleteModuleItem(it.id);
@@ -209,10 +216,6 @@ export default function ModuleEditor({
                     sort_order: i,
                 });
             }
-
-            // 3) visibility
-            // если у тебя есть setModulePublic — можно вызвать тут (опционально)
-            // await setModulePublic(moduleId!, isPublished);
 
             router.push(`/learn/${moduleId}`);
             router.refresh();
@@ -230,101 +233,90 @@ export default function ModuleEditor({
     return (
         <main className="mx-auto w-full max-w-6xl px-6 py-10">
             <header className="mb-6">
-                <h1 className="text-2xl font-semibold tracking-tight text-neutral-950">
+                <h1 className="text-2xl font-semibold tracking-tight text-fg">
                     {mode === "create" ? "Create module" : "Edit module"}
                 </h1>
-                <p className="mt-2 text-sm text-neutral-600">
-                    Fill module details and attach posts (no duplicates).
-                </p>
+                <p className="mt-2 text-sm text-muted-fg">Fill module details and attach posts (no duplicates).</p>
             </header>
 
             {!canAccess ? (
-                <section className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-                    <div className="text-sm text-neutral-700">Access denied.</div>
+                <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                    <div className="text-sm text-muted-fg">Access denied.</div>
                 </section>
             ) : (
                 <form onSubmit={onSubmit} className="grid gap-4">
                     {/* базовые поля */}
-                    <section className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+                    <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
                         <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
                             <div className="lg:col-span-6">
-                                <label className="block text-sm font-medium text-neutral-950">Title</label>
+                                <label className="block text-sm font-medium text-fg">Title</label>
                                 <input
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
-                                    className="mt-2 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-950 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                                    className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-fg placeholder:text-muted-fg focus:outline-none focus:ring-2 focus:ring-ring"
                                     placeholder="Module title"
                                 />
                             </div>
 
                             <div className="lg:col-span-6">
-                                <label className="block text-sm font-medium text-neutral-950">Visibility</label>
+                                <label className="block text-sm font-medium text-fg">Visibility</label>
                                 <div className="mt-2 flex items-center gap-2">
                                     <input
                                         id="pub"
                                         type="checkbox"
                                         checked={isPublished}
                                         onChange={(e) => setIsPublished(e.target.checked)}
-                                        className="h-4 w-4"
+                                        className="h-4 w-4 accent-[hsl(var(--primary))]"
                                     />
-                                    <label htmlFor="pub" className="text-sm text-neutral-950">
+                                    <label htmlFor="pub" className="text-sm text-fg">
                                         Public
                                     </label>
-                                    <span className="text-xs text-neutral-600">
-                    {isPublished ? "Visible to all" : "Hidden (draft)"}
-                  </span>
+                                    <span className="text-xs text-muted-fg">{isPublished ? "Visible to all" : "Hidden (draft)"}</span>
                                 </div>
                             </div>
 
                             <div className="lg:col-span-12">
-                                <label className="block text-sm font-medium text-neutral-950">Description</label>
+                                <label className="block text-sm font-medium text-fg">Description</label>
                                 <textarea
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                     rows={3}
-                                    className="mt-2 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-950 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                                    className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-fg placeholder:text-muted-fg focus:outline-none focus:ring-2 focus:ring-ring"
                                     placeholder="Optional module description"
                                 />
                             </div>
                         </div>
 
                         {err ? (
-                            <div className="mt-4 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-800">
-                                {err}
-                            </div>
+                            <div className="mt-4 rounded-lg border border-border bg-muted px-3 py-2 text-sm text-fg">{err}</div>
                         ) : null}
                     </section>
 
                     {/* выбор постов */}
                     <section className="grid gap-4 lg:grid-cols-2">
                         {/* selected */}
-                        <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+                        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                             <div className="mb-3 flex items-center justify-between gap-3">
                                 <div>
-                                    <div className="text-sm font-medium text-neutral-950">Selected posts</div>
-                                    <div className="text-xs text-neutral-600">Order matters (sort_order).</div>
+                                    <div className="text-sm font-medium text-fg">Selected posts</div>
+                                    <div className="text-xs text-muted-fg">Order matters (sort_order).</div>
                                 </div>
-                                <div className="text-xs text-neutral-600">{selected.length} selected</div>
+                                <div className="text-xs text-muted-fg">{selected.length} selected</div>
                             </div>
 
                             <div className="max-h-[50vh] overflow-auto pr-1">
                                 {selected.length === 0 ? (
-                                    <div className="text-sm text-neutral-600">No posts added yet.</div>
+                                    <div className="text-sm text-muted-fg">No posts added yet.</div>
                                 ) : (
                                     <ul className="space-y-2">
                                         {selected.map((p, idx) => (
-                                            <li
-                                                key={p.id}
-                                                className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2"
-                                            >
+                                            <li key={p.id} className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
                                                 <div className="min-w-0 flex-1">
-                                                    <div className="truncate text-sm font-medium text-neutral-950">
+                                                    <div className="truncate text-sm font-medium text-fg">
                                                         {idx + 1}. {p.title}
                                                     </div>
-                                                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-neutral-600">
-                            <span className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-0.5">
-                              {p.category_tag}
-                            </span>
+                                                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-fg">
+                                                        <span className="rounded-md border border-border bg-muted px-2 py-0.5">{p.category_tag}</span>
                                                         <span>{p.author}</span>
                                                     </div>
                                                 </div>
@@ -334,27 +326,32 @@ export default function ModuleEditor({
                                                         type="button"
                                                         onClick={() => move(p.id, -1)}
                                                         disabled={idx === 0}
-                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-muted-fg hover:bg-muted disabled:opacity-50"
                                                         title="Move up"
+                                                        aria-label="Move up"
                                                     >
-                                                        ↑
+                                                        <ArrowUpwardIcon sx={{ fontSize: 18 }} />
                                                     </button>
+
                                                     <button
                                                         type="button"
                                                         onClick={() => move(p.id, 1)}
                                                         disabled={idx === selected.length - 1}
-                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-muted-fg hover:bg-muted disabled:opacity-50"
                                                         title="Move down"
+                                                        aria-label="Move down"
                                                     >
-                                                        ↓
+                                                        <ArrowDownwardIcon sx={{ fontSize: 18 }} />
                                                     </button>
+
                                                     <button
                                                         type="button"
                                                         onClick={() => removePost(p.id)}
-                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
+                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-muted-fg hover:bg-muted"
                                                         title="Remove"
+                                                        aria-label="Remove"
                                                     >
-                                                        ✕
+                                                        <CloseIcon sx={{ fontSize: 18 }} />
                                                     </button>
                                                 </div>
                                             </li>
@@ -365,52 +362,41 @@ export default function ModuleEditor({
                         </div>
 
                         {/* search */}
-                        <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+                        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                             <div className="mb-3 flex items-center justify-between gap-3">
                                 <div>
-                                    <div className="text-sm font-medium text-neutral-950">Add posts</div>
-                                    <div className="text-xs text-neutral-600">Default: last 10 posts.</div>
+                                    <div className="text-sm font-medium text-fg">Add posts</div>
+                                    <div className="text-xs text-muted-fg">Default: last 10 posts.</div>
                                 </div>
-                                <div className="text-xs text-neutral-600">
-                                    {searchPending ? "Loading..." : `${results.length} results`}
-                                </div>
+                                <div className="text-xs text-muted-fg">{searchPending ? "Loading..." : `${results.length} results`}</div>
                             </div>
 
                             <input
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
-                                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-950 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-fg placeholder:text-muted-fg focus:outline-none focus:ring-2 focus:ring-ring"
                                 placeholder="Search posts… (axum, jwt, sqlx)"
                             />
 
                             {searchErr ? (
-                                <div className="mt-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-800">
-                                    {searchErr}
-                                </div>
+                                <div className="mt-3 rounded-lg border border-border bg-muted px-3 py-2 text-sm text-fg">{searchErr}</div>
                             ) : null}
 
                             <div className="mt-3 max-h-[50vh] overflow-auto pr-1">
                                 {searchPending ? (
-                                    <div className="text-sm text-neutral-600">Loading…</div>
+                                    <div className="text-sm text-muted-fg">Loading…</div>
                                 ) : results.length === 0 ? (
-                                    <div className="text-sm text-neutral-600">No posts found.</div>
+                                    <div className="text-sm text-muted-fg">No posts found.</div>
                                 ) : (
                                     <ul className="space-y-2">
                                         {results.map((p) => {
                                             const already = selectedIds.has(p.id);
                                             return (
-                                                <li
-                                                    key={p.id}
-                                                    className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2"
-                                                >
+                                                <li key={p.id} className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
                                                     <div className="min-w-0 flex-1">
-                                                        <div className="truncate text-sm font-medium text-neutral-950">
-                                                            {p.title}
-                                                        </div>
-                                                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-neutral-600">
-                              <span className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-0.5">
-                                {p.category_tag}
-                              </span>
+                                                        <div className="truncate text-sm font-medium text-fg">{p.title}</div>
+                                                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-fg">
+                                                            <span className="rounded-md border border-border bg-muted px-2 py-0.5">{p.category_tag}</span>
                                                             <span>{p.author}</span>
                                                         </div>
                                                     </div>
@@ -419,9 +405,26 @@ export default function ModuleEditor({
                                                         type="button"
                                                         onClick={() => addPost(p)}
                                                         disabled={already}
-                                                        className="inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-950 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                                        className={cn(
+                                                            "inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium",
+                                                            already
+                                                                ? "bg-muted text-muted-fg"
+                                                                : "bg-card text-fg hover:bg-muted",
+                                                            "disabled:cursor-not-allowed disabled:opacity-60"
+                                                        )}
+                                                        aria-label={already ? "Already added" : "Add post"}
                                                     >
-                                                        {already ? "Added" : "Add"}
+                                                        {already ? (
+                                                            <>
+                                                                <CheckIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
+                                                                Added
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <AddIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
+                                                                Add
+                                                            </>
+                                                        )}
                                                     </button>
                                                 </li>
                                             );
@@ -437,7 +440,7 @@ export default function ModuleEditor({
                         <button
                             type="submit"
                             disabled={pending}
-                            className="inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-neutral-950 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                            className="inline-flex items-center justify-center rounded-lg border border-border bg-primary px-4 py-2 text-sm font-medium text-primary-fg hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-ring"
                         >
                             {pending ? "Saving..." : mode === "create" ? "Create module" : "Save changes"}
                         </button>

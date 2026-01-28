@@ -4,7 +4,10 @@
 import dynamic from "next/dynamic";
 import React from "react";
 
-const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
+const MDEditor = dynamic(
+    () => import("@uiw/react-md-editor"),
+    {ssr: false}
+);
 
 export default function MdEditor({
                                      value,
@@ -14,11 +17,12 @@ export default function MdEditor({
     onChange: (v: string) => void;
 }) {
     return (
-        <MDEditor
-            value={value}
-            height={800}
-            onChange={(v) => onChange(v ?? "")}
-        />
+        <div data-color-mode="dark">
+            <MDEditor
+                value={value}
+                height={800}
+                onChange={(v) => onChange(v ?? "")}
+            />
+        </div>
     );
 }
-

@@ -3,8 +3,8 @@
 
 import Link from "next/link";
 import React from "react";
-import {useAuth} from "@/components/auth/AuthProvider";
-import type {UserRole} from "@/lib/types";
+import { useAuth } from "@/components/auth/AuthProvider";
+import type { UserRole } from "@/lib/types";
 
 import AddIcon from "@mui/icons-material/Add";
 
@@ -19,20 +19,19 @@ function cn(...parts: Array<string | false | null | undefined>) {
 }
 
 export function ModulePrimaryAction() {
-    const {user} = useAuth();
+    const { user } = useAuth();
     if (!user) return null;
-
     if (!isStaff(user.role)) return null;
 
     return (
         <Link
             href="/learn/new"
             className={cn(
-                "inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
-                "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                "inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
+                "text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
             )}
         >
-            <AddIcon sx={{fontSize: 18}}/>
+            <AddIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
             Create module
         </Link>
     );

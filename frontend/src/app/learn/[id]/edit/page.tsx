@@ -66,7 +66,7 @@ export default function EditModulePage() {
     if (err) {
         return (
             <main className="mx-auto w-full max-w-6xl px-6 py-10">
-                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-800">
+                <div className="rounded-xl border border-border bg-muted p-4 text-sm text-fg">
                     {err}
                 </div>
             </main>

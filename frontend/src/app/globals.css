@@ -1,22 +1,99 @@
 /* src/app/globals.css */
 @import "tailwindcss";
 
-@import "@uiw/react-md-editor/markdown-editor.css";
-@import "@uiw/react-markdown-preview/markdown.css";
-
-/* База: белый фон, чёрный основной текст, серые подсказки */
+/* 1) Base semantic tokens (HSL triplets) */
 :root {
     color-scheme: light;
+
+    --bg: 0 0% 100%;
+    --fg: 0 0% 4%;
+    --muted: 0 0% 96%;
+    --muted-fg: 0 0% 40%;
+    --border: 0 0% 88%;
+    --ring: 0 0% 70%;
+
+    --card: 0 0% 100%;
+    --card-fg: 0 0% 4%;
+
+    /* нейтральный primary (чтобы “синий” не выбивался) */
+    --primary: 0 0% 10%;
+    --primary-fg: 0 0% 100%;
+
+    --radius: 12px;
 }
 
-html, body {
-    height: 100%;
+:root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --bg: 0 0% 7%;
+    --fg: 0 0% 96%;
+    --muted: 0 0% 12%;
+    --muted-fg: 0 0% 65%;
+    --border: 0 0% 18%;
+    --ring: 0 0% 35%;
+
+    --card: 0 0% 9%;
+    --card-fg: 0 0% 96%;
+
+    --primary: 0 0% 92%;
+    --primary-fg: 0 0% 10%;
 }
 
-body {
-    background: #fff;
-    color: #0a0a0a; /* близко к neutral-950 */
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+/* 2) Tailwind v4 theme tokens
+   ✅ ВАЖНО: тут должны быть валидные CSS цвета, без <alpha-value> */
+@theme {
+    --color-bg: hsl(var(--bg));
+    --color-fg: hsl(var(--fg));
+    --color-muted: hsl(var(--muted));
+    --color-muted-fg: hsl(var(--muted-fg));
+    --color-border: hsl(var(--border));
+    --color-ring: hsl(var(--ring));
+    --color-card: hsl(var(--card));
+    --color-card-fg: hsl(var(--card-fg));
+    --color-primary: hsl(var(--primary));
+    --color-primary-fg: hsl(var(--primary-fg));
+
+    --radius-lg: var(--radius);
+}
+
+/* 3) Base */
+@layer base {
+    html,
+    body {
+        height: 100%;
+    }
+
+    body {
+        background: hsl(var(--bg));
+        color: hsl(var(--fg));
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+}
+
+/* 4) Components */
+@layer components {
+    .nav-link {
+        @apply inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm
+        text-fg hover:bg-muted
+        focus:outline-none focus:ring-2 focus:ring-ring;
+    }
+
+    .brand-badge {
+        @apply inline-flex h-7 w-7 items-center justify-center rounded-lg
+        border border-border bg-card text-card-fg;
+    }
+
+    /* ✅ Navbar НЕ прозрачный при скролле:
+       полупрозрачность делаем арбитрари hsl(...) чтобы точно работало */
+    .topbar {
+        @apply sticky top-0 z-50 border-b border-border backdrop-blur;
+        background-color: hsl(var(--bg) / 0.95);
+    }
+
+    /* ✅ “панель” модалок (если хочешь использовать как утилиту) */
+    .modal-panel {
+        @apply rounded-xl border border-border bg-card text-card-fg;
+    }
 }

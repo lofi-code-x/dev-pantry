@@ -37,22 +37,22 @@ export function PostPrimaryAction() {
                 <Link
                     href="/posts/new"
                     className={cn(
-                        "inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
-                        "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                        "inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
+                        "text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                     )}
                 >
-                    <EditIcon sx={{ fontSize: 18 }} />
+                    <EditIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                     New post
                 </Link>
             ) : (
                 <Link
                     href="/posts/suggest"
                     className={cn(
-                        "inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-950",
-                        "hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                        "inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
+                        "text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                     )}
                 >
-                    <LightbulbOutlineIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                    <LightbulbOutlineIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                     Suggest post
                 </Link>
             )}
@@ -64,11 +64,11 @@ export function PostPrimaryAction() {
                         type="button"
                         onClick={() => setCatOpen(true)}
                         className={cn(
-                            "inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium",
-                            "text-neutral-950 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                            "inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
+                            "text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                         )}
                     >
-                        <LocalOfferIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                        <LocalOfferIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                         New Category
                     </button>
 

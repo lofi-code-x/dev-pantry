@@ -183,19 +183,19 @@ export default function ModulePage() {
                 <div className="mb-3 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     {/* left */}
                     <div className="min-w-0 flex-1">
-                        <h1 className="truncate text-2xl font-semibold tracking-tight text-neutral-950">
+                        <h1 className="truncate text-2xl font-semibold tracking-tight text-fg">
                             {mod?.title ?? "Module"}
                         </h1>
 
                         {mod?.description ? (
-                            <p className="mt-2 whitespace-pre-wrap break-words text-sm text-neutral-600">
+                            <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-fg">
                                 {mod.description}
                             </p>
                         ) : null}
 
                         {mod ? (
-                            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-neutral-600">
-                <span className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-0.5">
+                            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-fg">
+                <span className="rounded-md border border-border bg-muted px-2 py-0.5">
                   {mod.is_published ? "public" : "draft"}
                 </span>
                                 <span>author: {mod.author}</span>
@@ -209,10 +209,10 @@ export default function ModulePage() {
                         <div className="flex shrink-0 flex-wrap items-center gap-2">
                             <Link
                                 href={`/learn/${moduleId}/edit`}
-                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-950 hover:bg-neutral-50"
+                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                                 aria-disabled={pending}
                             >
-                                <EditIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                                <EditIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                                 Edit module
                             </Link>
 
@@ -220,12 +220,12 @@ export default function ModulePage() {
                                 type="button"
                                 onClick={onTogglePublic}
                                 disabled={pending || !mod}
-                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-950 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {mod?.is_published ? (
-                                    <LockIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                                    <LockIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                                 ) : (
-                                    <PublicIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                                    <PublicIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                                 )}
                                 {mod?.is_published ? "Set draft" : "Set public"}
                             </button>
@@ -234,9 +234,9 @@ export default function ModulePage() {
                                 type="button"
                                 onClick={onDelete}
                                 disabled={pending || !mod}
-                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-950 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                <DeleteOutlineIcon sx={{ fontSize: 18 }} className="text-neutral-700" />
+                                <DeleteOutlineIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                                 Delete
                             </button>
                         </div>
@@ -244,7 +244,7 @@ export default function ModulePage() {
                 </div>
 
                 {err ? (
-                    <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-800">
+                    <div className="rounded-xl border border-border bg-muted p-4 text-sm text-fg">
                         {err}
                     </div>
                 ) : null}
@@ -253,11 +253,11 @@ export default function ModulePage() {
             {/* posts list */}
             <section className="grid gap-3">
                 {pending && posts.length === 0 ? (
-                    <div className="rounded-xl border border-neutral-200 bg-white p-6 text-sm text-neutral-600 shadow-sm">
+                    <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-fg shadow-sm">
                         Loading…
                     </div>
                 ) : posts.length === 0 ? (
-                    <div className="rounded-xl border border-neutral-200 bg-white p-6 text-sm text-neutral-600 shadow-sm">
+                    <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-fg shadow-sm">
                         No posts in this module.
                     </div>
                 ) : (

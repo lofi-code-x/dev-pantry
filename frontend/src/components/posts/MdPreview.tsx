@@ -12,7 +12,7 @@ const Markdown = dynamic(
 
 export default function MdPreview({source}: { source: string }) {
     return (
-        <div data-color-mode="light" className="prose max-w-none">
+        <div data-color-mode="dark" className="prose max-w-none">
             <Markdown source={source}/>
         </div>
     );
