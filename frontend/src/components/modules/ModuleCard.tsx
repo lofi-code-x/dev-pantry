@@ -30,10 +30,19 @@ export function ModuleCard({ module, completed }: { module: Module; completed?: 
         <Link
             href={href}
             className={cn(
-                "block rounded-xl border border-border bg-card p-5 shadow-sm",
-                "hover:bg-muted/50",
-                "focus:outline-none focus:ring-2 focus:ring-ring"
+                // base (glossy)
+                "block card-gloss p-5",
+                "ring-1 ring-inset ring-border",
+                // smooth interactions
+                "transition-[transform,background-color,border-color,box-shadow] duration-150",
+                "hover:-translate-y-[1px]",
+                // ✅ hover uses ring color (no muted)
+                "hover:bg-[hsl(var(--ring)/0.10)] hover:border-[hsl(var(--ring)/0.45)]",
+                // ✅ ring INSIDE (won't be clipped by overflow-auto parent)
+                "hover:ring-2 hover:ring-inset hover:ring-ring/35",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55"
             )}
+            aria-label={`Open module: ${module.title}`}
         >
             <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -47,7 +56,14 @@ export function ModuleCard({ module, completed }: { module: Module; completed?: 
                 </div>
 
                 {completed ? (
-                    <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium text-fg">
+                    <span
+                        className={cn(
+                            "shrink-0 inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium",
+                            "border-[hsl(var(--ring)/0.35)] bg-[hsl(var(--ring)/0.10)] text-fg",
+                            "ring-1 ring-inset ring-ring/15"
+                        )}
+                        title="Completed"
+                    >
             <TaskAltIcon sx={{ fontSize: 16 }} className="text-muted-fg" />
             Completed
           </span>

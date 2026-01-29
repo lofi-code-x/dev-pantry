@@ -5,51 +5,65 @@
 :root {
     color-scheme: light;
 
-    --bg: 0 0% 100%;
-    --fg: 0 0% 4%;
-    --muted: 0 0% 96%;
-    --muted-fg: 0 0% 40%;
-    --border: 0 0% 88%;
-    --ring: 0 0% 70%;
+    /* Modern neutral-cool palette + higher contrast */
+    --bg: 220 20% 99%;
+    --fg: 222 24% 8%;
+
+    --muted: 220 18% 95%;
+    --muted-fg: 222 12% 38%;
+
+    --border: 220 14% 84%;
+    --ring: 220 90% 56%;
 
     --card: 0 0% 100%;
-    --card-fg: 0 0% 4%;
+    --card-fg: 222 24% 8%;
 
-    /* нейтральный primary (чтобы “синий” не выбивался) */
-    --primary: 0 0% 10%;
+    /* Neutral primary */
+    --primary: 222 28% 12%;
     --primary-fg: 0 0% 100%;
 
-    --radius: 12px;
+    /* Gloss helpers */
+    --shine: 0 0% 100%;
+    --radius: 16px;
+
+    /* Shadows / inner border */
+    --shadow-1: 0 1px 2px hsl(222 30% 10% / 0.08),
+    0 6px 18px hsl(222 30% 10% / 0.06);
+    --shadow-2: 0 2px 4px hsl(222 30% 10% / 0.10),
+    0 16px 40px hsl(222 30% 10% / 0.10);
+    --inner-border: inset 0 1px 0 hsl(var(--shine) / 0.75);
 }
 
 :root[data-theme="dark"] {
     color-scheme: dark;
 
-    /* было 7% → сделаем 10% */
-    --bg: 0 0% 10%;
+    /* Deep background + crisp foreground */
+    --bg: 222 24% 8%;
+    --fg: 0 0% 96%;
 
-    /* было 96% → слегка ниже, чтобы не “светилось” */
-    --fg: 0 0% 92%;
+    --muted: 222 18% 14%;
+    --muted-fg: 220 12% 72%;
 
-    /* было 12% → чуть светлее, чтобы блоки отличались от bg */
-    --muted: 0 0% 16%;
-    --muted-fg: 0 0% 70%;
+    --border: 222 14% 26%;
+    --ring: 220 90% 62%;
 
-    /* было 18% → мягче границы */
-    --border: 0 0% 24%;
-    --ring: 0 0% 40%;
+    --card: 222 20% 11%;
+    --card-fg: 0 0% 96%;
 
-    /* было 9% → карточки чуть светлее фона */
-    --card: 0 0% 13%;
-    --card-fg: 0 0% 92%;
+    --primary: 0 0% 96%;
+    --primary-fg: 222 24% 10%;
 
-    /* нейтральный primary оставим */
-    --primary: 0 0% 92%;
-    --primary-fg: 0 0% 10%;
+    --shine: 0 0% 100%;
+
+    /* Softer, wider shadows in dark */
+    --shadow-1: 0 1px 2px hsl(0 0% 0% / 0.35),
+    0 10px 26px hsl(0 0% 0% / 0.35);
+    --shadow-2: 0 2px 6px hsl(0 0% 0% / 0.40),
+    0 24px 60px hsl(0 0% 0% / 0.45);
+    --inner-border: inset 0 1px 0 hsl(var(--shine) / 0.08);
 }
 
-/* 2) Tailwind v4 theme tokens
-   ✅ ВАЖНО: тут должны быть валидные CSS цвета, без <alpha-value> */
+/* 2) Tailwind v4 theme tokens */
 @theme {
     --color-bg: hsl(var(--bg));
     --color-fg: hsl(var(--fg));
@@ -63,6 +77,9 @@
     --color-primary-fg: hsl(var(--primary-fg));
 
     --radius-lg: var(--radius);
+
+    --shadow-1: var(--shadow-1);
+    --shadow-2: var(--shadow-2);
 }
 
 /* 3) Base */
@@ -78,31 +95,177 @@
         text-rendering: optimizeLegibility;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+        Roboto, Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
     }
 }
 
 /* 4) Components */
 @layer components {
+    /* Glossy “surface” utility (component class) */
+    .surface {
+        @apply rounded-[var(--radius)] border border-border bg-card text-card-fg;
+        box-shadow: var(--shadow-1);
+        background-image: linear-gradient(
+                180deg,
+                hsl(var(--shine) / 0.55),
+                hsl(var(--shine) / 0) 38%
+        );
+        background-blend-mode: soft-light;
+        transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease,
+        background-image 0.14s ease;
+    }
+
+    /* Stronger card for key blocks (no @apply surface) */
+    .card-gloss {
+        @apply rounded-[var(--radius)] border border-border bg-card text-card-fg;
+        background-image: linear-gradient(
+                180deg,
+                hsl(var(--shine) / 0.55),
+                hsl(var(--shine) / 0) 38%
+        );
+        background-blend-mode: soft-light;
+        box-shadow: var(--shadow-2), var(--inner-border);
+        transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease,
+        background-image 0.14s ease;
+    }
+
+    /* ✅ Cards hover: ring accent + subtle radial “gloss” */
+    .surface:hover {
+        border-color: hsl(var(--ring) / 0.40);
+        box-shadow: var(--shadow-1), var(--inner-border),
+        0 0 0 1px hsl(var(--ring) / 0.20);
+        transform: translateY(-1px);
+        background-image: radial-gradient(
+                900px 240px at 20% 0%,
+                hsl(var(--ring) / 0.12),
+                transparent 55%
+        ),
+        linear-gradient(180deg, hsl(var(--shine) / 0.55), hsl(var(--shine) / 0) 38%);
+    }
+
+    .card-gloss:hover {
+        border-color: hsl(var(--ring) / 0.45);
+        box-shadow: var(--shadow-2), var(--inner-border),
+        0 0 0 1px hsl(var(--ring) / 0.26);
+        transform: translateY(-1px);
+        background-image: radial-gradient(
+                900px 260px at 20% 0%,
+                hsl(var(--ring) / 0.14),
+                transparent 56%
+        ),
+        linear-gradient(180deg, hsl(var(--shine) / 0.55), hsl(var(--shine) / 0) 38%);
+    }
+
+    /* NAV */
     .nav-link {
-        @apply inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm
-        text-fg hover:bg-muted
-        focus:outline-none focus:ring-2 focus:ring-ring;
+        @apply inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm
+        text-fg/90 hover:text-fg
+        focus:outline-none focus:ring-2 focus:ring-ring/60;
+        transition: background-color 0.15s ease, box-shadow 0.15s ease,
+        transform 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+
+    /* hover: ring-based tint + thin outline */
+    .nav-link:hover {
+        background: hsl(var(--ring) / 0.10);
+        box-shadow: 0 1px 0 hsl(var(--shine) / 0.35),
+        0 0 0 1px hsl(var(--ring) / 0.35);
+    }
+
+    .nav-icon {
+        @apply text-fg/65;
+    }
+
+    /* hover: icon in ring */
+    .nav-link:hover .nav-icon {
+        color: hsl(var(--ring));
+    }
+
+    .nav-link-active {
+        background: hsl(var(--ring) / 0.14);
+        box-shadow: 0 1px 0 hsl(var(--shine) / 0.35),
+        0 0 0 1px hsl(var(--ring) / 0.45), var(--shadow-1);
+    }
+
+    .nav-link-active .nav-icon {
+        color: hsl(var(--ring));
     }
 
     .brand-badge {
-        @apply inline-flex h-7 w-7 items-center justify-center rounded-lg
+        @apply inline-flex h-7 w-7 items-center justify-center rounded-xl
         border border-border bg-card text-card-fg;
+        box-shadow: var(--shadow-1), var(--inner-border);
     }
 
-    /* ✅ Navbar НЕ прозрачный при скролле:
-       полупрозрачность делаем арбитрари hsl(...) чтобы точно работало */
+    /* Navbar glass + gradient */
     .topbar {
         @apply sticky top-0 z-50 border-b border-border backdrop-blur;
-        background-color: hsl(var(--bg) / 0.95);
+        background: linear-gradient(
+                180deg,
+                hsl(var(--bg) / 0.92),
+                hsl(var(--bg) / 0.78)
+        );
+        box-shadow: 0 1px 0 hsl(var(--shine) / 0.18);
     }
 
-    /* ✅ “панель” модалок (если хочешь использовать как утилиту) */
+    /* Buttons */
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2
+        text-sm border border-border bg-card text-card-fg
+        focus:outline-none focus:ring-2 focus:ring-ring/60;
+        box-shadow: var(--shadow-1), var(--inner-border);
+        transition: transform 0.12s ease, box-shadow 0.12s ease,
+        background-color 0.12s ease, border-color 0.12s ease;
+    }
+
+    /* hover: ring-based tint */
+    .btn:hover {
+        background: hsl(var(--ring) / 0.10);
+        border-color: hsl(var(--ring) / 0.45);
+        box-shadow: var(--shadow-1), var(--inner-border),
+        0 0 0 1px hsl(var(--ring) / 0.25);
+    }
+
+    .btn:active {
+        transform: translateY(1px);
+        box-shadow: 0 1px 0 hsl(var(--shine) / 0.12);
+    }
+
+    .btn-primary {
+        @apply border-transparent text-primary-fg;
+        background: linear-gradient(
+                180deg,
+                hsl(var(--primary) / 1),
+                hsl(var(--primary) / 0.92)
+        );
+        box-shadow: var(--shadow-2);
+    }
+
+    /* Inputs */
+    .input {
+        @apply w-full rounded-xl border border-border bg-card px-3 py-2 text-sm
+        text-card-fg placeholder:text-muted-fg
+        focus:outline-none focus:ring-2 focus:ring-ring/50;
+        box-shadow: var(--inner-border);
+        transition: border-color 0.12s ease, box-shadow 0.12s ease,
+        background-color 0.12s ease;
+    }
+
+    /* hover: ring border */
+    .input:hover {
+        border-color: hsl(var(--ring) / 0.45);
+    }
+
+    /* Panel for modals (no @apply card-gloss) */
     .modal-panel {
-        @apply rounded-xl border border-border bg-card text-card-fg;
+        @apply rounded-[var(--radius)] border border-border bg-card text-card-fg;
+        background-image: linear-gradient(
+                180deg,
+                hsl(var(--shine) / 0.55),
+                hsl(var(--shine) / 0) 38%
+        );
+        background-blend-mode: soft-light;
+        box-shadow: var(--shadow-2), var(--inner-border);
     }
 }

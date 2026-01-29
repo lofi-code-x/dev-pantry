@@ -1,3 +1,4 @@
+// src/app/learn/page.tsx
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -8,9 +9,12 @@ import { ModuleCard } from "@/components/modules/ModuleCard";
 import { ModulePrimaryAction } from "@/components/modules/ModulePrimaryAction";
 import { listMyModuleProgress, type ModuleProgress } from "@/lib/api/me";
 
+function cn(...parts: Array<string | false | null | undefined>) {
+    return parts.filter(Boolean).join(" ");
+}
+
 export default function LearnPage() {
     const { user, ready } = useAuth();
-
     const onlyPublished = useMemo(() => !user, [user]);
 
     const [items, setItems] = useState<Module[]>([]);
@@ -69,21 +73,32 @@ export default function LearnPage() {
                 <ModulePrimaryAction />
             </header>
 
-            <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+            {/* ✅ main panel — STATIC (no card-gloss here) */}
+            <section
+                className={cn(
+                    "rounded-xl border border-border bg-card p-6 shadow-sm",
+                    "ring-1 ring-inset ring-border"
+                )}
+            >
                 {error ? (
-                    <div className="mb-4 rounded-lg border border-border bg-muted px-3 py-2 text-sm text-fg">
+                    <div
+                        className={cn(
+                            "mb-4 rounded-xl border p-3 text-sm text-fg",
+                            "border-[hsl(var(--ring)/0.35)] bg-[hsl(var(--ring)/0.06)]",
+                            "ring-1 ring-inset ring-ring/15"
+                        )}
+                    >
                         {error}
                     </div>
                 ) : null}
 
                 <div className="mb-4 flex items-center justify-between gap-3">
                     <div className="text-sm font-medium text-fg">Modules</div>
-                    <div className="text-xs text-muted-fg">
-                        {pending ? "Loading..." : `${items.length} total`}
-                    </div>
+                    <div className="text-xs text-muted-fg">{pending ? "Loading..." : `${items.length} total`}</div>
                 </div>
 
-                <div className="max-h-[70vh] overflow-auto pr-1">
+                {/* ✅ scroll area: stable, no "jump" */}
+                <div className="max-h-[70vh] overflow-y-auto overflow-x-hidden p-2 [scrollbar-gutter:stable]">
                     {pending ? (
                         <div className="text-sm text-muted-fg">Loading modules...</div>
                     ) : items.length === 0 ? (

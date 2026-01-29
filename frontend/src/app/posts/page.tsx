@@ -1,16 +1,16 @@
 // src/app/posts/page.tsx
 "use client";
 
-import React, {useEffect, useMemo, useRef, useState} from "react";
-import {PostPrimaryAction} from "@/components/posts/PostPrimaryAction";
-import {PostCard} from "@/components/posts/PostCard";
-import type {Category} from "@/lib/api/category";
-import {getAllCategories} from "@/lib/api/category";
-import type {Post, PostRequest} from "@/lib/api/posts";
-import {searchPosts} from "@/lib/api/posts";
-import {ApiError} from "@/lib/apiClient";
-import {useAuth} from "@/components/auth/AuthProvider";
-import {listMyReads} from "@/lib/api/me";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { PostPrimaryAction } from "@/components/posts/PostPrimaryAction";
+import { PostCard } from "@/components/posts/PostCard";
+import type { Category } from "@/lib/api/category";
+import { getAllCategories } from "@/lib/api/category";
+import type { Post, PostRequest } from "@/lib/api/posts";
+import { searchPosts } from "@/lib/api/posts";
+import { ApiError } from "@/lib/apiClient";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { listMyReads } from "@/lib/api/me";
 
 function cn(...parts: Array<string | false | null | undefined>) {
     return parts.filter(Boolean).join(" ");
@@ -19,7 +19,7 @@ function cn(...parts: Array<string | false | null | undefined>) {
 const PAGE_SIZE = 10;
 
 export default function PostsExplorePage() {
-    const {user, ready} = useAuth();
+    const { user, ready } = useAuth();
 
     const [query, setQuery] = useState("");
     const [tag, setTag] = useState<string>("all");
@@ -73,7 +73,6 @@ export default function PostsExplorePage() {
     useEffect(() => {
         if (!ready) return;
 
-        // если юзера нет — очищаем статусики
         if (!user) {
             setProgressMap(new Map());
             return;
@@ -83,7 +82,6 @@ export default function PostsExplorePage() {
 
         async function loadProgress() {
             try {
-                // только завершенные, чтобы не тащить лишнее
                 const reads = await listMyReads({
                     only_published: false,
                     only_completed: true,
@@ -216,21 +214,18 @@ export default function PostsExplorePage() {
                     <p className="mt-2 text-sm text-muted-fg">Поиск постов и лента публикаций.</p>
                 </div>
 
-                <PostPrimaryAction/>
+                <PostPrimaryAction />
             </header>
 
-            <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+            {/* Filters */}
+            <section className={cn("card-gloss p-6", "ring-1 ring-inset ring-border")}>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
                     <div className="flex-1">
                         <label className="block text-sm font-medium text-fg">Поиск</label>
                         <input
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
-                            className={cn(
-                                "mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-fg",
-                                "placeholder:text-muted-fg",
-                                "focus:outline-none focus:ring-2 focus:ring-ring"
-                            )}
+                            className="input mt-2"
                             placeholder="Например: axum, jwt, sqlx, next.js..."
                         />
                     </div>
@@ -242,8 +237,7 @@ export default function PostsExplorePage() {
                             onChange={(e) => setTag(e.target.value)}
                             disabled={catLoading}
                             className={cn(
-                                "mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-fg",
-                                "focus:outline-none focus:ring-2 focus:ring-ring",
+                                "input mt-2",
                                 "disabled:cursor-not-allowed disabled:opacity-60"
                             )}
                         >
@@ -262,32 +256,33 @@ export default function PostsExplorePage() {
                 </div>
             </section>
 
+            {/* Results */}
             <section className="mt-6 grid gap-4">
                 {error ? (
-                    <div className="rounded-xl border border-border bg-muted p-4 text-sm text-fg">{error}</div>
+                    <div className={cn("surface p-4 text-sm text-fg", "ring-1 ring-inset ring-ring/15", "bg-[hsl(var(--ring)/0.06)]")}>
+                        {error}
+                    </div>
                 ) : null}
 
                 {loading ? (
-                    <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-fg shadow-sm">
-                        Loading…
-                    </div>
+                    <div className={cn("surface p-6 text-sm text-muted-fg", "ring-1 ring-inset ring-border")}>Loading…</div>
                 ) : items.length === 0 ? (
-                    <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-fg shadow-sm">
+                    <div className={cn("surface p-6 text-sm text-muted-fg", "ring-1 ring-inset ring-border")}>
                         No posts found.
                     </div>
                 ) : (
                     items.map((p) => (
-                        <PostCard key={p.id} post={p} isCompleted={progressMap.get(p.id) === true}/>
+                        <PostCard key={p.id} post={p} isCompleted={progressMap.get(p.id) === true} />
                     ))
                 )}
 
                 {/* sentinel for infinite scroll */}
-                <div ref={sentinelRef} className="h-1"/>
+                <div ref={sentinelRef} className="h-1" />
 
                 {/* footer status */}
                 {!loading && items.length > 0 ? (
                     <div className="flex justify-center pt-2">
-                        <div className="rounded-lg border border-border bg-card px-4 py-2 text-sm text-muted-fg">
+                        <div className={cn("surface px-4 py-2 text-sm text-muted-fg", "ring-1 ring-inset ring-border")}>
                             {loadingMore ? "Loading…" : hasMore ? "Scroll to load more" : "No more"}
                         </div>
                     </div>

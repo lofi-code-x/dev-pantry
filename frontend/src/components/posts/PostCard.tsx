@@ -23,6 +23,13 @@ function cn(...parts: Array<string | false | null | undefined>) {
     return parts.filter(Boolean).join(" ");
 }
 
+const ringHover =
+    "transition-[transform,background-color,border-color,box-shadow] duration-150 " +
+    "hover:-translate-y-[1px] " +
+    "hover:bg-[hsl(var(--ring)/0.10)] hover:border-[hsl(var(--ring)/0.45)] " +
+    "hover:ring-2 hover:ring-inset hover:ring-ring/30 " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55";
+
 export function PostCard({ post, isCompleted }: { post: Post; isCompleted?: boolean }) {
     const href = `/posts/${post.id}`;
 
@@ -30,15 +37,17 @@ export function PostCard({ post, isCompleted }: { post: Post; isCompleted?: bool
         <Link
             href={href}
             className={cn(
-                "block rounded-xl border border-border bg-card p-5 shadow-sm",
-                "hover:bg-muted/50",
-                "focus:outline-none focus:ring-2 focus:ring-ring"
+                "block card-gloss p-5",
+                "ring-1 ring-inset ring-border",
+                ringHover
             )}
             aria-label={`Open post: ${post.title}`}
         >
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-fg">
-                    <span className="rounded-md border border-border bg-card px-2 py-1">{post.category_tag}</span>
+          <span className="rounded-md border border-border bg-[hsl(var(--ring)/0.08)] px-2 py-1">
+            {post.category_tag}
+          </span>
                     <span>•</span>
                     <span className="truncate">by {post.author}</span>
                     <span>•</span>
@@ -47,7 +56,11 @@ export function PostCard({ post, isCompleted }: { post: Post; isCompleted?: bool
 
                 {isCompleted ? (
                     <span
-                        className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-1 text-xs text-fg"
+                        className={cn(
+                            "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs",
+                            "border-[hsl(var(--ring)/0.35)] bg-[hsl(var(--ring)/0.10)] text-fg",
+                            "ring-1 ring-inset ring-ring/15"
+                        )}
                         title="Completed"
                     >
             <CheckCircleOutlineIcon sx={{ fontSize: 18 }} className="text-muted-fg" />

@@ -15,6 +15,10 @@ function isStaff(role: unknown) {
     return (STAFF_ROLES as readonly string[]).includes(String(role).toLowerCase());
 }
 
+function cn(...parts: Array<string | false | null | undefined>) {
+    return parts.filter(Boolean).join(" ");
+}
+
 export default function EditPostPage() {
     const params = useParams<{ id: string }>();
     const router = useRouter();
@@ -78,7 +82,13 @@ export default function EditPostPage() {
     if (err) {
         return (
             <main className="mx-auto w-full max-w-6xl px-6 py-10">
-                <section className="rounded-xl border border-border bg-muted p-6 shadow-sm">
+                <section
+                    className={cn(
+                        "surface p-6",
+                        "ring-1 ring-inset ring-ring/15",
+                        "bg-[hsl(var(--ring)/0.06)]"
+                    )}
+                >
                     <div className="text-sm text-fg">{err}</div>
                 </section>
             </main>

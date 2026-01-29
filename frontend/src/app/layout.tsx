@@ -8,6 +8,7 @@ import "@uiw/react-markdown-preview/markdown.css";
 import React, { ReactNode } from "react";
 import { Navbar } from "@/components/Navbar";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { Inter } from "next/font/google";
 
 export const metadata: Metadata = {
     title: "Dev-Pantry",
@@ -34,9 +35,16 @@ const THEME_INIT_SCRIPT = `
 })();
 `;
 
+const inter = Inter({
+    subsets: ["latin", "cyrillic"],
+    display: "swap",
+    variable: "--font-sans",
+    weight: ["400", "500", "600", "700"],
+});
+
 export default function RootLayout({ children }: { children: ReactNode }) {
     return (
-        <html lang="ru" suppressHydrationWarning>
+        <html lang="ru" suppressHydrationWarning className={inter.variable}>
         <head>
             {/* Google Material Symbols */}
             <link
@@ -46,7 +54,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         </head>
 
-        <body className="min-h-screen bg-bg text-fg antialiased">
+        <body className="min-h-screen bg-bg text-fg antialiased font-sans">
         <AuthProvider>
             <Navbar />
             <div className="min-h-[calc(100vh-3.5rem)]">{children}</div>

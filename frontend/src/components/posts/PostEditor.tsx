@@ -1,15 +1,15 @@
 // src/components/posts/PostEditor.tsx
 "use client";
 
-import React, {useEffect, useMemo, useState} from "react";
-import {useRouter} from "next/navigation";
+import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import MdEditor from "@/components/posts/MdEditor";
-import {useAuth} from "@/components/auth/AuthProvider";
-import {ApiError} from "@/lib/apiClient";
-import type {PostCreateRequest} from "@/lib/api/posts";
-import {createPost, suggestPost, updatePost} from "@/lib/api/posts";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { ApiError } from "@/lib/apiClient";
+import type { PostCreateRequest } from "@/lib/api/posts";
+import { createPost, suggestPost, updatePost } from "@/lib/api/posts";
 import UploadImagesPanel from "@/components/posts/UploadImagesPanel";
-import {getAllCategories} from "@/lib/api/category";
+import { getAllCategories } from "@/lib/api/category";
 
 // ✅ Icons (MUI)
 import PublishIcon from "@mui/icons-material/Publish";
@@ -35,6 +35,16 @@ function isStaff(role: unknown) {
     return (STAFF_ROLES as readonly string[]).includes(String(role).toLowerCase());
 }
 
+// shared look
+const ringHover =
+    "transition-[transform,background-color,border-color,box-shadow] duration-150 " +
+    "hover:-translate-y-[1px] " +
+    "hover:bg-[hsl(var(--ring)/0.10)] hover:border-[hsl(var(--ring)/0.45)] " +
+    "hover:ring-2 hover:ring-inset hover:ring-ring/30 " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55";
+
+const cardBase = "card-gloss ring-1 ring-inset ring-border";
+
 export default function PostEditor({
                                        mode,
                                        postId,
@@ -45,7 +55,7 @@ export default function PostEditor({
     initial?: Partial<PostCreateRequest>;
 }) {
     const router = useRouter();
-    const {user} = useAuth();
+    const { user } = useAuth();
 
     const [title, setTitle] = useState(initial?.title ?? "");
     const [categoryTag, setCategoryTag] = useState(initial?.category_tag ?? "");
@@ -76,18 +86,18 @@ export default function PostEditor({
 
     const submitIcon =
         mode === "create" ? (
-            <PublishIcon sx={{fontSize: 18}} className="text-primary-fg"/>
+            <PublishIcon sx={{ fontSize: 18 }} className="text-primary-fg" />
         ) : mode === "suggest" ? (
-            <SendIcon sx={{fontSize: 18}} className="text-primary-fg"/>
+            <SendIcon sx={{ fontSize: 18 }} className="text-primary-fg" />
         ) : (
-            <SaveIcon sx={{fontSize: 18}} className="text-primary-fg"/>
+            <SaveIcon sx={{ fontSize: 18 }} className="text-primary-fg" />
         );
 
     const headingIcon =
         mode === "suggest" ? (
-            <LightbulbOutlineIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+            <LightbulbOutlineIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
         ) : (
-            <EditIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+            <EditIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
         );
 
     // Load categories (dropdown options)
@@ -176,10 +186,10 @@ export default function PostEditor({
     if (!user) return null;
 
     return (
-        <main className="mx-auto w-full max-w-6xl px-4 py-8">
+        <main className="mx-auto w-full max-w-6xl px-6 py-10">
             <header className="mb-6">
                 <div className="flex items-center gap-2">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card">
+          <span className={cn("inline-flex h-8 w-8 items-center justify-center rounded-lg", cardBase, "p-0")}>
             {headingIcon}
           </span>
                     <h1 className="text-2xl font-semibold tracking-tight text-fg">{heading}</h1>
@@ -188,36 +198,34 @@ export default function PostEditor({
             </header>
 
             {!canAccess ? (
-                <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                <section className={cn(cardBase, "p-6")}>
                     <div className="text-sm text-muted-fg">Access denied.</div>
                 </section>
             ) : (
                 <form onSubmit={onSubmit} className="grid gap-4">
                     {/* Top control panel */}
-                    <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                    <section className={cn(cardBase, "p-6")}>
                         <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-                            {/* Title + Category in one row */}
+                            {/* Title */}
                             <div className="lg:col-span-8">
                                 <label className="block text-sm font-medium text-fg">Title</label>
                                 <input
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
-                                    className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-fg placeholder:text-muted-fg focus:outline-none focus:ring-2 focus:ring-ring"
+                                    className="input mt-2"
                                     placeholder="Post title"
+                                    disabled={pending}
                                 />
                             </div>
 
+                            {/* Category */}
                             <div className="lg:col-span-4">
                                 <label className="block text-sm font-medium text-fg">Category</label>
                                 <select
                                     value={categoryTag}
                                     onChange={(e) => setCategoryTag(e.target.value)}
                                     disabled={pending || catLoading || categories.length === 0}
-                                    className={cn(
-                                        "mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-fg",
-                                        "focus:outline-none focus:ring-2 focus:ring-ring",
-                                        "disabled:cursor-not-allowed disabled:opacity-60"
-                                    )}
+                                    className={cn("input mt-2", "disabled:cursor-not-allowed disabled:opacity-60")}
                                 >
                                     {catLoading ? (
                                         <option value="">Loading categories…</option>
@@ -235,19 +243,26 @@ export default function PostEditor({
 
                             {/* Upload images full width */}
                             <div className="lg:col-span-12">
-                                <UploadImagesPanel disabled={pending}/>
+                                <UploadImagesPanel disabled={pending} />
                             </div>
                         </div>
 
                         {error ? (
                             <div
-                                className="mt-5 rounded-xl border border-border bg-muted p-4 text-sm text-fg">{error}</div>
+                                className={cn(
+                                    "mt-5 rounded-xl border p-4 text-sm text-fg",
+                                    "border-[hsl(var(--ring)/0.35)] bg-[hsl(var(--ring)/0.06)]",
+                                    "ring-1 ring-inset ring-ring/15"
+                                )}
+                            >
+                                {error}
+                            </div>
                         ) : null}
                     </section>
 
                     {/* Editor */}
-                    <section className="rounded-xl border border-border bg-card p-3 shadow-sm">
-                        <MdEditor value={content} onChange={setContent}/>
+                    <section className={cn(cardBase, "p-3")}>
+                        <MdEditor value={content} onChange={setContent} />
                     </section>
 
                     {/* Bottom actions */}
@@ -256,10 +271,9 @@ export default function PostEditor({
                             type="submit"
                             disabled={pending}
                             className={cn(
-                                "inline-flex items-center justify-center gap-2 rounded-lg border border-border",
-                                "bg-primary px-4 py-2 text-sm font-medium text-primary-fg hover:bg-primary/90",
-                                "disabled:cursor-not-allowed disabled:opacity-60",
-                                "focus:outline-none focus:ring-2 focus:ring-ring"
+                                "btn-primary px-4 py-2",
+                                "focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55",
+                                "disabled:cursor-not-allowed disabled:opacity-60"
                             )}
                         >
                             {submitIcon}

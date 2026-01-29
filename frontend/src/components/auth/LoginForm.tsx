@@ -1,13 +1,17 @@
 // src/components/auth/LoginForm.tsx
 "use client";
 
+import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { loginApi } from "@/lib/api/auth";
 import { ApiError } from "@/lib/apiClient";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { saveSession } from "@/lib/authSession";
+
+function cn(...parts: Array<string | false | null | undefined>) {
+    return parts.filter(Boolean).join(" ");
+}
 
 export function LoginForm() {
     const router = useRouter();
@@ -46,7 +50,7 @@ export function LoginForm() {
 
     return (
         <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] w-full max-w-5xl items-center justify-center px-4 py-10">
-            <section className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-sm">
+            <section className={cn("w-full max-w-md card-gloss p-6", "ring-1 ring-inset ring-border")}>
                 <header className="mb-6">
                     <h1 className="text-xl font-semibold tracking-tight text-fg">Log in</h1>
                     <p className="mt-2 text-sm text-muted-fg">Use your credentials to access your account.</p>
@@ -59,7 +63,7 @@ export function LoginForm() {
                             value={login}
                             onChange={(e) => setLogin(e.target.value)}
                             autoComplete="username"
-                            className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-fg placeholder:text-muted-fg focus:outline-none focus:ring-2 focus:ring-ring"
+                            className="input mt-2"
                             placeholder="user1"
                         />
                     </div>
@@ -71,19 +75,27 @@ export function LoginForm() {
                             onChange={(e) => setPassword(e.target.value)}
                             type="password"
                             autoComplete="current-password"
-                            className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-fg placeholder:text-muted-fg focus:outline-none focus:ring-2 focus:ring-ring"
+                            className="input mt-2"
                             placeholder="••••••••"
                         />
                     </div>
 
                     {error ? (
-                        <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-fg">{error}</div>
+                        <div
+                            className={cn(
+                                "rounded-xl border p-3 text-sm text-fg",
+                                "border-[hsl(var(--ring)/0.35)] bg-[hsl(var(--ring)/0.06)]",
+                                "ring-1 ring-inset ring-ring/15"
+                            )}
+                        >
+                            {error}
+                        </div>
                     ) : null}
 
                     <button
                         type="submit"
                         disabled={pending}
-                        className="mt-2 inline-flex w-full items-center justify-center rounded-lg border border-border bg-primary px-3 py-2 text-sm font-medium text-primary-fg hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-ring"
+                        className={cn("btn-primary w-full", "disabled:cursor-not-allowed disabled:opacity-60")}
                     >
                         {pending ? "Logging in..." : "Log in"}
                     </button>
@@ -92,7 +104,10 @@ export function LoginForm() {
                 <footer className="mt-6 border-t border-border pt-4">
                     <p className="text-center text-sm text-muted-fg">
                         Don&apos;t have an account?{" "}
-                        <Link href="/signup" className="font-medium text-fg underline underline-offset-4 hover:text-muted-fg">
+                        <Link
+                            href="/signup"
+                            className="font-medium text-fg underline underline-offset-4 hover:text-[hsl(var(--ring))]"
+                        >
                             Sign up
                         </Link>
                         .

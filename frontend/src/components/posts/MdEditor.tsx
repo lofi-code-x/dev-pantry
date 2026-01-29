@@ -17,12 +17,10 @@ export default function MdEditor({
     onChange: (v: string) => void;
 }) {
     return (
-        <div data-color-mode="dark">
-            <MDEditor
-                value={value}
-                height={800}
-                onChange={(v) => onChange(v ?? "")}
-            />
-        </div>
+        <MDEditor
+            value={value}
+            height={800}
+            onChange={(v) => onChange(v ?? "")}
+        />
     );
 }

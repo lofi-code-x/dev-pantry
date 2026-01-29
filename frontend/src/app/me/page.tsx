@@ -33,15 +33,19 @@ function formatDate(iso: string) {
     }
 }
 
+/** Reusable: ring-hover link card (inset ring so it never clips) */
+const ringHoverCard =
+    "transition-[transform,background-color,border-color,box-shadow] duration-150 " +
+    "hover:-translate-y-[1px] " +
+    "hover:bg-[hsl(var(--ring)/0.10)] hover:border-[hsl(var(--ring)/0.45)] " +
+    "hover:ring-2 hover:ring-inset hover:ring-ring/30 " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55";
+
 function CompletedPostCard({ p }: { p: ProgressPost }) {
     return (
         <Link
             href={`/posts/${p.post_id}`}
-            className={cn(
-                "block rounded-xl border border-border bg-card p-5 shadow-sm",
-                "hover:bg-muted/50",
-                "focus:outline-none focus:ring-2 focus:ring-ring"
-            )}
+            className={cn("surface p-5", ringHoverCard)}
             aria-label={`Open post: ${p.title}`}
         >
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-fg">
@@ -70,18 +74,17 @@ function CompletedPostCard({ p }: { p: ProgressPost }) {
 
 function CompletedModuleCard({ m }: { m: Module }) {
     return (
-        <Link
-            href={`/learn/${m.id}`}
-            className={cn(
-                "block rounded-xl border border-border bg-card p-5 shadow-sm",
-                "hover:bg-muted/50",
-                "focus:outline-none focus:ring-2 focus:ring-ring"
-            )}
-            aria-label={`Open module: ${m.title}`}
-        >
+        <Link href={`/learn/${m.id}`} className={cn("surface p-5", ringHoverCard)} aria-label={`Open module: ${m.title}`}>
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-muted-fg">
-                    <span className="rounded-md border border-border bg-muted px-2 py-1">module</span>
+          <span
+              className={cn(
+                  "rounded-md border px-2 py-1",
+                  "border-[hsl(var(--ring)/0.35)] bg-[hsl(var(--ring)/0.10)] text-fg"
+              )}
+          >
+            module
+          </span>
                     <span>•</span>
                     <span className="truncate">by {m.author}</span>
                     <span>•</span>
@@ -89,10 +92,13 @@ function CompletedModuleCard({ m }: { m: Module }) {
                 </div>
 
                 <span
-                    className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-muted-fg"
+                    className={cn(
+                        "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs",
+                        "border-[hsl(var(--ring)/0.35)] bg-[hsl(var(--ring)/0.08)] text-fg"
+                    )}
                     title="Completed"
                 >
-          <TaskAltIcon sx={{ fontSize: 18 }} className="text-fg" />
+          <TaskAltIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
           <span>done</span>
         </span>
             </div>
@@ -215,19 +221,37 @@ export default function MePage() {
     const postsCountLabel = postsLoading ? "Loading…" : `${completedPosts.length} items`;
     const modulesCountLabel = modulesLoading ? "Loading…" : `${completedModules.length} items`;
 
+    const tabBase =
+        "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium " +
+        "transition-[background-color,border-color] duration-150 " + // ✅ no transform
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55";
+
+    const tabActive = "border-primary bg-primary text-primary-fg";
+
+    // ✅ hover without lift (no jump)
+    const tabInactive =
+        "border-border bg-card text-fg " +
+        "hover:bg-[hsl(var(--ring)/0.10)] hover:border-[hsl(var(--ring)/0.45)]";
+
     return (
         <main className="mx-auto w-full max-w-6xl px-6 py-10">
-            {/* Header */}
-            <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+            {/* Header — STATIC (no card-gloss) */}
+            <section
+                className={cn(
+                    "rounded-xl border border-border bg-card p-6 shadow-sm",
+                    "ring-1 ring-inset ring-border"
+                )}
+            >
                 <div className="grid gap-6 lg:grid-cols-12">
-                    {/* Left: avatar + name + contacts */}
+                    {/* Left */}
                     <div className="lg:col-span-8">
                         <div className="flex items-start gap-4">
                             <div
                                 className={cn(
                                     "flex h-14 w-14 shrink-0 items-center justify-center rounded-full",
-                                    "border border-border bg-muted text-fg",
-                                    "text-lg font-semibold"
+                                    "border border-border bg-[hsl(var(--ring)/0.10)] text-fg",
+                                    "text-lg font-semibold",
+                                    "ring-1 ring-inset ring-ring/15"
                                 )}
                                 aria-label="User avatar"
                                 title={user.login}
@@ -243,8 +267,8 @@ export default function MePage() {
                             </div>
                         </div>
 
-                        {/* Contacts (placeholders) */}
-                        <div className="mt-5 rounded-xl border border-border bg-muted p-4">
+                        {/* Contacts */}
+                        <div className={cn("mt-5 surface p-4", "ring-1 ring-inset ring-border")}>
                             <div className="text-sm font-medium text-fg">Contacts</div>
                             <div className="mt-3 grid gap-3 sm:grid-cols-2">
                                 <div>
@@ -277,41 +301,25 @@ export default function MePage() {
                                 </div>
                             </div>
 
-                            <div className="mt-3 text-xs text-muted-fg">
-                                Пока это затычки. Позже сделаем сохранение в таблицу профиля.
-                            </div>
+                            <div className="mt-3 text-xs text-muted-fg">Пока это затычки. Позже сделаем сохранение в таблицу профиля.</div>
                         </div>
                     </div>
 
-                    {/* Right: rating placeholder */}
+                    {/* Right */}
                     <div className="lg:col-span-4">
-                        <div className="rounded-xl border border-border bg-card p-4">
+                        <div className={cn("surface p-4", "ring-1 ring-inset ring-border")}>
                             <div className="text-sm font-medium text-fg">User rating</div>
                             <div className="mt-2 text-3xl font-semibold text-fg">—</div>
-                            <div className="mt-1 text-xs text-muted-fg">
-                                Placeholder (позже свяжем со статистикой/прогрессом).
-                            </div>
+                            <div className="mt-1 text-xs text-muted-fg">Placeholder (позже свяжем со статистикой/прогрессом).</div>
                         </div>
 
-                        <div className="mt-4 rounded-xl border border-border bg-card p-4">
+                        <div className={cn("mt-4 surface p-4", "ring-1 ring-inset ring-border")}>
                             <div className="text-sm font-medium text-fg">Quick links</div>
                             <div className="mt-3 flex flex-wrap gap-2">
-                                <Link
-                                    href="/me/saved"
-                                    className={cn(
-                                        "inline-flex items-center justify-center rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
-                                        "text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-                                    )}
-                                >
+                                <Link href="/me/saved" className="btn">
                                     Saved posts
                                 </Link>
-                                <Link
-                                    href="/learn"
-                                    className={cn(
-                                        "inline-flex items-center justify-center rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
-                                        "text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-                                    )}
-                                >
+                                <Link href="/learn" className="btn">
                                     Learn
                                 </Link>
                             </div>
@@ -326,20 +334,16 @@ export default function MePage() {
                     <button
                         type="button"
                         onClick={() => setTab("posts")}
-                        className={cn(
-                            "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium",
-                            "focus:outline-none focus:ring-2 focus:ring-ring",
-                            tab === "posts"
-                                ? "border-primary bg-primary text-primary-fg"
-                                : "border-border bg-card text-fg hover:bg-muted"
-                        )}
+                        className={cn(tabBase, tab === "posts" ? tabActive : tabInactive)}
                     >
                         <TaskAltIcon sx={{ fontSize: 18 }} className={cn(tab === "posts" ? "text-primary-fg" : "text-muted-fg")} />
                         Completed posts
                         <span
                             className={cn(
                                 "ml-1 rounded-md px-2 py-0.5 text-xs",
-                                tab === "posts" ? "bg-primary-fg/15 text-primary-fg" : "bg-muted text-muted-fg"
+                                tab === "posts"
+                                    ? "bg-primary-fg/15 text-primary-fg"
+                                    : "border border-border bg-[hsl(var(--ring)/0.08)] text-muted-fg"
                             )}
                         >
               {postsCountLabel}
@@ -349,23 +353,16 @@ export default function MePage() {
                     <button
                         type="button"
                         onClick={() => setTab("modules")}
-                        className={cn(
-                            "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium",
-                            "focus:outline-none focus:ring-2 focus:ring-ring",
-                            tab === "modules"
-                                ? "border-primary bg-primary text-primary-fg"
-                                : "border-border bg-card text-fg hover:bg-muted"
-                        )}
+                        className={cn(tabBase, tab === "modules" ? tabActive : tabInactive)}
                     >
-                        <MenuBookIcon
-                            sx={{ fontSize: 18 }}
-                            className={cn(tab === "modules" ? "text-primary-fg" : "text-muted-fg")}
-                        />
+                        <MenuBookIcon sx={{ fontSize: 18 }} className={cn(tab === "modules" ? "text-primary-fg" : "text-muted-fg")} />
                         Completed modules
                         <span
                             className={cn(
                                 "ml-1 rounded-md px-2 py-0.5 text-xs",
-                                tab === "modules" ? "bg-primary-fg/15 text-primary-fg" : "bg-muted text-muted-fg"
+                                tab === "modules"
+                                    ? "bg-primary-fg/15 text-primary-fg"
+                                    : "border border-border bg-[hsl(var(--ring)/0.08)] text-muted-fg"
                             )}
                         >
               {modulesCountLabel}
@@ -378,13 +375,15 @@ export default function MePage() {
             {tab === "posts" ? (
                 <section className="mt-4">
                     {postsErr ? (
-                        <div className="rounded-xl border border-border bg-muted p-4 text-sm text-fg">{postsErr}</div>
+                        <div className={cn("surface p-4 text-sm text-fg", "ring-1 ring-inset ring-ring/15", "bg-[hsl(var(--ring)/0.06)]")}>
+                            {postsErr}
+                        </div>
                     ) : postsLoading ? (
-                        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                        <div className={cn("surface p-6", "ring-1 ring-inset ring-border")}>
                             <div className="text-sm text-muted-fg">Loading…</div>
                         </div>
                     ) : completedPosts.length === 0 ? (
-                        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                        <div className={cn("surface p-6", "ring-1 ring-inset ring-border")}>
                             <div className="text-sm text-muted-fg">No completed posts yet.</div>
                         </div>
                     ) : (
@@ -398,13 +397,15 @@ export default function MePage() {
             ) : (
                 <section className="mt-4">
                     {modulesErr ? (
-                        <div className="rounded-xl border border-border bg-muted p-4 text-sm text-fg">{modulesErr}</div>
+                        <div className={cn("surface p-4 text-sm text-fg", "ring-1 ring-inset ring-ring/15", "bg-[hsl(var(--ring)/0.06)]")}>
+                            {modulesErr}
+                        </div>
                     ) : modulesLoading ? (
-                        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                        <div className={cn("surface p-6", "ring-1 ring-inset ring-border")}>
                             <div className="text-sm text-muted-fg">Loading…</div>
                         </div>
                     ) : completedModules.length === 0 ? (
-                        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                        <div className={cn("surface p-6", "ring-1 ring-inset ring-border")}>
                             <div className="text-sm text-muted-fg">No completed modules yet.</div>
                         </div>
                     ) : (

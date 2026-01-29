@@ -18,19 +18,20 @@ function cn(...parts: Array<string | false | null | undefined>) {
     return parts.filter(Boolean).join(" ");
 }
 
+const ringHover =
+    "transition-[transform,background-color,border-color,box-shadow] duration-150 " +
+    "hover:-translate-y-[1px] " +
+    "hover:bg-[hsl(var(--ring)/0.10)] hover:border-[hsl(var(--ring)/0.45)] " +
+    "hover:ring-2 hover:ring-inset hover:ring-ring/30 " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55";
+
 export function ModulePrimaryAction() {
     const { user } = useAuth();
     if (!user) return null;
     if (!isStaff(user.role)) return null;
 
     return (
-        <Link
-            href="/learn/new"
-            className={cn(
-                "inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
-                "text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-            )}
-        >
+        <Link href="/learn/new" className={cn("btn", ringHover)}>
             <AddIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
             Create module
         </Link>

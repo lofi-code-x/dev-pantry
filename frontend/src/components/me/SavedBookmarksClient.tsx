@@ -15,6 +15,13 @@ function cn(...parts: Array<string | false | null | undefined>) {
     return parts.filter(Boolean).join(" ");
 }
 
+const ringHover =
+    "transition-[transform,background-color,border-color,box-shadow] duration-150 " +
+    "hover:-translate-y-[1px] " +
+    "hover:bg-[hsl(var(--ring)/0.10)] hover:border-[hsl(var(--ring)/0.45)] " +
+    "hover:ring-2 hover:ring-inset hover:ring-ring/30 " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55";
+
 function formatDate(iso: string) {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
@@ -39,20 +46,23 @@ function BookmarkCard({
                 if (e.key === "Enter" || e.key === " ") router.push(`/posts/${item.post_id}`);
             }}
             className={cn(
-                "group cursor-pointer rounded-xl border border-border bg-card p-4 shadow-sm",
-                "hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                "group cursor-pointer card-gloss p-4",
+                "ring-1 ring-inset ring-border",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55",
+                "transition-[transform,background-color,border-color] duration-150",
+                "hover:-translate-y-[1px] hover:bg-[hsl(var(--ring)/0.06)] hover:border-[hsl(var(--ring)/0.40)]"
             )}
         >
             <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                     <div className="truncate text-base font-semibold text-fg group-hover:underline">{item.title}</div>
 
-                    {item.preview_text ? (
-                        <p className="mt-2 line-clamp-3 text-sm text-muted-fg">{item.preview_text}</p>
-                    ) : null}
+                    {item.preview_text ? <p className="mt-2 line-clamp-3 text-sm text-muted-fg">{item.preview_text}</p> : null}
 
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-fg">
-                        <span className="rounded-md border border-border bg-muted px-2 py-0.5">{item.category_tag}</span>
+            <span className="rounded-md border border-border bg-[hsl(var(--ring)/0.08)] px-2 py-0.5">
+              {item.category_tag}
+            </span>
                         <span>{item.author}</span>
                         <span>·</span>
                         <span>Updated {formatDate(item.updated_at)}</span>
@@ -66,8 +76,10 @@ function BookmarkCard({
                         onRemove(item.post_id);
                     }}
                     className={cn(
-                        "shrink-0 inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium",
-                        "text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                        "btn shrink-0 text-xs px-3 py-2",
+                        ringHover,
+                        // delete accent
+                        "hover:bg-[hsl(0_90%_55%/0.10)] hover:border-[hsl(0_90%_55%/0.45)] hover:ring-2 hover:ring-inset hover:ring-[hsl(0_90%_55%/0.28)]"
                     )}
                     title="Remove bookmark"
                     aria-label="Remove bookmark"
@@ -144,24 +156,25 @@ export default function SavedBookmarksClient() {
                     <p className="mt-2 text-sm text-muted-fg">Your bookmarked posts. Total: {count}</p>
                 </div>
 
-                <button
-                    type="button"
-                    onClick={() => router.push("/me")}
-                    className={cn(
-                        "inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
-                        "text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-                    )}
-                >
+                <button type="button" onClick={() => router.push("/me")} className={cn("btn", ringHover)}>
                     <ArrowBackIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                     Back to profile
                 </button>
             </header>
 
             {err ? (
-                <div className="mb-4 rounded-xl border border-border bg-muted p-4 text-sm text-fg">{err}</div>
+                <div
+                    className={cn(
+                        "mb-4 rounded-xl border p-4 text-sm text-fg",
+                        "border-[hsl(var(--ring)/0.35)] bg-[hsl(var(--ring)/0.06)]",
+                        "ring-1 ring-inset ring-ring/15"
+                    )}
+                >
+                    {err}
+                </div>
             ) : null}
 
-            <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+            <section className={cn("card-gloss p-6", "ring-1 ring-inset ring-border")}>
                 {pending ? (
                     <div className="text-sm text-muted-fg">Loading…</div>
                 ) : items.length === 0 ? (

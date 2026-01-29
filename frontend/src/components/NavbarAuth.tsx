@@ -18,6 +18,19 @@ function initialLetter(login: string) {
     return (login.trim()[0] ?? "?").toUpperCase();
 }
 
+const ringHover =
+    "transition-[transform,background-color,border-color,box-shadow] duration-150 " +
+    "hover:-translate-y-[1px] " +
+    "hover:bg-[hsl(var(--ring)/0.10)] hover:border-[hsl(var(--ring)/0.45)] " +
+    "hover:ring-2 hover:ring-inset hover:ring-ring/25 " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55";
+
+const menuItem =
+    "flex items-center gap-2 px-3 py-2 text-sm text-fg " +
+    "transition-[background-color,border-color,box-shadow] duration-150 " +
+    "hover:bg-[hsl(var(--ring)/0.10)] " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55";
+
 export function NavbarAuth() {
     const router = useRouter();
     const { user, logout } = useAuth();
@@ -30,9 +43,7 @@ export function NavbarAuth() {
             if (!open) return;
             const el = rootRef.current;
             if (!el) return;
-            if (e.target instanceof Node && !el.contains(e.target)) {
-                setOpen(false);
-            }
+            if (e.target instanceof Node && !el.contains(e.target)) setOpen(false);
         }
         document.addEventListener("mousedown", onDocClick);
         return () => document.removeEventListener("mousedown", onDocClick);
@@ -47,14 +58,8 @@ export function NavbarAuth() {
 
     if (!user) {
         return (
-            <Link
-                href="/login"
-                className={cn(
-                    "inline-flex items-center rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
-                    "text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-                )}
-            >
-                LogIn
+            <Link href="/login" className={cn("btn", ringHover)}>
+                Log in
             </Link>
         );
     }
@@ -68,8 +73,10 @@ export function NavbarAuth() {
                 aria-expanded={open}
                 className={cn(
                     "inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card",
-                    "text-sm font-semibold text-fg hover:bg-muted",
-                    "focus:outline-none focus:ring-2 focus:ring-ring"
+                    "text-sm font-semibold text-fg",
+                    // чуть “глянца” на кнопке-аватарке
+                    "shadow-sm",
+                    ringHover
                 )}
                 title={user.login}
             >
@@ -80,8 +87,14 @@ export function NavbarAuth() {
                 <div
                     role="menu"
                     className={cn(
-                        "absolute right-0 top-11 w-48 overflow-hidden rounded-xl border border-border bg-card shadow-sm"
+                        "absolute right-0 top-11 w-52 overflow-hidden rounded-xl border border-border bg-card shadow-lg",
+                        // glossy/glass effect
+                        "backdrop-blur",
+                        "ring-1 ring-inset ring-border"
                     )}
+                    style={{
+                        background: "hsl(var(--card) / 0.92)",
+                    }}
                 >
                     <div className="border-b border-border px-3 py-2">
                         <div className="text-sm font-semibold text-fg">{user.login}</div>
@@ -92,7 +105,7 @@ export function NavbarAuth() {
                         href="/me"
                         role="menuitem"
                         onClick={() => setOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-fg hover:bg-muted"
+                        className={menuItem}
                     >
                         <PersonOutlineIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                         View profile
@@ -102,17 +115,19 @@ export function NavbarAuth() {
                         href="/me/saved"
                         role="menuitem"
                         onClick={() => setOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-fg hover:bg-muted"
+                        className={menuItem}
                     >
                         <BookmarkBorderIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                         Saved
                     </Link>
 
+                    <div className="border-t border-border" />
+
                     <button
                         type="button"
                         role="menuitem"
                         onClick={onLogout}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-fg hover:bg-muted"
+                        className={cn(menuItem, "w-full text-left")}
                     >
                         <LogoutIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                         Log out

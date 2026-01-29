@@ -1,3 +1,4 @@
+// src/app/posts/[id]/page.tsx
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -15,7 +16,7 @@ import {
 import MdPreview from "@/components/posts/MdPreview";
 import { useAuth } from "@/components/auth/AuthProvider";
 
-// me api (только нужное)
+// me api
 import {
     addMyBookmark,
     removeMyBookmark,
@@ -64,13 +65,12 @@ function formatDateTime(iso: string) {
     }
 }
 
-const btnBase =
-    "inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-fg " +
-    "hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60";
-
-const btnBaseLeft =
-    "inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-fg " +
-    "hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring";
+/** Button hover WITHOUT lift (no jumping on reading page) */
+const btnHover =
+    "transition-[background-color,border-color,box-shadow] duration-150 " +
+    "hover:bg-[hsl(var(--ring)/0.10)] hover:border-[hsl(var(--ring)/0.45)] " +
+    "hover:ring-2 hover:ring-inset hover:ring-ring/30 " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55";
 
 export default function PostPage() {
     const params = useParams<{ id: string }>();
@@ -132,7 +132,7 @@ export default function PostPage() {
         };
     }, [postId]);
 
-    // ✅ load user-specific state: 1 lightweight call for this post only
+    // load user-specific state
     useEffect(() => {
         if (!ready) return;
 
@@ -161,7 +161,7 @@ export default function PostPage() {
         };
     }, [ready, user, postId]);
 
-    // ✅ load module nav (prev/next) via backend endpoint
+    // load module nav
     useEffect(() => {
         if (!Number.isFinite(postId)) return;
 
@@ -270,9 +270,9 @@ export default function PostPage() {
 
     return (
         <main className="mx-auto w-full max-w-6xl px-6 py-10">
-            {/* Управляющий бар */}
+            {/* Top actions bar (NO jumping) */}
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <button type="button" onClick={() => router.back()} className={btnBaseLeft}>
+                <button type="button" onClick={() => router.back()} className={cn("btn", btnHover)}>
                     <ArrowBackIcon sx={{ fontSize: 18 }} />
                     Back
                 </button>
@@ -285,7 +285,7 @@ export default function PostPage() {
                                 type="button"
                                 onClick={onToggleSaved}
                                 disabled={actionPending}
-                                className={btnBase}
+                                className={cn("btn", btnHover, "disabled:cursor-not-allowed disabled:opacity-60")}
                                 title={saved ? "Remove from saved" : "Save post"}
                             >
                                 {saved ? (
@@ -300,7 +300,7 @@ export default function PostPage() {
                                 type="button"
                                 onClick={onToggleCompleted}
                                 disabled={actionPending}
-                                className={btnBase}
+                                className={cn("btn", btnHover, "disabled:cursor-not-allowed disabled:opacity-60")}
                                 title={completed ? "Mark as not completed" : "Mark post as completed"}
                             >
                                 {completed ? (
@@ -318,7 +318,7 @@ export default function PostPage() {
                         <>
                             <span className="mx-1 h-6 w-px bg-border" />
 
-                            <Link href={`/posts/${postId}/edit`} className={btnBaseLeft}>
+                            <Link href={`/posts/${postId}/edit`} className={cn("btn", btnHover)}>
                                 <EditIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                                 Edit post
                             </Link>
@@ -327,8 +327,7 @@ export default function PostPage() {
                                 type="button"
                                 onClick={onTogglePublic}
                                 disabled={actionPending}
-                                className={btnBase}
-                                title="Toggle public/private"
+                                className={cn("btn", btnHover, "disabled:cursor-not-allowed disabled:opacity-60")}
                             >
                                 {post.is_published ? (
                                     <LockIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
@@ -338,7 +337,20 @@ export default function PostPage() {
                                 {post.is_published ? "Make private" : "Make public"}
                             </button>
 
-                            <button type="button" onClick={onDelete} disabled={actionPending} className={btnBase}>
+                            <button
+                                type="button"
+                                onClick={onDelete}
+                                disabled={actionPending}
+                                className={cn(
+                                    "btn",
+                                    "disabled:cursor-not-allowed disabled:opacity-60",
+                                    // delete hover (no lift)
+                                    "transition-[background-color,border-color,box-shadow] duration-150",
+                                    "hover:bg-[hsl(0_90%_55%/0.10)] hover:border-[hsl(0_90%_55%/0.45)]",
+                                    "hover:ring-2 hover:ring-inset hover:ring-[hsl(0_90%_55%/0.28)]",
+                                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(0_90%_55%/0.45)]"
+                                )}
+                            >
                                 <DeleteOutlineIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                                 Delete post
                             </button>
@@ -347,77 +359,66 @@ export default function PostPage() {
                 </div>
             </div>
 
-            {/* ✅ Навигация по модулю (если пост входит в модуль) */}
+            {/* ✅ Module nav (FIX: flex row, no jumping) */}
             {nav ? (
-                <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-3 shadow-sm">
+                <div
+                    className={cn(
+                        "mb-6 flex flex-wrap items-center gap-2",
+                        "rounded-xl border border-border bg-card p-3 shadow-sm"
+                    )}
+                >
                     {/* Prev */}
                     {nav.prev ? (
                         <Link
-                            href={moduleIdFromQs ? `/posts/${nav.prev.id}?module_id=${nav.module_id}` : `/posts/${nav.prev.id}`}
-                            className={cn(
-                                "inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
-                                "text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-                            )}
+                            href={
+                                moduleIdFromQs
+                                    ? `/posts/${nav.prev.id}?module_id=${nav.module_id}`
+                                    : `/posts/${nav.prev.id}`
+                            }
+                            className={cn("btn", btnHover)}
                             title={nav.prev.title}
                         >
                             <NavigateBeforeIcon sx={{ fontSize: 20 }} />
                             Prev
                         </Link>
                     ) : (
-                        <button
-                            type="button"
-                            disabled
-                            className={cn(
-                                "inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
-                                "text-fg disabled:cursor-not-allowed disabled:opacity-60"
-                            )}
-                        >
+                        <button type="button" disabled className={cn("btn", "disabled:cursor-not-allowed disabled:opacity-60")}>
                             <NavigateBeforeIcon sx={{ fontSize: 20 }} />
                             Prev
                         </button>
                     )}
 
                     {/* Module */}
-                    <Link
-                        href={`/learn/${nav.module_id}`}
-                        className={cn(
-                            "inline-flex items-center gap-2 rounded-lg border border-border bg-muted px-3 py-2 text-sm font-medium",
-                            "text-fg hover:bg-muted/80 focus:outline-none focus:ring-2 focus:ring-ring"
-                        )}
-                        title={`Open module #${nav.module_id}`}
-                    >
+                    <Link href={`/learn/${nav.module_id}`} className={cn("btn", btnHover)} title={`Open module #${nav.module_id}`}>
                         <MenuBookIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
-                        <span className="text-fg">Module</span>
+                        Module
                     </Link>
 
                     {/* Next */}
                     {nav.next ? (
                         <Link
-                            href={moduleIdFromQs ? `/posts/${nav.next.id}?module_id=${nav.module_id}` : `/posts/${nav.next.id}`}
-                            className={cn(
-                                "inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
-                                "text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-                            )}
+                            href={
+                                moduleIdFromQs
+                                    ? `/posts/${nav.next.id}?module_id=${nav.module_id}`
+                                    : `/posts/${nav.next.id}`
+                            }
+                            className={cn("btn", btnHover)}
                             title={nav.next.title}
                         >
                             Next
                             <NavigateNextIcon sx={{ fontSize: 20 }} />
                         </Link>
                     ) : (
-                        <button
-                            type="button"
-                            disabled
-                            className={cn(
-                                "inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
-                                "text-fg disabled:cursor-not-allowed disabled:opacity-60"
-                            )}
-                        >
+                        <button type="button" disabled className={cn("btn", "disabled:cursor-not-allowed disabled:opacity-60")}>
                             Next
                             <NavigateNextIcon sx={{ fontSize: 20 }} />
                         </button>
                     )}
 
-                    <div className="ml-auto text-xs text-muted-fg">{navLoading ? "Loading nav…" : null}</div>
+                    {/* status (keeps alignment) */}
+                    <div className={cn("text-xs text-muted-fg whitespace-nowrap", "ml-0 sm:ml-auto")}>
+                        {navLoading ? "Loading nav…" : null}
+                    </div>
                 </div>
             ) : navLoading ? (
                 <div className="mb-6 rounded-xl border border-border bg-card p-3 text-xs text-muted-fg shadow-sm">
@@ -425,15 +426,17 @@ export default function PostPage() {
                 </div>
             ) : null}
 
+            {/* Content */}
             {loading ? (
-                <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                    <div className="text-sm text-muted-fg">Loading…</div>
+                <section className="rounded-xl border border-border bg-card p-6 text-sm text-muted-fg shadow-sm">
+                    Loading…
                 </section>
             ) : err ? (
-                <section className="rounded-xl border border-border bg-muted p-6 shadow-sm">
-                    <div className="text-sm text-fg">{err}</div>
+                <section className="rounded-xl border border-border bg-muted p-6 text-sm text-fg shadow-sm">
+                    {err}
                 </section>
             ) : !post ? null : (
+                // ✅ Reading area is STATIC: no hover ring, no lift
                 <article className="rounded-xl border border-border bg-card p-6 shadow-sm">
                     <header className="border-b border-border pb-4">
                         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-fg">
@@ -454,7 +457,6 @@ export default function PostPage() {
                         </div>
 
                         <h1 className="mt-3 text-2xl font-semibold tracking-tight text-fg">{post.title}</h1>
-
                         {post.preview_text ? <p className="mt-2 text-sm text-muted-fg">{post.preview_text}</p> : null}
                     </header>
 

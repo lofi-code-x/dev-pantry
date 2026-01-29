@@ -38,6 +38,10 @@ function formatDate(iso: string) {
     }
 }
 
+function cn(...parts: Array<string | false | null | undefined>) {
+    return parts.filter(Boolean).join(" ");
+}
+
 export default function ModulePage() {
     const router = useRouter();
     const params = useParams<{ id: string }>();
@@ -97,7 +101,6 @@ export default function ModulePage() {
             return;
         }
 
-        // ждём ready, чтобы корректно определить staff/onlyPublished
         if (!ready) return;
 
         let cancelled = false;
@@ -107,7 +110,6 @@ export default function ModulePage() {
             setPending(true);
 
             try {
-                // staff видит всё, обычный — только опубликованное
                 const onlyPublished = !staff;
 
                 const [mods, modulePosts] = await Promise.all([
@@ -188,14 +190,19 @@ export default function ModulePage() {
                         </h1>
 
                         {mod?.description ? (
-                            <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-fg">
+                            <p className="mt-2 whitespace-pre-wrap wrap-break-word text-sm text-muted-fg">
                                 {mod.description}
                             </p>
                         ) : null}
 
                         {mod ? (
                             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-fg">
-                <span className="rounded-md border border-border bg-muted px-2 py-0.5">
+                <span
+                    className={cn(
+                        "rounded-md border px-2 py-0.5",
+                        "border-[hsl(var(--ring)/0.35)] bg-[hsl(var(--ring)/0.10)] text-fg"
+                    )}
+                >
                   {mod.is_published ? "public" : "draft"}
                 </span>
                                 <span>author: {mod.author}</span>
@@ -209,7 +216,7 @@ export default function ModulePage() {
                         <div className="flex shrink-0 flex-wrap items-center gap-2">
                             <Link
                                 href={`/learn/${moduleId}/edit`}
-                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                                className={cn("btn", "disabled:opacity-60")}
                                 aria-disabled={pending}
                             >
                                 <EditIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
@@ -220,7 +227,7 @@ export default function ModulePage() {
                                 type="button"
                                 onClick={onTogglePublic}
                                 disabled={pending || !mod}
-                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+                                className={cn("btn", "disabled:cursor-not-allowed disabled:opacity-60")}
                             >
                                 {mod?.is_published ? (
                                     <LockIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
@@ -234,7 +241,12 @@ export default function ModulePage() {
                                 type="button"
                                 onClick={onDelete}
                                 disabled={pending || !mod}
-                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+                                className={cn(
+                                    "btn",
+                                    // delete: чуть краснее на hover, но не ломаем токены
+                                    "hover:bg-[hsl(0_90%_55%/0.10)] hover:border-[hsl(0_90%_55%/0.45)]",
+                                    "disabled:cursor-not-allowed disabled:opacity-60"
+                                )}
                             >
                                 <DeleteOutlineIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                                 Delete
@@ -244,7 +256,13 @@ export default function ModulePage() {
                 </div>
 
                 {err ? (
-                    <div className="rounded-xl border border-border bg-muted p-4 text-sm text-fg">
+                    <div
+                        className={cn(
+                            "surface p-4 text-sm text-fg",
+                            "ring-1 ring-inset ring-ring/20",
+                            "bg-[hsl(var(--ring)/0.06)]"
+                        )}
+                    >
                         {err}
                     </div>
                 ) : null}
@@ -253,11 +271,11 @@ export default function ModulePage() {
             {/* posts list */}
             <section className="grid gap-3">
                 {pending && posts.length === 0 ? (
-                    <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-fg shadow-sm">
+                    <div className={cn("surface p-6 text-sm text-muted-fg", "ring-1 ring-inset ring-border")}>
                         Loading…
                     </div>
                 ) : posts.length === 0 ? (
-                    <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-fg shadow-sm">
+                    <div className={cn("surface p-6 text-sm text-muted-fg", "ring-1 ring-inset ring-border")}>
                         No posts in this module.
                     </div>
                 ) : (

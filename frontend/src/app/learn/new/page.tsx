@@ -1,10 +1,10 @@
 "use client";
 
-import {useEffect, useMemo} from "react";
-import {useRouter} from "next/navigation";
+import React, { useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import ModuleEditor from "@/components/modules/ModuleEditor";
-import {useAuth} from "@/components/auth/AuthProvider";
-import type {UserRole} from "@/lib/types";
+import { useAuth } from "@/components/auth/AuthProvider";
+import type { UserRole } from "@/lib/types";
 
 const STAFF_ROLES: UserRole[] = ["admin", "moderator", "editor"];
 
@@ -12,10 +12,18 @@ function isStaff(role: unknown) {
     return STAFF_ROLES.includes(String(role).toLowerCase() as UserRole);
 }
 
-function PageShell({children}: { children: React.ReactNode }) {
+function PageShell({ children }: { children: React.ReactNode }) {
     return (
         <main className="mx-auto w-full max-w-6xl px-6 py-10">
-            <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-fg shadow-sm">
+            <div
+                className={[
+                    // ✅ glossy system surface
+                    "surface p-6 text-sm text-muted-fg",
+                    // ✅ subtle accent ring (inside)
+                    "ring-1 ring-inset ring-ring/15",
+                    "bg-[hsl(var(--ring)/0.05)]",
+                ].join(" ")}
+            >
                 {children}
             </div>
         </main>
@@ -24,7 +32,7 @@ function PageShell({children}: { children: React.ReactNode }) {
 
 export default function NewModulePage() {
     const router = useRouter();
-    const {user, ready} = useAuth();
+    const { user, ready } = useAuth();
 
     const canAccess = useMemo(() => {
         if (!ready) return false;
@@ -50,7 +58,6 @@ export default function NewModulePage() {
     }
 
     if (!user) {
-        // редирект в useEffect — здесь просто не мигаем пустотой
         return <PageShell>Redirecting to login…</PageShell>;
     }
 
@@ -58,5 +65,5 @@ export default function NewModulePage() {
         return <PageShell>Access denied.</PageShell>;
     }
 
-    return <ModuleEditor mode="create"/>;
+    return <ModuleEditor mode="create" />;
 }

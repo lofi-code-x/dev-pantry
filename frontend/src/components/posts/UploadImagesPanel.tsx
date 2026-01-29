@@ -28,6 +28,13 @@ function toAbsolute(url: string) {
     return `${API_BASE}/${u}`;
 }
 
+const ringHover =
+    "transition-[transform,background-color,border-color,box-shadow] duration-150 " +
+    "hover:-translate-y-[1px] " +
+    "hover:bg-[hsl(var(--ring)/0.10)] hover:border-[hsl(var(--ring)/0.45)] " +
+    "hover:ring-2 hover:ring-inset hover:ring-ring/30 " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55";
+
 export default function UploadImagesPanel({
                                               onUploaded,
                                               disabled,
@@ -88,11 +95,7 @@ export default function UploadImagesPanel({
                     type="button"
                     onClick={openPicker}
                     disabled={disabled || pending}
-                    className={cn(
-                        "inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
-                        "text-fg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring",
-                        "disabled:cursor-not-allowed disabled:opacity-60"
-                    )}
+                    className={cn("btn", ringHover, "disabled:cursor-not-allowed disabled:opacity-60")}
                 >
                     <CloudUploadOutlinedIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                     {pending ? "Uploading..." : "Upload image"}
@@ -102,28 +105,41 @@ export default function UploadImagesPanel({
             </div>
 
             {err ? (
-                <div className="mt-2 text-sm text-fg">
-                    <span className="rounded-md border border-border bg-muted px-2 py-1">{err}</span>
+                <div
+                    className={cn(
+                        "mt-3 rounded-lg border px-3 py-2 text-sm text-fg",
+                        "border-[hsl(var(--ring)/0.35)] bg-[hsl(var(--ring)/0.06)]",
+                        "ring-1 ring-inset ring-ring/15"
+                    )}
+                >
+                    {err}
                 </div>
             ) : null}
 
             {items.length ? (
-                <div className="mt-3">
+                <div className="mt-4">
                     <div className="text-xs font-medium text-muted-fg">Uploaded images</div>
 
                     <ul className="mt-2 space-y-2">
                         {items.map((it, idx) => (
                             <li
                                 key={`${it.url}-${idx}`}
-                                className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card px-3 py-2"
+                                className={cn(
+                                    "card-gloss flex flex-wrap items-center gap-2 rounded-lg p-3",
+                                    "ring-1 ring-inset ring-border"
+                                )}
                             >
-                                <span className="text-sm text-fg">{it.name}</span>
+                                <span className="truncate text-sm text-fg">{it.name}</span>
 
                                 <a
                                     href={toAbsolute(it.url)}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="inline-flex items-center gap-1 text-xs text-muted-fg underline underline-offset-4 hover:text-fg"
+                                    className={cn(
+                                        "inline-flex items-center gap-1 text-xs underline underline-offset-4",
+                                        "text-muted-fg hover:text-fg",
+                                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55 rounded"
+                                    )}
                                 >
                                     <OpenInNewIcon sx={{ fontSize: 16 }} className="text-muted-fg" />
                                     Open
@@ -132,7 +148,11 @@ export default function UploadImagesPanel({
                                 <button
                                     type="button"
                                     onClick={() => copyMarkdown(it.url)}
-                                    className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-fg underline underline-offset-4 hover:text-muted-fg"
+                                    className={cn(
+                                        "ml-auto inline-flex items-center gap-1 text-xs font-medium underline underline-offset-4",
+                                        "text-fg hover:text-muted-fg",
+                                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55 rounded"
+                                    )}
                                 >
                                     <ContentCopyIcon sx={{ fontSize: 16 }} className="text-muted-fg" />
                                     Copy markdown
