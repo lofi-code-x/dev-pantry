@@ -11,7 +11,7 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 import { Inter } from "next/font/google";
 
 export const metadata: Metadata = {
-    title: "Dev-Pantry",
+    title: "StackForge",
     description: "Кладовая знаний о разработке",
 };
 
