@@ -1,15 +1,15 @@
 // src/components/posts/PostEditor.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, {useEffect, useMemo, useState} from "react";
+import {useRouter} from "next/navigation";
 import MdEditor from "@/components/posts/MdEditor";
-import { useAuth } from "@/components/auth/AuthProvider";
-import { ApiError } from "@/lib/apiClient";
-import type { PostCreateRequest } from "@/lib/api/posts";
-import { createPost, suggestPost, updatePost } from "@/lib/api/posts";
-import UploadImagesPanel from "@/components/posts/UploadImagesPanel";
-import { getAllCategories } from "@/lib/api/category";
+import {useAuth} from "@/components/auth/AuthProvider";
+import {ApiError} from "@/lib/apiClient";
+import {createPost, suggestPost, updatePost, type PostCreateRequest} from "@/lib/api/posts";
+import UploadImagesPanel, {type UploadedImage} from "@/components/posts/UploadImagesPanel";
+import {getAllCategories} from "@/lib/api/category";
+import {getPostImages} from "@/lib/api/uploads";
 
 // ✅ Icons (MUI)
 import PublishIcon from "@mui/icons-material/Publish";
@@ -35,14 +35,6 @@ function isStaff(role: unknown) {
     return (STAFF_ROLES as readonly string[]).includes(String(role).toLowerCase());
 }
 
-// shared look
-const ringHover =
-    "transition-[transform,background-color,border-color,box-shadow] duration-150 " +
-    "hover:-translate-y-[1px] " +
-    "hover:bg-[hsl(var(--ring)/0.10)] hover:border-[hsl(var(--ring)/0.45)] " +
-    "hover:ring-2 hover:ring-inset hover:ring-ring/30 " +
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55";
-
 const cardBase = "card-gloss ring-1 ring-inset ring-border";
 
 export default function PostEditor({
@@ -52,10 +44,10 @@ export default function PostEditor({
                                    }: {
     mode: Mode;
     postId?: number;
-    initial?: Partial<PostCreateRequest>;
+    initial?: Partial<PostCreateRequest> & { author?: string; category_tag?: string; content_markdown?: string };
 }) {
     const router = useRouter();
-    const { user } = useAuth();
+    const {user} = useAuth();
 
     const [title, setTitle] = useState(initial?.title ?? "");
     const [categoryTag, setCategoryTag] = useState(initial?.category_tag ?? "");
@@ -66,6 +58,8 @@ export default function PostEditor({
 
     const [pending, setPending] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const [images, setImages] = useState<UploadedImage[]>([]);
 
     const canAccess = useMemo(() => {
         if (!user) return false;
@@ -86,21 +80,21 @@ export default function PostEditor({
 
     const submitIcon =
         mode === "create" ? (
-            <PublishIcon sx={{ fontSize: 18 }} className="text-primary-fg" />
+            <PublishIcon sx={{fontSize: 18}} className="text-primary-fg"/>
         ) : mode === "suggest" ? (
-            <SendIcon sx={{ fontSize: 18 }} className="text-primary-fg" />
+            <SendIcon sx={{fontSize: 18}} className="text-primary-fg"/>
         ) : (
-            <SaveIcon sx={{ fontSize: 18 }} className="text-primary-fg" />
+            <SaveIcon sx={{fontSize: 18}} className="text-primary-fg"/>
         );
 
     const headingIcon =
         mode === "suggest" ? (
-            <LightbulbOutlineIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
+            <LightbulbOutlineIcon sx={{fontSize: 18}} className="text-muted-fg"/>
         ) : (
-            <EditIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
+            <EditIcon sx={{fontSize: 18}} className="text-muted-fg"/>
         );
 
-    // Load categories (dropdown options)
+    // Load categories
     useEffect(() => {
         let cancelled = false;
 
@@ -117,12 +111,11 @@ export default function PostEditor({
 
                 setCategories(normalized);
 
-                // если tag пустой, но категории есть — выберем первую
                 if (!categoryTag && normalized.length) {
                     setCategoryTag(normalized[0].tag);
                 }
             } catch {
-                // best-effort: не блокируем редактор
+                // best-effort
             } finally {
                 if (!cancelled) setCatLoading(false);
             }
@@ -135,31 +128,50 @@ export default function PostEditor({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // ✅ load attached images for edit mode
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadImages() {
+            if (mode !== "edit") return;
+            if (typeof postId !== "number") return;
+
+            try {
+                const list = await getPostImages(postId); // -> [{id,url}]
+                if (cancelled) return;
+
+                const mapped: UploadedImage[] = (list ?? []).map((x) => ({
+                    id: String(x.id),
+                    url: String(x.url),
+                    name: "image",
+                }));
+
+                setImages(mapped);
+            } catch {
+                // best-effort
+            }
+        }
+
+        loadImages();
+        return () => {
+            cancelled = true;
+        };
+    }, [mode, postId]);
+
     async function onSubmit(e: React.FormEvent) {
         e.preventDefault();
         setError(null);
 
-        if (!user) {
-            setError("Please log in.");
-            return;
-        }
-        if (!canAccess) {
-            setError("You don't have permission.");
-            return;
-        }
-        if (mode === "edit" && !postId) {
-            setError("Missing postId.");
-            return;
-        }
+        if (!user) return setError("Please log in.");
+        if (!canAccess) return setError("You don't have permission.");
+        if (mode === "edit" && typeof postId !== "number") return setError("Missing postId.");
 
         const body: PostCreateRequest = {
             title: title.trim(),
             category_tag: categoryTag.trim(),
-            author:
-                mode === "edit"
-                    ? (initial?.author?.trim() || user.login) // сохраняем автора поста при edit
-                    : user.login,
+            author: mode === "edit" ? (initial?.author?.trim() || user.login) : user.login,
             content_markdown: content,
+            image_upload_ids: images.map((x) => x.id),
         };
 
         if (!body.title) return setError("Title is required.");
@@ -203,10 +215,8 @@ export default function PostEditor({
                 </section>
             ) : (
                 <form onSubmit={onSubmit} className="grid gap-4">
-                    {/* Top control panel */}
                     <section className={cn(cardBase, "p-6")}>
                         <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-                            {/* Title */}
                             <div className="lg:col-span-8">
                                 <label className="block text-sm font-medium text-fg">Title</label>
                                 <input
@@ -218,7 +228,6 @@ export default function PostEditor({
                                 />
                             </div>
 
-                            {/* Category */}
                             <div className="lg:col-span-4">
                                 <label className="block text-sm font-medium text-fg">Category</label>
                                 <select
@@ -241,9 +250,8 @@ export default function PostEditor({
                                 </select>
                             </div>
 
-                            {/* Upload images full width */}
                             <div className="lg:col-span-12">
-                                <UploadImagesPanel disabled={pending} />
+                                <UploadImagesPanel disabled={pending} value={images} onChange={setImages}/>
                             </div>
                         </div>
 
@@ -260,12 +268,10 @@ export default function PostEditor({
                         ) : null}
                     </section>
 
-                    {/* Editor */}
                     <section className={cn(cardBase, "p-3")}>
-                        <MdEditor value={content} onChange={setContent} />
+                        <MdEditor value={content} onChange={setContent}/>
                     </section>
 
-                    {/* Bottom actions */}
                     <div className="flex items-center justify-end">
                         <button
                             type="submit"

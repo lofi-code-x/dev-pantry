@@ -3,29 +3,21 @@
 
 import React, { useRef, useState } from "react";
 import { uploadImage } from "@/lib/api/uploads";
-import { ApiError } from "@/lib/apiClient";
+import { ApiError, toAbsoluteUrl } from "@/lib/apiClient";
 
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
-type UploadedImage = {
-    name: string;
-    url: string; // то, что вернул сервер
+export type UploadedImage = {
+    id: string; // uuid
+    name: string; // filename or "image"
+    url: string; // usually "/uploads/images/...."
 };
 
 function cn(...parts: Array<string | false | null | undefined>) {
     return parts.filter(Boolean).join(" ");
-}
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
-
-function toAbsolute(url: string) {
-    const u = String(url ?? "").trim();
-    if (!u) return u;
-    if (u.startsWith("http://") || u.startsWith("https://")) return u;
-    if (u.startsWith("/")) return `${API_BASE}${u}`;
-    return `${API_BASE}/${u}`;
 }
 
 const ringHover =
@@ -36,19 +28,24 @@ const ringHover =
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55";
 
 export default function UploadImagesPanel({
-                                              onUploaded,
+                                              value,
+                                              onChange,
                                               disabled,
+                                              maxItems,
                                           }: {
-    onUploaded?: (img: UploadedImage) => void;
+    value: UploadedImage[];
+    onChange: (next: UploadedImage[]) => void;
     disabled?: boolean;
+    maxItems?: number; // module: 1, posts: undefined
 }) {
     const inputRef = useRef<HTMLInputElement | null>(null);
-    const [items, setItems] = useState<UploadedImage[]>([]);
     const [pending, setPending] = useState(false);
     const [err, setErr] = useState<string | null>(null);
 
+    const limitReached = typeof maxItems === "number" && value.length >= maxItems;
+
     function openPicker() {
-        if (disabled || pending) return;
+        if (disabled || pending || limitReached) return;
         inputRef.current?.click();
     }
 
@@ -61,14 +58,10 @@ export default function UploadImagesPanel({
         setPending(true);
         try {
             const res = await uploadImage(file);
+            const img: UploadedImage = { id: res.id, name: file.name, url: res.url };
 
-            const img: UploadedImage = {
-                name: file.name,
-                url: res.url,
-            };
-
-            setItems((prev) => [img, ...prev]);
-            onUploaded?.(img);
+            const next = maxItems === 1 ? [img] : [img, ...value];
+            onChange(next);
         } catch (e: any) {
             if (e instanceof ApiError) setErr(e.message);
             else setErr("Upload failed.");
@@ -77,8 +70,13 @@ export default function UploadImagesPanel({
         }
     }
 
+    function remove(id: string) {
+        onChange(value.filter((x) => x.id !== id));
+    }
+
     async function copyMarkdown(url: string) {
-        const md = `![](${toAbsolute(url)})`;
+        // ✅ в markdown кладём абсолютный URL, чтобы превью/рендер не пытались грузить с :3000
+        const md = `![](${toAbsoluteUrl(url)})`;
         try {
             await navigator.clipboard.writeText(md);
         } catch {
@@ -94,14 +92,19 @@ export default function UploadImagesPanel({
                 <button
                     type="button"
                     onClick={openPicker}
-                    disabled={disabled || pending}
+                    disabled={disabled || pending || limitReached}
                     className={cn("btn", ringHover, "disabled:cursor-not-allowed disabled:opacity-60")}
                 >
                     <CloudUploadOutlinedIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
-                    {pending ? "Uploading..." : "Upload image"}
+                    {pending ? "Uploading..." : limitReached ? "Limit reached" : "Upload image"}
                 </button>
 
                 <span className="text-xs text-muted-fg">PNG/JPG/WebP, up to 10MB</span>
+                {typeof maxItems === "number" ? (
+                    <span className="text-xs text-muted-fg">
+            ({value.length}/{maxItems})
+          </span>
+                ) : null}
             </div>
 
             {err ? (
@@ -116,23 +119,23 @@ export default function UploadImagesPanel({
                 </div>
             ) : null}
 
-            {items.length ? (
+            {value.length ? (
                 <div className="mt-4">
-                    <div className="text-xs font-medium text-muted-fg">Uploaded images</div>
+                    <div className="text-xs font-medium text-muted-fg">Images</div>
 
                     <ul className="mt-2 space-y-2">
-                        {items.map((it, idx) => (
+                        {value.map((it) => (
                             <li
-                                key={`${it.url}-${idx}`}
+                                key={it.id}
                                 className={cn(
                                     "card-gloss flex flex-wrap items-center gap-2 rounded-lg p-3",
                                     "ring-1 ring-inset ring-border"
                                 )}
                             >
-                                <span className="truncate text-sm text-fg">{it.name}</span>
+                                <span className="truncate text-sm text-fg">{it.name || "image"}</span>
 
                                 <a
-                                    href={toAbsolute(it.url)}
+                                    href={toAbsoluteUrl(it.url)}
                                     target="_blank"
                                     rel="noreferrer"
                                     className={cn(
@@ -149,7 +152,7 @@ export default function UploadImagesPanel({
                                     type="button"
                                     onClick={() => copyMarkdown(it.url)}
                                     className={cn(
-                                        "ml-auto inline-flex items-center gap-1 text-xs font-medium underline underline-offset-4",
+                                        "inline-flex items-center gap-1 text-xs font-medium underline underline-offset-4",
                                         "text-fg hover:text-muted-fg",
                                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55 rounded"
                                     )}
@@ -157,11 +160,27 @@ export default function UploadImagesPanel({
                                     <ContentCopyIcon sx={{ fontSize: 16 }} className="text-muted-fg" />
                                     Copy markdown
                                 </button>
+
+                                <button
+                                    type="button"
+                                    disabled={disabled || pending}
+                                    onClick={() => remove(it.id)}
+                                    className={cn(
+                                        "ml-auto inline-flex items-center gap-1 text-xs font-medium underline underline-offset-4",
+                                        "text-muted-fg hover:text-fg",
+                                        "disabled:cursor-not-allowed disabled:opacity-60",
+                                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55 rounded"
+                                    )}
+                                    title="Remove"
+                                >
+                                    <DeleteOutlineIcon sx={{ fontSize: 16 }} className="text-muted-fg" />
+                                    Remove
+                                </button>
                             </li>
                         ))}
                     </ul>
 
-                    <div className="mt-2 text-xs text-muted-fg">Tip: paste copied markdown into your content.</div>
+                    <div className="mt-2 text-xs text-muted-fg">Removing here changes bindings on save.</div>
                 </div>
             ) : null}
         </div>

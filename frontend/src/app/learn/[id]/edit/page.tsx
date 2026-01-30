@@ -43,7 +43,7 @@ export default function EditModulePage() {
             setErr(null);
             try {
                 const m = await getModule(moduleId);
-                const ps = await getModulePosts(moduleId, { only_published: false });
+                const ps = await getModulePosts(moduleId, {only_published: false});
                 if (cancelled) return;
                 setMod(m);
                 setPosts(ps);

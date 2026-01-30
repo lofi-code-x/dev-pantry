@@ -28,6 +28,8 @@ export type PostCreateRequest = {
     content_markdown: string;
     category_tag: string;
     author: string;
+
+    image_upload_ids: string[]; // <-- добавили
 };
 
 export type SetPublicRequest = {
@@ -120,4 +122,3 @@ export async function getPostModuleNav(
     const qs = sp.toString();
     return apiFetch<ModulePostNav>(`/api/module/nav/by-post/${postId}${qs ? `?${qs}` : ""}`);
 }
-

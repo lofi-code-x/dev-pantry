@@ -7,9 +7,12 @@ use crate::domain::module::dto::{
 use crate::domain::module::model::{Module, ModuleItem};
 use crate::domain::module::repo;
 use crate::domain::post::model::Post;
+use crate::domain::uploads;
+use crate::domain::uploads::dto::AttachModuleImagesParams;
 use crate::error;
 use sqlx::PgPool;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use uuid::Uuid;
 
 //---------------------------------------- Module ----------------------------------------------------
 
@@ -23,27 +26,117 @@ pub async fn get_module(pool: &PgPool, id: i64) -> error::Result<Module> {
         .ok_or(error::Error::NotFound(format!("module {} not found", id)))
 }
 
+/// NOTE:
+/// Для "1 картинка = 1 модуль" нужно, чтобы InsertModuleParams содержал:
+///   pub image_upload_id: Option<Uuid>
+/// (значение - желаемая картинка, None - без картинки)
 pub async fn create_module(pool: &PgPool, params: InsertModuleParams) -> error::Result<i64> {
-    repo::insert_module(pool, params).await
+    // desired single image (copy before params moved)
+    let image_upload_id: Option<Uuid> = params.image_upload_id;
+
+    // 1) create module
+    let module_id = repo::insert_module(pool, params).await?;
+
+    // 2) attach image (single)
+    if let Some(upload_id) = image_upload_id {
+        uploads::repo::attach_module_images(
+            pool,
+            AttachModuleImagesParams {
+                module_id,
+                upload_ids: vec![upload_id],
+            },
+        )
+            .await?;
+    }
+
+    Ok(module_id)
 }
 
-pub async fn update_module(
-    pool: &PgPool,
-    id: i64,
-    params: UpdateModuleParams,
-) -> error::Result<i64> {
+/// NOTE:
+/// Для "1 картинка = 1 модуль" UpdateModuleParams должен содержать:
+///   pub image_upload_id: Option<Uuid>
+/// И мы считаем, что это ЖЕЛАЕМОЕ состояние:
+///   Some(x) -> установить/заменить на x
+///   None    -> убрать картинку
+pub async fn update_module(pool: &PgPool, id: i64, params: UpdateModuleParams) -> error::Result<i64> {
+    // desired single image (copy before params moved)
+    let new_image: Option<Uuid> = params.image_upload_id;
+
+    // 1) update module fields
     let updated_id = repo::update_module_by_id(pool, id, params)
         .await?
         .ok_or(error::Error::NotFound(format!("Module {} not found.", id)))?;
+
+    // 2) sync module_images (1 image)
+    let old_ids = uploads::repo::list_module_image_ids(pool, updated_id).await?;
+    let old: HashSet<Uuid> = old_ids.into_iter().collect();
+
+    let mut desired: HashSet<Uuid> = HashSet::new();
+    if let Some(u) = new_image {
+        desired.insert(u);
+    }
+
+    let to_add: Vec<Uuid> = desired.difference(&old).cloned().collect();
+    let to_remove: Vec<Uuid> = old.difference(&desired).cloned().collect();
+
+    // detach removed
+    if !to_remove.is_empty() {
+        uploads::repo::detach_module_images(pool, updated_id, &to_remove).await?;
+
+        // cleanup uploads rows + files only if not used elsewhere (post/module/avatar)
+        let in_use = uploads::repo::list_in_use_upload_ids(pool, &to_remove).await?;
+        let in_use_set: HashSet<Uuid> = in_use.into_iter().collect();
+
+        let deletable: Vec<Uuid> = to_remove
+            .into_iter()
+            .filter(|u| !in_use_set.contains(u))
+            .collect();
+
+        if !deletable.is_empty() {
+            uploads::service::delete_uploads_and_files(pool, &deletable).await?;
+        }
+    }
+
+    // attach added (single)
+    if !to_add.is_empty() {
+        uploads::repo::attach_module_images(
+            pool,
+            AttachModuleImagesParams {
+                module_id: updated_id,
+                upload_ids: to_add,
+            },
+        )
+            .await?;
+    }
 
     Ok(updated_id)
 }
 
 pub async fn delete_module(pool: &PgPool, id: i64) -> error::Result<()> {
+    // 1) grab image ids BEFORE delete (module_images will be CASCADE)
+    let module_upload_ids = uploads::repo::list_module_image_ids(pool, id).await?;
+
+    // 2) delete module
     let rows = repo::delete_module_by_id(pool, id).await?;
     if rows == 0 {
         return Err(error::Error::NotFound(format!("Module {} not found.", id)));
     }
+
+    // 3) cleanup uploads + files if not used elsewhere
+    if !module_upload_ids.is_empty() {
+        let in_use = uploads::repo::list_in_use_upload_ids(pool, &module_upload_ids).await?;
+        let in_use_set: HashSet<Uuid> = in_use.into_iter().collect();
+
+        let deletable: Vec<Uuid> = module_upload_ids
+            .into_iter()
+            .filter(|u| !in_use_set.contains(u))
+            .collect();
+
+        if !deletable.is_empty() {
+            uploads::service::delete_uploads_and_files(pool, &deletable).await?;
+        }
+    }
+
     Ok(())
 }
 

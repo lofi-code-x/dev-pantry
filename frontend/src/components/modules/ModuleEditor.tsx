@@ -1,13 +1,12 @@
-// src/components/modules/ModuleEditor.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { ApiError } from "@/lib/apiClient";
-import { useAuth } from "@/components/auth/AuthProvider";
-import type { UserRole } from "@/lib/types";
+import React, {useEffect, useMemo, useState} from "react";
+import {useRouter} from "next/navigation";
+import {ApiError} from "@/lib/apiClient";
+import {useAuth} from "@/components/auth/AuthProvider";
+import type {UserRole} from "@/lib/types";
 
-import { searchPosts, type Post } from "@/lib/api/posts";
+import {searchPosts, type Post} from "@/lib/api/posts";
 import {
     createModule,
     updateModule,
@@ -20,7 +19,9 @@ import {
     type ModuleItemCreateRequest,
 } from "@/lib/api/modules";
 
-// ✅ Google (MUI) icons
+import UploadImagesPanel, {type UploadedImage} from "@/components/posts/UploadImagesPanel";
+import {listModuleImages} from "@/lib/api/uploads";
+
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import CloseIcon from "@mui/icons-material/Close";
@@ -30,6 +31,7 @@ import CheckIcon from "@mui/icons-material/Check";
 type Mode = "create" | "edit";
 
 const STAFF_ROLES: UserRole[] = ["admin", "moderator", "editor"];
+
 function isStaff(role: unknown) {
     return STAFF_ROLES.includes(String(role).toLowerCase() as UserRole);
 }
@@ -64,25 +66,26 @@ export default function ModuleEditor({
                                      }: {
     mode: Mode;
     moduleId?: number;
-    initial?: {
-        title: string;
-        description: string | null;
-        is_published: boolean;
-    };
+    initial?: { title: string; description: string | null; is_published: boolean };
     initialPosts?: Post[];
 }) {
     const router = useRouter();
-    const { user, ready } = useAuth();
+    const {user, ready} = useAuth();
 
-    // базовые поля
+    // base fields
     const [title, setTitle] = useState(initial?.title ?? "");
     const [description, setDescription] = useState(initial?.description ?? "");
     const [isPublished, setIsPublished] = useState(initial?.is_published ?? true);
 
-    // выбранные посты
+    // ✅ module images: массив, но maxItems=1
+    const [moduleImages, setModuleImages] = useState<UploadedImage[]>([]);
+    const [imageLoading, setImageLoading] = useState(false);
+    const [imageErr, setImageErr] = useState<string | null>(null);
+
+    // posts
     const [selected, setSelected] = useState<Post[]>(initialPosts ?? []);
 
-    // поиск постов
+    // search
     const [query, setQuery] = useState("");
     const debouncedQuery = useDebounced(query, 250);
     const [results, setResults] = useState<Post[]>([]);
@@ -108,12 +111,65 @@ export default function ModuleEditor({
             router.replace("/login");
             return;
         }
-        if (!isStaff(user.role)) {
-            router.replace("/learn");
-        }
+        if (!isStaff(user.role)) router.replace("/learn");
     }, [user, ready, router]);
 
-    // default load: last 10 posts, or search by query
+    // ✅ load module image on edit
+    // ✅ load module image on edit
+    useEffect(() => {
+        if (!ready) return;
+        if (!user) return;
+        if (!canAccess) return;
+        if (mode !== "edit") return;
+
+        // ✅ FIX: сузили тип moduleId до number
+        if (typeof moduleId !== "number" || !Number.isFinite(moduleId) || moduleId <= 0) {
+            setModuleImages([]);
+            return;
+        }
+
+        const mid = moduleId; // mid: number
+
+        let cancelled = false;
+
+        async function loadImg() {
+            setImageLoading(true);
+            setImageErr(null);
+            try {
+                const list = await listModuleImages(mid); // ✅ mid: number (TS ок)
+                if (cancelled) return;
+
+                const first = list?.[0] ?? null;
+
+                if (first) {
+                    setModuleImages([
+                        {
+                            id: String(first.id),
+                            name: "module-image",
+                            url: String(first.url),
+                        },
+                    ]);
+                } else {
+                    setModuleImages([]);
+                }
+            } catch (e: any) {
+                if (cancelled) return;
+                if (e instanceof ApiError) setImageErr(e.message);
+                else setImageErr("Failed to load module image.");
+            } finally {
+                if (!cancelled) setImageLoading(false);
+            }
+        }
+
+        loadImg();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [ready, user?.id, canAccess, mode, moduleId]);
+
+
+    // search posts
     useEffect(() => {
         let cancelled = false;
 
@@ -174,10 +230,9 @@ export default function ModuleEditor({
 
         const t = title.trim();
         if (!t) return setErr("Title is required.");
+        if (mode === "edit" && !moduleId) return setErr("Missing moduleId.");
 
-        if (mode === "edit" && !moduleId) {
-            return setErr("Missing moduleId.");
-        }
+        const image_upload_id = moduleImages[0]?.id ?? null;
 
         setPending(true);
         try {
@@ -187,6 +242,7 @@ export default function ModuleEditor({
                     description: description.trim() ? description.trim() : null,
                     author_id: user.id,
                     is_published: isPublished,
+                    image_upload_id,
                 };
 
                 const newId = await createModule(body);
@@ -206,25 +262,19 @@ export default function ModuleEditor({
                 return;
             }
 
-            // ---------------- EDIT ----------------
             const updateBody: ModuleUpdateRequest = {
                 title: t,
                 description: description.trim() ? description.trim() : null,
-                // is_published: isPublished
+                image_upload_id,
             };
             await updateModule(moduleId!, updateBody);
 
             const currentItems: ModuleItem[] = await listModuleItems(moduleId!);
-            for (const it of currentItems) {
-                await deleteModuleItem(it.id);
-            }
+            for (const it of currentItems) await deleteModuleItem(it.id);
+
             for (let i = 0; i < selected.length; i++) {
                 const p = selected[i];
-                await createModuleItem({
-                    module_id: moduleId!,
-                    post_id: p.id,
-                    sort_order: i,
-                });
+                await createModuleItem({module_id: moduleId!, post_id: p.id, sort_order: i});
             }
 
             router.push(`/learn/${moduleId}`);
@@ -237,8 +287,7 @@ export default function ModuleEditor({
         }
     }
 
-    if (!ready) return null;
-    if (!user) return null;
+    if (!ready || !user) return null;
 
     return (
         <main className="mx-auto w-full max-w-6xl px-6 py-10">
@@ -246,7 +295,9 @@ export default function ModuleEditor({
                 <h1 className="text-2xl font-semibold tracking-tight text-fg">
                     {mode === "create" ? "Create module" : "Edit module"}
                 </h1>
-                <p className="mt-2 text-sm text-muted-fg">Fill module details and attach posts (no duplicates).</p>
+                <p className="mt-2 text-sm text-muted-fg">
+                    Fill module details, attach one cover image, and attach posts (no duplicates).
+                </p>
             </header>
 
             {!canAccess ? (
@@ -255,7 +306,6 @@ export default function ModuleEditor({
                 </section>
             ) : (
                 <form onSubmit={onSubmit} className="grid gap-4">
-                    {/* базовые поля */}
                     <section className={cn(cardBase, "p-6")}>
                         <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
                             <div className="lg:col-span-6">
@@ -265,6 +315,7 @@ export default function ModuleEditor({
                                     onChange={(e) => setTitle(e.target.value)}
                                     className="input mt-2"
                                     placeholder="Module title"
+                                    disabled={pending}
                                 />
                             </div>
 
@@ -277,11 +328,14 @@ export default function ModuleEditor({
                                         checked={isPublished}
                                         onChange={(e) => setIsPublished(e.target.checked)}
                                         className="h-4 w-4 accent-[hsl(var(--ring))]"
+                                        disabled={pending}
                                     />
                                     <label htmlFor="pub" className="text-sm text-fg">
                                         Public
                                     </label>
-                                    <span className="text-xs text-muted-fg">{isPublished ? "Visible to all" : "Hidden (draft)"}</span>
+                                    <span className="text-xs text-muted-fg">
+                    {isPublished ? "Visible to all" : "Hidden (draft)"}
+                  </span>
                                 </div>
                             </div>
 
@@ -293,6 +347,35 @@ export default function ModuleEditor({
                                     rows={3}
                                     className="input mt-2"
                                     placeholder="Optional module description"
+                                    disabled={pending}
+                                />
+                            </div>
+
+                            <div className="lg:col-span-12">
+                                <div className="mb-2">
+                                    <div className="text-sm font-medium text-fg">Module image</div>
+                                    <div className="text-xs text-muted-fg">One image per module (cover).</div>
+                                </div>
+
+                                {imageErr ? (
+                                    <div
+                                        className={cn(
+                                            "mb-3 rounded-xl border p-3 text-sm text-fg",
+                                            "border-[hsl(var(--ring)/0.35)] bg-[hsl(var(--ring)/0.06)]",
+                                            "ring-1 ring-inset ring-ring/15"
+                                        )}
+                                    >
+                                        {imageErr}
+                                    </div>
+                                ) : null}
+
+                                {imageLoading ? <div className="mb-3 text-sm text-muted-fg">Loading image…</div> : null}
+
+                                <UploadImagesPanel
+                                    disabled={pending}
+                                    value={moduleImages}
+                                    onChange={(next) => setModuleImages(next.slice(0, 1))}
+                                    maxItems={1}
                                 />
                             </div>
                         </div>
@@ -310,7 +393,7 @@ export default function ModuleEditor({
                         ) : null}
                     </section>
 
-                    {/* выбор постов */}
+                    {/* posts pickers */}
                     <section className="grid gap-4 lg:grid-cols-2">
                         {/* selected */}
                         <div className={cn(cardBase, "p-6")}>
@@ -341,7 +424,8 @@ export default function ModuleEditor({
                                                         <div className="truncate text-sm font-medium text-fg">
                                                             {idx + 1}. {p.title}
                                                         </div>
-                                                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-fg">
+                                                        <div
+                                                            className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-fg">
                               <span className="rounded-md border border-border bg-[hsl(var(--ring)/0.08)] px-2 py-0.5">
                                 {p.category_tag}
                               </span>
@@ -353,7 +437,7 @@ export default function ModuleEditor({
                                                         <button
                                                             type="button"
                                                             onClick={() => move(p.id, -1)}
-                                                            disabled={idx === 0}
+                                                            disabled={idx === 0 || pending}
                                                             className={cn(
                                                                 "btn h-8 w-8 px-0",
                                                                 ringHover,
@@ -362,13 +446,13 @@ export default function ModuleEditor({
                                                             title="Move up"
                                                             aria-label="Move up"
                                                         >
-                                                            <ArrowUpwardIcon sx={{ fontSize: 18 }} />
+                                                            <ArrowUpwardIcon sx={{fontSize: 18}}/>
                                                         </button>
 
                                                         <button
                                                             type="button"
                                                             onClick={() => move(p.id, 1)}
-                                                            disabled={idx === selected.length - 1}
+                                                            disabled={idx === selected.length - 1 || pending}
                                                             className={cn(
                                                                 "btn h-8 w-8 px-0",
                                                                 ringHover,
@@ -377,22 +461,23 @@ export default function ModuleEditor({
                                                             title="Move down"
                                                             aria-label="Move down"
                                                         >
-                                                            <ArrowDownwardIcon sx={{ fontSize: 18 }} />
+                                                            <ArrowDownwardIcon sx={{fontSize: 18}}/>
                                                         </button>
 
                                                         <button
                                                             type="button"
                                                             onClick={() => removePost(p.id)}
+                                                            disabled={pending}
                                                             className={cn(
                                                                 "btn h-8 w-8 px-0",
                                                                 ringHover,
-                                                                // remove accent (subtle red)
-                                                                "hover:bg-[hsl(0_90%_55%/0.10)] hover:border-[hsl(0_90%_55%/0.45)] hover:ring-2 hover:ring-inset hover:ring-[hsl(0_90%_55%/0.28)]"
+                                                                "hover:bg-[hsl(0_90%_55%/0.10)] hover:border-[hsl(0_90%_55%/0.45)] hover:ring-2 hover:ring-inset hover:ring-[hsl(0_90%_55%/0.28)]",
+                                                                "disabled:cursor-not-allowed disabled:opacity-60"
                                                             )}
                                                             title="Remove"
                                                             aria-label="Remove"
                                                         >
-                                                            <CloseIcon sx={{ fontSize: 18 }} />
+                                                            <CloseIcon sx={{fontSize: 18}}/>
                                                         </button>
                                                     </div>
                                                 </div>
@@ -410,7 +495,9 @@ export default function ModuleEditor({
                                     <div className="text-sm font-medium text-fg">Add posts</div>
                                     <div className="text-xs text-muted-fg">Default: last 10 posts.</div>
                                 </div>
-                                <div className="text-xs text-muted-fg">{searchPending ? "Loading..." : `${results.length} results`}</div>
+                                <div className="text-xs text-muted-fg">
+                                    {searchPending ? "Loading..." : `${results.length} results`}
+                                </div>
                             </div>
 
                             <input
@@ -418,6 +505,7 @@ export default function ModuleEditor({
                                 onChange={(e) => setQuery(e.target.value)}
                                 className="input"
                                 placeholder="Search posts… (axum, jwt, sqlx)"
+                                disabled={pending}
                             />
 
                             {searchErr ? (
@@ -453,9 +541,12 @@ export default function ModuleEditor({
                                                 >
                                                     <div className="flex items-start gap-3">
                                                         <div className="min-w-0 flex-1">
-                                                            <div className="truncate text-sm font-medium text-fg">{p.title}</div>
-                                                            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-fg">
-                                <span className="rounded-md border border-border bg-[hsl(var(--ring)/0.08)] px-2 py-0.5">
+                                                            <div
+                                                                className="truncate text-sm font-medium text-fg">{p.title}</div>
+                                                            <div
+                                                                className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-fg">
+                                <span
+                                    className="rounded-md border border-border bg-[hsl(var(--ring)/0.08)] px-2 py-0.5">
                                   {p.category_tag}
                                 </span>
                                                                 <span>{p.author}</span>
@@ -465,10 +556,9 @@ export default function ModuleEditor({
                                                         <button
                                                             type="button"
                                                             onClick={() => addPost(p)}
-                                                            disabled={already}
+                                                            disabled={already || pending}
                                                             className={cn(
-                                                                already ? "btn px-3 py-2 text-sm" : "btn px-3 py-2 text-sm",
-                                                                already ? "opacity-70" : "",
+                                                                "btn px-3 py-2 text-sm",
                                                                 ringHover,
                                                                 "disabled:cursor-not-allowed disabled:opacity-60"
                                                             )}
@@ -477,12 +567,14 @@ export default function ModuleEditor({
                                                         >
                                                             {already ? (
                                                                 <>
-                                                                    <CheckIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
+                                                                    <CheckIcon sx={{fontSize: 18}}
+                                                                               className="text-muted-fg"/>
                                                                     Added
                                                                 </>
                                                             ) : (
                                                                 <>
-                                                                    <AddIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
+                                                                    <AddIcon sx={{fontSize: 18}}
+                                                                             className="text-muted-fg"/>
                                                                     Add
                                                                 </>
                                                             )}
@@ -497,7 +589,6 @@ export default function ModuleEditor({
                         </div>
                     </section>
 
-                    {/* submit */}
                     <div className="flex items-center justify-end">
                         <button
                             type="submit"

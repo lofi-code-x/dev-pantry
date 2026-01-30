@@ -189,7 +189,7 @@ export default function MePage() {
 
                 const done: Module[] = [];
                 for (const m of mods) {
-                    const posts: ModulePost[] = await getModulePosts(m.id, { only_published: false });
+                    const posts: ModulePost[] = await getModulePosts(m.id, {only_published: false});
                     if (cancelled) return;
 
                     if (posts.length === 0) continue;

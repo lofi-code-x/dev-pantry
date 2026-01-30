@@ -1,29 +1,39 @@
 // src/lib/api/modules.ts
 import { apiFetch } from "@/lib/apiClient";
 import { apiFetchAuthed } from "@/lib/authedFetch";
+import type { Post } from "@/lib/api/posts";
 
 /** То, что возвращает select_module_list: author как login (строка), без posts */
 export type Module = {
     id: number;
     title: string;
-    description: string | null; // если у тебя Option в Rust
-    author: string;             // u.login AS author
+    description: string | null;
+    author: string;
     rating: number;
     is_published: boolean;
-    created_at: string; // ISO
-    updated_at: string; // ISO
+    created_at: string;
+    updated_at: string;
 };
+
+// ✅ чтобы можно было: `import { type Post } from "@/lib/api/modules"`
+export type { Post };
 
 export type ModuleCreateRequest = {
     title: string;
-    description?: string | null;
-    author_id: number;     // staff создаёт модуль
-    is_published: boolean; // сразу public/priv
+    description: string | null;
+    author_id: number;
+    is_published: boolean;
+
+    // ✅ cover image (uuid) или null
+    image_upload_id?: string | null;
 };
 
 export type ModuleUpdateRequest = {
     title: string;
-    description?: string | null;
+    description: string | null;
+
+    // ✅ desired state: uuid or null (remove)
+    image_upload_id?: string | null;
 };
 
 export type ModuleSetPublicRequest = {
@@ -53,9 +63,7 @@ export type OnlyPublishedQuery = {
 
 function qsOnlyPublished(q?: OnlyPublishedQuery) {
     const sp = new URLSearchParams();
-    if (typeof q?.only_published === "boolean") {
-        sp.set("only_published", String(q.only_published));
-    }
+    if (typeof q?.only_published === "boolean") sp.set("only_published", String(q.only_published));
     const qs = sp.toString();
     return qs ? `?${qs}` : "";
 }
@@ -69,6 +77,11 @@ export async function listModules(q?: OnlyPublishedQuery): Promise<Module[]> {
 
 export async function getModule(id: number): Promise<Module> {
     return apiFetch<Module>(`/api/module/get/${id}`);
+}
+
+// GET /api/module/get-posts/{id}?only_published=true
+export async function getModulePosts(moduleId: number | null, q?: OnlyPublishedQuery): Promise<Post[]> {
+    return apiFetch<Post[]>(`/api/module/get-posts/${moduleId}${qsOnlyPublished(q)}`);
 }
 
 export async function listModuleItems(moduleId: number): Promise<ModuleItem[]> {
@@ -101,31 +114,7 @@ export async function setModulePublic(id: number, isPublic: boolean): Promise<vo
 
 // DELETE /api/module/delete/{id} (staff) -> 204
 export async function deleteModule(id: number): Promise<void> {
-    await apiFetchAuthed<void>(`/api/module/delete/${id}`, {
-        method: "DELETE",
-    });
-}
-
-// GET /api/module/get-posts/{id}?only_published=true
-// Возвращает список Post (как в posts.ts), но чтобы не дублировать тип — можно импортировать Post.
-export type Post = {
-    id: number;
-    title: string;
-    content_markdown: string;
-    preview_text: string;
-    category_tag: string;
-    author: string;
-    rating: number;
-    is_published: boolean;
-    created_at: string;
-    updated_at: string;
-};
-
-export async function getModulePosts(
-    moduleId: number,
-    q?: OnlyPublishedQuery
-): Promise<Post[]> {
-    return apiFetch<Post[]>(`/api/module/get-posts/${moduleId}${qsOnlyPublished(q)}`);
+    await apiFetchAuthed<void>(`/api/module/delete/${id}`, { method: "DELETE" });
 }
 
 // --------------------------- Module Items --------------------------------
@@ -148,7 +137,5 @@ export async function updateModuleItem(id: number, body: ModuleItemUpdateRequest
 
 // DELETE /api/module/item/delete/{id} (staff) -> 204
 export async function deleteModuleItem(id: number): Promise<void> {
-    await apiFetchAuthed<void>(`/api/module/item/delete/${id}`, {
-        method: "DELETE",
-    });
+    await apiFetchAuthed<void>(`/api/module/item/delete/${id}`, { method: "DELETE" });
 }

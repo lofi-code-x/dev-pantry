@@ -1,6 +1,7 @@
 use regex::Regex;
 use serde::Deserialize;
 use std::sync::LazyLock;
+use uuid::Uuid;
 
 const DEFAULT_LIMIT: i32 = 10;
 const MAX_LIMIT: i32 = 20;
@@ -55,12 +56,14 @@ pub struct InsertParams {
     pub is_published: bool,
 }
 
-#[derive(Deserialize)]
+
+#[derive(serde::Deserialize)]
 pub struct PostCreateRequest {
     pub title: String,
     pub content_markdown: String,
     pub category_tag: String,
     pub author: String,
+    pub image_upload_ids: Vec<Uuid>,
 }
 
 impl InsertParams {

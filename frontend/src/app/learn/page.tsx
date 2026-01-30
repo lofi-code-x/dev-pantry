@@ -1,20 +1,20 @@
-// src/app/learn/page.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { ApiError } from "@/lib/apiClient";
-import { listModules, type Module } from "@/lib/api/modules";
-import { useAuth } from "@/components/auth/AuthProvider";
-import { ModuleCard } from "@/components/modules/ModuleCard";
-import { ModulePrimaryAction } from "@/components/modules/ModulePrimaryAction";
-import { listMyModuleProgress, type ModuleProgress } from "@/lib/api/me";
+import React, {useEffect, useMemo, useState} from "react";
+import {ApiError} from "@/lib/apiClient";
+import {listModules, type Module} from "@/lib/api/modules";
+import {useAuth} from "@/components/auth/AuthProvider";
+import {ModuleCard} from "@/components/modules/ModuleCard";
+import {ModulePrimaryAction} from "@/components/modules/ModulePrimaryAction";
+import {listMyModuleProgress, type ModuleProgress} from "@/lib/api/me";
+import {listModuleImagesBatch, type UploadView} from "@/lib/api/uploads";
 
 function cn(...parts: Array<string | false | null | undefined>) {
     return parts.filter(Boolean).join(" ");
 }
 
 export default function LearnPage() {
-    const { user, ready } = useAuth();
+    const {user, ready} = useAuth();
     const onlyPublished = useMemo(() => !user, [user]);
 
     const [items, setItems] = useState<Module[]>([]);
@@ -22,6 +22,9 @@ export default function LearnPage() {
     const [error, setError] = useState<string | null>(null);
 
     const [progressMap, setProgressMap] = useState<Map<number, boolean>>(new Map());
+
+    // ✅ module_id -> UploadView|null
+    const [moduleImageMap, setModuleImageMap] = useState<Record<string, UploadView | null>>({});
 
     useEffect(() => {
         let cancelled = false;
@@ -31,8 +34,9 @@ export default function LearnPage() {
             setError(null);
 
             try {
+                // 1) mods + progress (как было)
                 const [mods, prog] = await Promise.all([
-                    listModules({ only_published: onlyPublished }),
+                    listModules({only_published: onlyPublished}),
                     user ? listMyModuleProgress() : Promise.resolve<ModuleProgress[]>([]),
                 ]);
 
@@ -43,12 +47,20 @@ export default function LearnPage() {
                 const m = new Map<number, boolean>();
                 for (const p of prog) m.set(p.module_id, Boolean(p.is_completed));
                 setProgressMap(m);
+
+                // 2) ✅ batch images (1 запрос)
+                const ids = mods.map((x) => x.id);
+                const imgMap = await listModuleImagesBatch(ids);
+
+                if (cancelled) return;
+                setModuleImageMap(imgMap);
             } catch (e) {
                 if (cancelled) return;
                 if (e instanceof ApiError) setError(e.message);
                 else setError("Failed to load modules.");
                 setItems([]);
                 setProgressMap(new Map());
+                setModuleImageMap({});
             } finally {
                 if (!cancelled) setPending(false);
             }
@@ -70,10 +82,9 @@ export default function LearnPage() {
                     <p className="mt-2 text-sm text-muted-fg">Модули обучения и подборки.</p>
                 </div>
 
-                <ModulePrimaryAction />
+                <ModulePrimaryAction/>
             </header>
 
-            {/* ✅ main panel — STATIC (no card-gloss here) */}
             <section
                 className={cn(
                     "rounded-xl border border-border bg-card p-6 shadow-sm",
@@ -97,7 +108,6 @@ export default function LearnPage() {
                     <div className="text-xs text-muted-fg">{pending ? "Loading..." : `${items.length} total`}</div>
                 </div>
 
-                {/* ✅ scroll area: stable, no "jump" */}
                 <div className="max-h-[70vh] overflow-y-auto overflow-x-hidden p-2 [scrollbar-gutter:stable]">
                     {pending ? (
                         <div className="text-sm text-muted-fg">Loading modules...</div>
@@ -105,8 +115,13 @@ export default function LearnPage() {
                         <div className="text-sm text-muted-fg">No modules yet.</div>
                     ) : (
                         <div className="grid grid-cols-1 gap-4">
-                            {items.map((m) => (
-                                <ModuleCard key={m.id} module={m} completed={progressMap.get(m.id) === true} />
+                            {items.map((mod) => (
+                                <ModuleCard
+                                    key={mod.id}
+                                    module={mod}
+                                    completed={progressMap.get(mod.id) === true}
+                                    imageUrl={moduleImageMap[String(mod.id)]?.url ?? null}
+                                />
                             ))}
                         </div>
                     )}

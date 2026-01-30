@@ -1,12 +1,7 @@
 // src/lib/apiFormClient.ts
-import {ApiError} from "@/lib/apiClient";
+import {ApiError, API_BASE} from "@/lib/apiClient";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
-
-export async function apiFetchForm<T>(
-    path: string,
-    init: RequestInit = {}
-): Promise<T> {
+export async function apiFetchForm<T>(path: string, init: RequestInit = {}): Promise<T> {
     const res = await fetch(`${API_BASE}${path}`, {
         ...init,
         headers: {
@@ -17,8 +12,7 @@ export async function apiFetchForm<T>(
 
     if (!res.ok) {
         const text = await res.text().catch(() => "");
-        const msg = text || `Request failed (${res.status})`;
-        throw new ApiError(res.status, msg);
+        throw new ApiError(res.status, text || `Request failed (${res.status})`);
     }
 
     const text = await res.text().catch(() => "");
