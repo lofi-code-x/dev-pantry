@@ -1,3 +1,4 @@
+use crate::domain::post::model::QuizAnswer;
 use regex::Regex;
 use serde::Deserialize;
 use std::sync::LazyLock;
@@ -56,7 +57,6 @@ pub struct InsertParams {
     pub is_published: bool,
 }
 
-
 #[derive(serde::Deserialize)]
 pub struct PostCreateRequest {
     pub title: String,
@@ -106,6 +106,66 @@ impl From<PostCreateRequest> for UpdateParams {
 #[derive(Deserialize)]
 pub struct PostSetPublicRequest {
     pub is_public: bool,
+}
+
+// ----------------------------- Quiz (minimal) -----------------------------
+
+#[derive(serde::Deserialize)]
+pub struct InsertQuizQuestionParams {
+    pub post_id: i64,
+    pub question_text: String,
+    pub sort_order: i32,
+}
+
+#[derive(serde::Deserialize)]
+pub struct UpdateQuizQuestionParams {
+    pub question_text: String,
+    pub sort_order: i32,
+}
+
+#[derive(serde::Deserialize)]
+pub struct InsertQuizOptionParams {
+    pub question_id: i64,
+    pub option_text: String,
+    pub is_correct: bool,
+}
+
+#[derive(serde::Deserialize)]
+pub struct UpdateQuizOptionParams {
+    pub option_text: String,
+    pub is_correct: bool,
+}
+
+#[derive(serde::Serialize)]
+pub struct QuizOptionView {
+    pub id: i64,
+    pub option_text: String,
+}
+
+#[derive(serde::Serialize)]
+pub struct QuizQuestionView {
+    pub id: i64,
+    pub question_text: String,
+    pub sort_order: i32,
+    pub options: Vec<QuizOptionView>,
+}
+
+#[derive(serde::Deserialize)]
+pub struct QuizSubmitRequest {
+    pub answers: Vec<QuizAnswer>,
+}
+
+#[derive(serde::Serialize)]
+pub struct QuizSubmitResult {
+    pub total_questions: i32,
+    pub correct_answers: i32,
+    pub is_passed: bool,
+}
+
+#[derive(serde::Serialize)]
+pub struct QuizAttemptView {
+    pub is_passed: bool,
+    pub answers: Vec<QuizAnswer>,
 }
 
 fn make_preview_text(md: &str, max_chars: usize) -> String {

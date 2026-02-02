@@ -117,7 +117,6 @@
             if (typeof mid !== "number") {
                 setErr("Invalid module id.");
                 setMod(null);
-                setPosts([]);
                 return;
             }
 

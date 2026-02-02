@@ -1,20 +1,24 @@
 // src/app/posts/[id]/page.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import Link from "next/link";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { ApiError } from "@/lib/apiClient";
-import type { Post } from "@/lib/api/posts";
+import {useParams, useRouter, useSearchParams} from "next/navigation";
+import {ApiError} from "@/lib/apiClient";
+import type {Post} from "@/lib/api/posts";
 import {
     deletePost,
     getPost,
+    getPostQuiz,
+    getPostQuizAttempt,
     setPostPublic,
+    submitPostQuiz,
     getPostModuleNav,
+    type QuizQuestion,
     type ModulePostNav,
 } from "@/lib/api/posts";
 import MdPreview from "@/components/posts/MdPreview";
-import { useAuth } from "@/components/auth/AuthProvider";
+import {useAuth} from "@/components/auth/AuthProvider";
 
 // me api
 import {
@@ -76,7 +80,7 @@ export default function PostPage() {
     const params = useParams<{ id: string }>();
     const router = useRouter();
     const sp = useSearchParams();
-    const { user, ready } = useAuth();
+    const {user, ready} = useAuth();
 
     const postId = Number(params.id);
     const staff = useMemo(() => (user ? isStaff(user.role) : false), [user]);
@@ -101,6 +105,14 @@ export default function PostPage() {
     // module navigation
     const [nav, setNav] = useState<ModulePostNav | null>(null);
     const [navLoading, setNavLoading] = useState(false);
+
+    const [quiz, setQuiz] = useState<QuizQuestion[]>([]);
+    const [quizLoading, setQuizLoading] = useState(false);
+    const [quizErr, setQuizErr] = useState<string | null>(null);
+    const [quizAnswers, setQuizAnswers] = useState<Map<number, number>>(new Map());
+    const [quizPending, setQuizPending] = useState(false);
+    const [quizResult, setQuizResult] = useState<string | null>(null);
+    const [quizAttemptLoaded, setQuizAttemptLoaded] = useState(false);
 
     // load post
     useEffect(() => {
@@ -131,6 +143,70 @@ export default function PostPage() {
             cancelled = true;
         };
     }, [postId]);
+
+    // load quiz
+    useEffect(() => {
+        if (!Number.isFinite(postId)) return;
+
+        let cancelled = false;
+
+        async function loadQuiz() {
+            setQuizLoading(true);
+            setQuizErr(null);
+            try {
+                const qs = await getPostQuiz(postId);
+                if (cancelled) return;
+                setQuiz(qs ?? []);
+            } catch (e) {
+                if (cancelled) return;
+                setQuizErr(e instanceof ApiError ? e.message : "Failed to load quiz.");
+                setQuiz([]);
+            } finally {
+                if (!cancelled) setQuizLoading(false);
+            }
+        }
+
+        loadQuiz();
+        return () => {
+            cancelled = true;
+        };
+    }, [postId]);
+
+    // load last quiz attempt (prefill)
+    useEffect(() => {
+        if (!ready) return;
+        if (!user) {
+            setQuizAttemptLoaded(false);
+            setQuizAnswers(new Map());
+            return;
+        }
+        if (!Number.isFinite(postId)) return;
+
+        let cancelled = false;
+
+        async function loadAttempt() {
+            try {
+                const attempt = await getPostQuizAttempt(postId);
+                if (cancelled) return;
+                if (attempt?.answers?.length) {
+                    const next = new Map<number, number>();
+                    for (const a of attempt.answers) {
+                        next.set(a.question_id, a.option_id);
+                    }
+                    setQuizAnswers(next);
+                    setQuizResult(attempt.is_passed ? "✅ Previously passed." : null);
+                }
+                setQuizAttemptLoaded(true);
+            } catch {
+                if (!cancelled) setQuizAttemptLoaded(true);
+            }
+        }
+
+        loadAttempt();
+        return () => {
+            cancelled = true;
+        };
+    }, [ready, user, postId]);
 
     // load user-specific state
     useEffect(() => {
@@ -214,7 +290,7 @@ export default function PostPage() {
         try {
             const next = !post.is_published;
             await setPostPublic(postId, next);
-            setPost((prev) => (prev ? { ...prev, is_published: next } : prev));
+            setPost((prev) => (prev ? {...prev, is_published: next} : prev));
         } catch (e) {
             setErr(e instanceof ApiError ? e.message : "Update failed.");
         } finally {
@@ -268,12 +344,49 @@ export default function PostPage() {
         }
     }
 
+    async function onSubmitQuiz() {
+        if (!Number.isFinite(postId)) return;
+        if (!ready) return;
+        if (!user) {
+            router.push("/login");
+            return;
+        }
+
+        const answers = quiz.map((q) => ({
+            question_id: q.id,
+            option_id: quizAnswers.get(q.id),
+        }));
+
+        if (answers.some((a) => typeof a.option_id !== "number")) {
+            setQuizResult("Answer all questions to submit.");
+            return;
+        }
+
+        setQuizPending(true);
+        setQuizResult(null);
+        try {
+            const res = await submitPostQuiz(postId, {
+                answers: answers as { question_id: number; option_id: number }[],
+            });
+            if (res.is_passed) {
+                setQuizResult("✅ Correct! Post marked as completed.");
+                setCompleted(true);
+            } else {
+                setQuizResult("❌ Not all answers are correct. Try again.");
+            }
+        } catch (e) {
+            setQuizResult(e instanceof ApiError ? e.message : "Failed to submit quiz.");
+        } finally {
+            setQuizPending(false);
+        }
+    }
+
     return (
         <main className="mx-auto w-full max-w-6xl px-6 py-10">
             {/* Top actions bar (NO jumping) */}
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <button type="button" onClick={() => router.back()} className={cn("btn", btnHover)}>
-                    <ArrowBackIcon sx={{ fontSize: 18 }} />
+                    <ArrowBackIcon sx={{fontSize: 18}}/>
                     Back
                 </button>
 
@@ -289,26 +402,11 @@ export default function PostPage() {
                                 title={saved ? "Remove from saved" : "Save post"}
                             >
                                 {saved ? (
-                                    <BookmarkIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
+                                    <BookmarkIcon sx={{fontSize: 18}} className="text-muted-fg"/>
                                 ) : (
-                                    <BookmarkBorderIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
+                                    <BookmarkBorderIcon sx={{fontSize: 18}} className="text-muted-fg"/>
                                 )}
                                 {saved ? "Unsave" : "Save"}
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={onToggleCompleted}
-                                disabled={actionPending}
-                                className={cn("btn", btnHover, "disabled:cursor-not-allowed disabled:opacity-60")}
-                                title={completed ? "Mark as not completed" : "Mark post as completed"}
-                            >
-                                {completed ? (
-                                    <RemoveCircleOutlineIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
-                                ) : (
-                                    <CheckCircleOutlineIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
-                                )}
-                                {completed ? "Uncomplete" : "Mark completed"}
                             </button>
                         </>
                     ) : null}
@@ -316,10 +414,10 @@ export default function PostPage() {
                     {/* Staff actions */}
                     {staff && post ? (
                         <>
-                            <span className="mx-1 h-6 w-px bg-border" />
+                            <span className="mx-1 h-6 w-px bg-border"/>
 
                             <Link href={`/posts/${postId}/edit`} className={cn("btn", btnHover)}>
-                                <EditIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
+                                <EditIcon sx={{fontSize: 18}} className="text-muted-fg"/>
                                 Edit post
                             </Link>
 
@@ -330,9 +428,9 @@ export default function PostPage() {
                                 className={cn("btn", btnHover, "disabled:cursor-not-allowed disabled:opacity-60")}
                             >
                                 {post.is_published ? (
-                                    <LockIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
+                                    <LockIcon sx={{fontSize: 18}} className="text-muted-fg"/>
                                 ) : (
-                                    <PublicIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
+                                    <PublicIcon sx={{fontSize: 18}} className="text-muted-fg"/>
                                 )}
                                 {post.is_published ? "Make private" : "Make public"}
                             </button>
@@ -351,7 +449,7 @@ export default function PostPage() {
                                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(0_90%_55%/0.45)]"
                                 )}
                             >
-                                <DeleteOutlineIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
+                                <DeleteOutlineIcon sx={{fontSize: 18}} className="text-muted-fg"/>
                                 Delete post
                             </button>
                         </>
@@ -378,19 +476,21 @@ export default function PostPage() {
                             className={cn("btn", btnHover)}
                             title={nav.prev.title}
                         >
-                            <NavigateBeforeIcon sx={{ fontSize: 20 }} />
+                            <NavigateBeforeIcon sx={{fontSize: 20}}/>
                             Prev
                         </Link>
                     ) : (
-                        <button type="button" disabled className={cn("btn", "disabled:cursor-not-allowed disabled:opacity-60")}>
-                            <NavigateBeforeIcon sx={{ fontSize: 20 }} />
+                        <button type="button" disabled
+                                className={cn("btn", "disabled:cursor-not-allowed disabled:opacity-60")}>
+                            <NavigateBeforeIcon sx={{fontSize: 20}}/>
                             Prev
                         </button>
                     )}
 
                     {/* Module */}
-                    <Link href={`/learn/${nav.module_id}`} className={cn("btn", btnHover)} title={`Open module #${nav.module_id}`}>
-                        <MenuBookIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
+                    <Link href={`/learn/${nav.module_id}`} className={cn("btn", btnHover)}
+                          title={`Open module #${nav.module_id}`}>
+                        <MenuBookIcon sx={{fontSize: 18}} className="text-muted-fg"/>
                         Module
                     </Link>
 
@@ -406,12 +506,13 @@ export default function PostPage() {
                             title={nav.next.title}
                         >
                             Next
-                            <NavigateNextIcon sx={{ fontSize: 20 }} />
+                            <NavigateNextIcon sx={{fontSize: 20}}/>
                         </Link>
                     ) : (
-                        <button type="button" disabled className={cn("btn", "disabled:cursor-not-allowed disabled:opacity-60")}>
+                        <button type="button" disabled
+                                className={cn("btn", "disabled:cursor-not-allowed disabled:opacity-60")}>
                             Next
-                            <NavigateNextIcon sx={{ fontSize: 20 }} />
+                            <NavigateNextIcon sx={{fontSize: 20}}/>
                         </button>
                     )}
 
@@ -440,7 +541,8 @@ export default function PostPage() {
                 <article className="rounded-xl border border-border bg-card p-6 shadow-sm">
                     <header className="border-b border-border pb-4">
                         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-fg">
-                            <span className="rounded-md border border-border bg-card px-2 py-1">{post.category_tag}</span>
+                            <span
+                                className="rounded-md border border-border bg-card px-2 py-1">{post.category_tag}</span>
                             <span>•</span>
                             <span className="truncate">by {post.author}</span>
                             <span>•</span>
@@ -461,7 +563,92 @@ export default function PostPage() {
                     </header>
 
                     <div className="pt-5">
-                        <MdPreview source={post.content_markdown ?? ""} />
+                        <MdPreview source={post.content_markdown ?? ""}/>
+                    </div>
+
+                    <div className="mt-8 border-t border-border pt-5">
+                        {quizLoading ? (
+                            <div className="text-sm text-muted-fg">Loading quiz…</div>
+                        ) : quizErr ? (
+                            <div className="rounded-lg border border-border bg-muted p-3 text-sm text-fg">
+                                {quizErr}
+                            </div>
+                        ) : quiz.length === 0 ? (
+                            <div className="flex flex-wrap items-center gap-3">
+                                <div className="text-sm text-muted-fg">No quiz for this post.</div>
+                                <button
+                                    type="button"
+                                    onClick={onToggleCompleted}
+                                    disabled={actionPending}
+                                    className={cn("btn", btnHover, "disabled:cursor-not-allowed disabled:opacity-60")}
+                                    title={completed ? "Mark as not completed" : "Mark post as completed"}
+                                >
+                                    {completed ? (
+                                        <RemoveCircleOutlineIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+                                    ) : (
+                                        <CheckCircleOutlineIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+                                    )}
+                                    {completed ? "Uncomplete" : "Mark completed"}
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="text-sm font-medium text-fg">Quiz</div>
+
+                                {quiz.map((q, qi) => (
+                                    <div
+                                        key={q.id}
+                                        className={cn(
+                                            "rounded-lg border border-border p-4",
+                                            "bg-[hsl(var(--ring)/0.03)]"
+                                        )}
+                                    >
+                                        <div className="mb-2 text-sm font-medium text-fg">
+                                            {qi + 1}. {q.question_text}
+                                        </div>
+                                        <div className="space-y-2">
+                                            {q.options.map((opt) => (
+                                                <label
+                                                    key={opt.id}
+                                                    className="flex items-center gap-2 text-sm text-fg"
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name={`q-${q.id}`}
+                                                        checked={quizAnswers.get(q.id) === opt.id}
+                                                        onChange={() =>
+                                                            setQuizAnswers((prev) => {
+                                                                const next = new Map(prev);
+                                                                next.set(q.id, opt.id);
+                                                                return next;
+                                                            })
+                                                        }
+                                                        disabled={quizPending}
+                                                    />
+                                                    {opt.option_text}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {quizResult ? (
+                                    <div className="text-sm text-muted-fg">{quizResult}</div>
+                                ) : null}
+
+                                <button
+                                    type="button"
+                                    onClick={onSubmitQuiz}
+                                    disabled={quizPending}
+                                    className={cn(
+                                        "btn-primary px-4 py-2",
+                                        "disabled:cursor-not-allowed disabled:opacity-60"
+                                    )}
+                                >
+                                    {quizPending ? "Checking..." : "Submit answers"}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </article>
             )}

@@ -1,0 +1,10 @@
+[package]
+name = "admin_cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tokio = { version = "^1", features = ["rt-multi-thread", "macros"] }
+sqlx = { version = "^0.8", features = ["postgres", "runtime-tokio-rustls"] }
+argon2 = "^0.5"
+rand_core = "^0.9"

@@ -36,6 +36,73 @@ export type SetPublicRequest = {
     is_public: boolean;
 };
 
+export type QuizOption = {
+    id: number;
+    option_text: string;
+};
+
+export type QuizQuestion = {
+    id: number;
+    question_text: string;
+    sort_order: number;
+    options: QuizOption[];
+};
+
+export type QuizOptionAdmin = {
+    id: number;
+    option_text: string;
+    is_correct: boolean;
+};
+
+export type QuizQuestionAdmin = {
+    id: number;
+    question_text: string;
+    sort_order: number;
+    options: QuizOptionAdmin[];
+};
+
+export type QuizAnswer = {
+    question_id: number;
+    option_id: number;
+};
+
+export type QuizSubmitRequest = {
+    answers: QuizAnswer[];
+};
+
+export type QuizSubmitResult = {
+    total_questions: number;
+    correct_answers: number;
+    is_passed: boolean;
+};
+
+export type QuizAttempt = {
+    is_passed: boolean;
+    answers: QuizAnswer[];
+};
+
+export type QuizQuestionCreateRequest = {
+    post_id: number;
+    question_text: string;
+    sort_order: number;
+};
+
+export type QuizQuestionUpdateRequest = {
+    question_text: string;
+    sort_order: number;
+};
+
+export type QuizOptionCreateRequest = {
+    question_id: number;
+    option_text: string;
+    is_correct: boolean;
+};
+
+export type QuizOptionUpdateRequest = {
+    option_text: string;
+    is_correct: boolean;
+};
+
 // src/lib/api/posts.ts
 // ... (импорты и типы как выше)
 
@@ -94,6 +161,72 @@ export async function deletePost(id: number): Promise<void> {
     await apiFetchAuthed<void>(`/api/post/delete/${id}`, {
         method: "DELETE",
     });
+}
+
+// ----------------------------- Quiz -------------------------------------
+
+export async function getPostQuiz(postId: number): Promise<QuizQuestion[]> {
+    return apiFetch<QuizQuestion[]>(`/api/post/${postId}/quiz`);
+}
+
+export async function getPostQuizAdmin(postId: number): Promise<QuizQuestionAdmin[]> {
+    return apiFetchAuthed<QuizQuestionAdmin[]>(`/api/post/${postId}/quiz/admin`, { method: "GET" });
+}
+
+export async function submitPostQuiz(
+    postId: number,
+    body: QuizSubmitRequest
+): Promise<QuizSubmitResult> {
+    return apiFetchAuthed<QuizSubmitResult>(`/api/post/${postId}/quiz/submit`, {
+        method: "POST",
+        body: JSON.stringify(body),
+    });
+}
+
+export async function getPostQuizAttempt(postId: number): Promise<QuizAttempt | null> {
+    return apiFetchAuthed<QuizAttempt | null>(`/api/post/${postId}/quiz/attempt`, { method: "GET" });
+}
+
+export async function createQuizQuestion(body: QuizQuestionCreateRequest): Promise<number> {
+    return apiFetchAuthed<number>("/api/post/quiz/question/create", {
+        method: "POST",
+        body: JSON.stringify(body),
+    });
+}
+
+export async function updateQuizQuestion(
+    id: number,
+    body: QuizQuestionUpdateRequest
+): Promise<void> {
+    await apiFetchAuthed<void>(`/api/post/quiz/question/update/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+    });
+}
+
+export async function deleteQuizQuestion(id: number): Promise<void> {
+    await apiFetchAuthed<void>(`/api/post/quiz/question/delete/${id}`, { method: "DELETE" });
+}
+
+export async function createQuizOption(body: QuizOptionCreateRequest): Promise<number> {
+    return apiFetchAuthed<number>("/api/post/quiz/option/create", {
+        method: "POST",
+        body: JSON.stringify(body),
+    });
+}
+
+export async function updateQuizOption(
+    id: number,
+    body: QuizOptionUpdateRequest
+): Promise<void> {
+    await apiFetchAuthed<void>(`/api/post/quiz/option/update/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+    });
+}
+
+export async function deleteQuizOption(id: number): Promise<void> {
+    await apiFetchAuthed<void>(`/api/post/quiz/option/delete/${id}`, { method: "DELETE" });
 }
 
 // --- Module navigation for post page ---

@@ -1,6 +1,12 @@
 // src/domain/post/service.rs
 
-use crate::domain::post::dto::{InsertParams, PostCreateRequest, PostRequest, UpdateParams};
+use crate::domain::me;
+use crate::domain::post::dto::{
+    InsertParams, InsertQuizOptionParams, InsertQuizQuestionParams, PostCreateRequest,
+    PostRequest, QuizAttemptView, QuizQuestionView, QuizOptionView, QuizSubmitRequest,
+    QuizSubmitResult, UpdateParams, UpdateQuizOptionParams,
+    UpdateQuizQuestionParams,
+};
 use crate::domain::post::model::Post;
 use crate::domain::post::repo;
 use crate::domain::uploads;
@@ -133,6 +139,165 @@ pub async fn set_public(pool: &PgPool, id: i64, is_public: bool) -> error::Resul
     let rows = repo::set_public_by_id(pool, id, is_public).await?;
     if rows == 0 {
         return Err(error::Error::NotFound(format!("Post {} not found.", id)));
+    }
+    Ok(())
+}
+
+// -------------------------------- Quiz ----------------------------------
+
+pub async fn list_quiz_questions(
+    pool: &PgPool,
+    post_id: i64,
+) -> error::Result<Vec<QuizQuestionView>> {
+    let questions = repo::select_quiz_questions_by_post_id(pool, post_id).await?;
+    let question_ids: Vec<i64> = questions.iter().map(|q| q.id).collect();
+    let options = repo::select_quiz_options_by_question_ids(pool, &question_ids).await?;
+
+    let mut options_map: std::collections::HashMap<i64, Vec<QuizOptionView>> =
+        std::collections::HashMap::new();
+    for opt in options {
+        options_map
+            .entry(opt.question_id)
+            .or_default()
+            .push(QuizOptionView {
+                id: opt.id,
+                option_text: opt.option_text,
+            });
+    }
+
+    let mut out = Vec::with_capacity(questions.len());
+    for q in questions {
+        out.push(QuizQuestionView {
+            id: q.id,
+            question_text: q.question_text,
+            sort_order: q.sort_order,
+            options: options_map.remove(&q.id).unwrap_or_default(),
+        });
+    }
+
+    Ok(out)
+}
+
+pub async fn submit_quiz(
+    pool: &PgPool,
+    post_id: i64,
+    user_id: i64,
+    req: QuizSubmitRequest,
+) -> error::Result<QuizSubmitResult> {
+    let correct = repo::select_correct_option_ids_by_post_id(pool, post_id).await?;
+    let total_questions = correct.len() as i32;
+    if total_questions == 0 {
+        return Ok(QuizSubmitResult {
+            total_questions,
+            correct_answers: 0,
+            is_passed: false,
+        });
+    }
+
+    let mut answer_map: std::collections::HashMap<i64, i64> = std::collections::HashMap::new();
+    for ans in &req.answers {
+        answer_map.insert(ans.question_id, ans.option_id);
+    }
+
+    let mut correct_answers = 0;
+    for (q_id, correct_option_id) in correct {
+        if let Some(chosen) = answer_map.get(&q_id) {
+            if *chosen == correct_option_id {
+                correct_answers += 1;
+            }
+        }
+    }
+
+    let is_passed = correct_answers == total_questions;
+    let attempt_id = repo::insert_quiz_attempt(pool, user_id, post_id, is_passed).await?;
+    repo::insert_quiz_answers(pool, attempt_id, &req.answers).await?;
+    if is_passed {
+        me::repo::mark_completed(pool, user_id, post_id).await?;
+    }
+
+    Ok(QuizSubmitResult {
+        total_questions,
+        correct_answers,
+        is_passed,
+    })
+}
+
+pub async fn get_quiz_attempt(
+    pool: &PgPool,
+    post_id: i64,
+    user_id: i64,
+) -> error::Result<Option<QuizAttemptView>> {
+    let attempt = repo::select_latest_quiz_attempt(pool, user_id, post_id).await?;
+    let Some((attempt_id, is_passed)) = attempt else {
+        return Ok(None);
+    };
+
+    let answers = repo::select_quiz_answers_by_attempt_id(pool, attempt_id).await?;
+    Ok(Some(QuizAttemptView { is_passed, answers }))
+}
+
+pub async fn add_quiz_question(
+    pool: &PgPool,
+    params: InsertQuizQuestionParams,
+) -> error::Result<i64> {
+    repo::insert_quiz_question(pool, params).await
+}
+
+pub async fn update_quiz_question(
+    pool: &PgPool,
+    id: i64,
+    params: UpdateQuizQuestionParams,
+) -> error::Result<()> {
+    let rows = repo::update_quiz_question_by_id(pool, id, params).await?;
+    if rows == 0 {
+        return Err(error::Error::NotFound(format!(
+            "Quiz question {} not found.",
+            id
+        )));
+    }
+    Ok(())
+}
+
+pub async fn delete_quiz_question(pool: &PgPool, id: i64) -> error::Result<()> {
+    let rows = repo::delete_quiz_question_by_id(pool, id).await?;
+    if rows == 0 {
+        return Err(error::Error::NotFound(format!(
+            "Quiz question {} not found.",
+            id
+        )));
+    }
+    Ok(())
+}
+
+pub async fn add_quiz_option(
+    pool: &PgPool,
+    params: InsertQuizOptionParams,
+) -> error::Result<i64> {
+    repo::insert_quiz_option(pool, params).await
+}
+
+pub async fn update_quiz_option(
+    pool: &PgPool,
+    id: i64,
+    params: UpdateQuizOptionParams,
+) -> error::Result<()> {
+    let rows = repo::update_quiz_option_by_id(pool, id, params).await?;
+    if rows == 0 {
+        return Err(error::Error::NotFound(format!(
+            "Quiz option {} not found.",
+            id
+        )));
+    }
+    Ok(())
+}
+
+pub async fn delete_quiz_option(pool: &PgPool, id: i64) -> error::Result<()> {
+    let rows = repo::delete_quiz_option_by_id(pool, id).await?;
+    if rows == 0 {
+        return Err(error::Error::NotFound(format!(
+            "Quiz option {} not found.",
+            id
+        )));
     }
     Ok(())
 }
