@@ -2,6 +2,7 @@
 
 use serde::Deserialize;
 use uuid::Uuid;
+use crate::domain::post::model::Post;
 
 #[derive(Deserialize)]
 pub struct InsertModuleParams {
@@ -30,12 +31,39 @@ pub struct UpdateModuleParams {
 pub struct InsertModuleItemParams {
     pub module_id: i64,
     pub post_id: i64,
+    pub section_id: Option<i64>,
     pub sort_order: i32,
 }
 
 #[derive(Deserialize)]
 pub struct UpdateModuleItemParams {
+    pub section_id: Option<i64>,
     pub sort_order: i32,
+}
+
+#[derive(Deserialize)]
+pub struct InsertModuleSectionParams {
+    pub module_id: i64,
+    pub title: String,
+    pub description: Option<String>,
+    pub sort_order: i32,
+}
+
+#[derive(Deserialize)]
+pub struct UpdateModuleSectionParams {
+    pub title: String,
+    pub description: Option<String>,
+    pub sort_order: i32,
+}
+
+#[derive(serde::Serialize)]
+pub struct ModuleSectionPosts {
+    pub id: Option<i64>,
+    pub title: String,
+    pub description: Option<String>,
+    pub sort_order: i32,
+    pub is_unknown: bool,
+    pub posts: Vec<Post>,
 }
 
 #[derive(serde::Deserialize)]

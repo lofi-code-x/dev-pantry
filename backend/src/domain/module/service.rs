@@ -1,10 +1,11 @@
 // src/domain/module/service.rs
 
 use crate::domain::module::dto::{
-    InsertModuleItemParams, InsertModuleParams, ModulePostNav, PostNav, UpdateModuleItemParams,
-    UpdateModuleParams,
+    InsertModuleItemParams, InsertModuleParams, InsertModuleSectionParams, ModulePostNav,
+    ModuleSectionPosts, PostNav, UpdateModuleItemParams, UpdateModuleParams,
+    UpdateModuleSectionParams,
 };
-use crate::domain::module::model::{Module, ModuleItem};
+use crate::domain::module::model::{Module, ModuleItem, ModuleSection};
 use crate::domain::module::repo;
 use crate::domain::post::model::Post;
 use crate::domain::uploads;
@@ -146,8 +147,49 @@ pub async fn get_module_posts(
     pool: &PgPool,
     module_id: i64,
     only_published: bool,
-) -> error::Result<Vec<Post>> {
-    repo::select_module_posts(pool, module_id, only_published).await
+) -> error::Result<Vec<ModuleSectionPosts>> {
+    let sections = repo::select_module_sections(pool, module_id).await?;
+    let posts = repo::select_module_posts_with_section(pool, module_id, only_published).await?;
+
+    let mut out: Vec<ModuleSectionPosts> = sections
+        .into_iter()
+        .map(|s| ModuleSectionPosts {
+            id: Some(s.id),
+            title: s.title,
+            description: s.description,
+            sort_order: s.sort_order,
+            is_unknown: false,
+            posts: Vec::new(),
+        })
+        .collect();
+
+    let mut index_by_id: HashMap<i64, usize> = HashMap::new();
+    for (idx, section) in out.iter().enumerate() {
+        if let Some(id) = section.id {
+            index_by_id.insert(id, idx);
+        }
+    }
+
+    let mut unknown_posts: Vec<Post> = Vec::new();
+    for (section_id, post) in posts {
+        match section_id.and_then(|id| index_by_id.get(&id).copied()) {
+            Some(idx) => out[idx].posts.push(post),
+            None => unknown_posts.push(post),
+        }
+    }
+
+    if !unknown_posts.is_empty() {
+        out.push(ModuleSectionPosts {
+            id: None,
+            title: "Без секции".to_string(),
+            description: None,
+            sort_order: i32::MAX,
+            is_unknown: true,
+            posts: unknown_posts,
+        });
+    }
+
+    Ok(out)
 }
 
 pub async fn list_module_items(pool: &PgPool, module_id: i64) -> error::Result<Vec<ModuleItem>> {
@@ -178,6 +220,48 @@ pub async fn delete_module_item(pool: &PgPool, id: i64) -> error::Result<()> {
     if rows == 0 {
         return Err(error::Error::NotFound(format!(
             "Module item {} not found.",
+            id
+        )));
+    }
+    Ok(())
+}
+
+//------------------------------------- Module Sections ----------------------------------------------
+
+pub async fn list_module_sections(
+    pool: &PgPool,
+    module_id: i64,
+) -> error::Result<Vec<ModuleSection>> {
+    repo::select_module_sections(pool, module_id).await
+}
+
+pub async fn add_module_section(
+    pool: &PgPool,
+    params: InsertModuleSectionParams,
+) -> error::Result<i64> {
+    repo::insert_module_section(pool, params).await
+}
+
+pub async fn update_module_section(
+    pool: &PgPool,
+    id: i64,
+    params: UpdateModuleSectionParams,
+) -> error::Result<()> {
+    let rows = repo::update_module_section_by_id(pool, id, params).await?;
+    if rows == 0 {
+        return Err(error::Error::NotFound(format!(
+            "Module section {} not found.",
+            id
+        )));
+    }
+    Ok(())
+}
+
+pub async fn delete_module_section(pool: &PgPool, id: i64) -> error::Result<()> {
+    let rows = repo::delete_module_section_by_id(pool, id).await?;
+    if rows == 0 {
+        return Err(error::Error::NotFound(format!(
+            "Module section {} not found.",
             id
         )));
     }

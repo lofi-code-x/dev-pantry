@@ -44,16 +44,50 @@ export type ModuleItem = {
     id: number;
     module_id: number;
     post_id: number;
+    section_id: number | null;
     sort_order: number;
 };
 
 export type ModuleItemCreateRequest = {
     module_id: number;
     post_id: number;
+    section_id?: number | null;
     sort_order: number;
 };
 
 export type ModuleItemUpdateRequest = {
+    section_id?: number | null;
+    sort_order: number;
+};
+
+export type ModuleSection = {
+    id: number;
+    module_id: number;
+    title: string;
+    description: string | null;
+    sort_order: number;
+    created_at: string;
+};
+
+export type ModuleSectionPosts = {
+    id: number | null;
+    title: string;
+    description: string | null;
+    sort_order: number;
+    is_unknown: boolean;
+    posts: Post[];
+};
+
+export type ModuleSectionCreateRequest = {
+    module_id: number;
+    title: string;
+    description: string | null;
+    sort_order: number;
+};
+
+export type ModuleSectionUpdateRequest = {
+    title: string;
+    description: string | null;
     sort_order: number;
 };
 
@@ -80,12 +114,19 @@ export async function getModule(id: number): Promise<Module> {
 }
 
 // GET /api/module/get-posts/{id}?only_published=true
-export async function getModulePosts(moduleId: number | null, q?: OnlyPublishedQuery): Promise<Post[]> {
-    return apiFetch<Post[]>(`/api/module/get-posts/${moduleId}${qsOnlyPublished(q)}`);
+export async function getModulePosts(
+    moduleId: number | null,
+    q?: OnlyPublishedQuery
+): Promise<ModuleSectionPosts[]> {
+    return apiFetch<ModuleSectionPosts[]>(`/api/module/get-posts/${moduleId}${qsOnlyPublished(q)}`);
 }
 
 export async function listModuleItems(moduleId: number): Promise<ModuleItem[]> {
     return apiFetchAuthed<ModuleItem[]>(`/api/module/${moduleId}/items`, { method: "GET" });
+}
+
+export async function listModuleSections(moduleId: number): Promise<ModuleSection[]> {
+    return apiFetchAuthed<ModuleSection[]>(`/api/module/${moduleId}/sections`, { method: "GET" });
 }
 
 // POST /api/module/create (staff) -> id
@@ -138,4 +179,27 @@ export async function updateModuleItem(id: number, body: ModuleItemUpdateRequest
 // DELETE /api/module/item/delete/{id} (staff) -> 204
 export async function deleteModuleItem(id: number): Promise<void> {
     await apiFetchAuthed<void>(`/api/module/item/delete/${id}`, { method: "DELETE" });
+}
+
+// -------------------------- Module Sections -----------------------------
+
+// POST /api/module/section/create (staff) -> id
+export async function createModuleSection(body: ModuleSectionCreateRequest): Promise<number> {
+    return apiFetchAuthed<number>("/api/module/section/create", {
+        method: "POST",
+        body: JSON.stringify(body),
+    });
+}
+
+// PUT /api/module/section/update/{id} (staff) -> 204
+export async function updateModuleSection(id: number, body: ModuleSectionUpdateRequest): Promise<void> {
+    await apiFetchAuthed<void>(`/api/module/section/update/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+    });
+}
+
+// DELETE /api/module/section/delete/{id} (staff) -> 204
+export async function deleteModuleSection(id: number): Promise<void> {
+    await apiFetchAuthed<void>(`/api/module/section/delete/${id}`, { method: "DELETE" });
 }

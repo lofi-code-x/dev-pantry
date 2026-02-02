@@ -1,7 +1,8 @@
 use crate::domain::module::dto::{
-    InsertModuleItemParams, InsertModuleParams, UpdateModuleItemParams, UpdateModuleParams,
+    InsertModuleItemParams, InsertModuleParams, InsertModuleSectionParams, UpdateModuleItemParams,
+    UpdateModuleParams, UpdateModuleSectionParams,
 };
-use crate::domain::module::model::{Module, ModuleItem};
+use crate::domain::module::model::{Module, ModuleItem, ModuleSection, PostWithSection};
 use crate::domain::post::model::Post;
 use crate::error;
 use sqlx::{PgPool, Row};
@@ -147,6 +148,69 @@ pub async fn select_module_posts(
     .await?)
 }
 
+
+
+pub async fn select_module_posts_with_section(
+    pool: &PgPool,
+    module_id: i64,
+    only_published: bool,
+) -> error::Result<Vec<(Option<i64>, Post)>> {
+    let rows = sqlx::query_as::<_, PostWithSection>(
+        r#"
+        SELECT
+          mi.section_id,
+          p.id,
+          p.title,
+          p.category_tag,
+          p.content_markdown,
+          p.preview_text,
+          p.author,
+          p.rating,
+          p.is_published,
+          p.created_at,
+          p.updated_at
+        FROM module_items mi
+        JOIN posts p
+          ON p.id = mi.post_id
+        LEFT JOIN module_sections ms
+          ON ms.id = mi.section_id
+        WHERE
+          mi.module_id = $1
+          AND ($2::bool = false OR p.is_published = true)
+        ORDER BY
+          ms.sort_order NULLS LAST,
+          ms.id NULLS LAST,
+          mi.sort_order ASC,
+          mi.id ASC
+        "#,
+    )
+    .bind(module_id)
+    .bind(only_published)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|r| {
+            (
+                r.section_id,
+                Post {
+                    id: r.id,
+                    title: r.title,
+                    category_tag: r.category_tag,
+                    content_markdown: r.content_markdown,
+                    preview_text: r.preview_text,
+                    author: r.author,
+                    rating: r.rating,
+                    is_published: r.is_published,
+                    created_at: r.created_at,
+                    updated_at: r.updated_at,
+                },
+            )
+        })
+        .collect())
+}
+
 pub async fn select_module_items(pool: &PgPool, module_id: i64) -> error::Result<Vec<ModuleItem>> {
     Ok(sqlx::query_as::<_, ModuleItem>(
         r#"
@@ -154,6 +218,7 @@ pub async fn select_module_items(pool: &PgPool, module_id: i64) -> error::Result
           id,
           module_id,
           post_id,
+          section_id,
           sort_order,
           created_at
         FROM module_items
@@ -175,14 +240,16 @@ pub async fn insert_module_item(
         INSERT INTO module_items (
             module_id,
             post_id,
+            section_id,
             sort_order
         )
-        VALUES ($1, $2, $3)
+        VALUES ($1, $2, $3, $4)
         RETURNING id
         "#,
     )
     .bind(params.module_id)
     .bind(params.post_id)
+    .bind(params.section_id)
     .bind(params.sort_order)
     .fetch_one(pool)
     .await?)
@@ -196,10 +263,13 @@ pub async fn update_module_item_by_id(
     Ok(sqlx::query(
         r#"
         UPDATE module_items
-        SET sort_order = $1
-        WHERE id = $2
+        SET
+            section_id = $1,
+            sort_order = $2
+        WHERE id = $3
         "#,
     )
+    .bind(params.section_id)
     .bind(params.sort_order)
     .bind(id)
     .execute(pool)
@@ -211,6 +281,92 @@ pub async fn delete_module_item_by_id(pool: &PgPool, id: i64) -> error::Result<u
     Ok(sqlx::query(
         r#"
         DELETE FROM module_items
+        WHERE id = $1
+        "#,
+    )
+    .bind(id)
+    .execute(pool)
+    .await?
+    .rows_affected())
+}
+
+//------------------------------------- Module Sections ----------------------------------------------
+
+pub async fn select_module_sections(
+    pool: &PgPool,
+    module_id: i64,
+) -> error::Result<Vec<ModuleSection>> {
+    Ok(sqlx::query_as::<_, ModuleSection>(
+        r#"
+        SELECT
+          id,
+          module_id,
+          title,
+          description,
+          sort_order,
+          created_at
+        FROM module_sections
+        WHERE module_id = $1
+        ORDER BY sort_order ASC, id ASC
+        "#,
+    )
+    .bind(module_id)
+    .fetch_all(pool)
+    .await?)
+}
+
+pub async fn insert_module_section(
+    pool: &PgPool,
+    params: InsertModuleSectionParams,
+) -> error::Result<i64> {
+    Ok(sqlx::query_scalar::<_, i64>(
+        r#"
+        INSERT INTO module_sections (
+            module_id,
+            title,
+            description,
+            sort_order
+        )
+        VALUES ($1, $2, $3, $4)
+        RETURNING id
+        "#,
+    )
+    .bind(params.module_id)
+    .bind(params.title)
+    .bind(params.description)
+    .bind(params.sort_order)
+    .fetch_one(pool)
+    .await?)
+}
+
+pub async fn update_module_section_by_id(
+    pool: &PgPool,
+    id: i64,
+    params: UpdateModuleSectionParams,
+) -> error::Result<u64> {
+    Ok(sqlx::query(
+        r#"
+        UPDATE module_sections
+        SET
+            title       = $1,
+            description = $2,
+            sort_order  = $3
+        WHERE id = $4
+        "#,
+    )
+    .bind(params.title)
+    .bind(params.description)
+    .bind(params.sort_order)
+    .bind(id)
+    .execute(pool)
+    .await?
+    .rows_affected())
+}
+
+pub async fn delete_module_section_by_id(pool: &PgPool, id: i64) -> error::Result<u64> {
+    Ok(sqlx::query(
+        r#"
+        DELETE FROM module_sections
         WHERE id = $1
         "#,
     )

@@ -9,14 +9,19 @@ import type {UserRole} from "@/lib/types";
 import {searchPosts, type Post} from "@/lib/api/posts";
 import {
     createModule,
+    createModuleSection,
     updateModule,
     createModuleItem,
     deleteModuleItem,
     listModuleItems,
+    listModuleSections,
+    deleteModuleSection,
     type ModuleItem,
     type ModuleCreateRequest,
     type ModuleUpdateRequest,
     type ModuleItemCreateRequest,
+    type ModuleSectionPosts,
+    type ModuleSectionCreateRequest,
 } from "@/lib/api/modules";
 
 import UploadImagesPanel, {type UploadedImage} from "@/components/posts/UploadImagesPanel";
@@ -49,6 +54,43 @@ function cn(...parts: Array<string | false | null | undefined>) {
     return parts.filter(Boolean).join(" ");
 }
 
+function makeTempId() {
+    return `tmp-${Math.random().toString(36).slice(2)}`;
+}
+
+function buildInitialSections(initial?: ModuleSectionPosts[]): SectionDraft[] {
+    const sections: SectionDraft[] = [];
+
+    if (initial && initial.length > 0) {
+        const sorted = [...initial].sort((a, b) => a.sort_order - b.sort_order);
+        for (const s of sorted) {
+            const isUnknown = s.is_unknown || s.id === null;
+            sections.push({
+                id: s.id ?? undefined,
+                tempId: isUnknown ? "unknown" : `sec-${s.id}`,
+                title: isUnknown ? "Без секции" : s.title,
+                description: s.description ?? null,
+                sort_order: s.sort_order,
+                isUnknown,
+                posts: s.posts ?? [],
+            });
+        }
+    }
+
+    if (!sections.some((s) => s.isUnknown)) {
+        sections.push({
+            tempId: "unknown",
+            title: "Без секции",
+            description: null,
+            sort_order: 2147483647,
+            isUnknown: true,
+            posts: [],
+        });
+    }
+
+    return sections;
+}
+
 const ringHover =
     "transition-[transform,background-color,border-color,box-shadow] duration-150 " +
     "hover:-translate-y-[1px] " +
@@ -58,16 +100,26 @@ const ringHover =
 
 const cardBase = "card-gloss ring-1 ring-inset ring-border";
 
+type SectionDraft = {
+    id?: number;
+    tempId: string;
+    title: string;
+    description: string | null;
+    sort_order: number;
+    isUnknown?: boolean;
+    posts: Post[];
+};
+
 export default function ModuleEditor({
                                          mode,
                                          moduleId,
                                          initial,
-                                         initialPosts,
+                                         initialSections,
                                      }: {
     mode: Mode;
     moduleId?: number;
     initial?: { title: string; description: string | null; is_published: boolean };
-    initialPosts?: Post[];
+    initialSections?: ModuleSectionPosts[];
 }) {
     const router = useRouter();
     const {user, ready} = useAuth();
@@ -82,8 +134,10 @@ export default function ModuleEditor({
     const [imageLoading, setImageLoading] = useState(false);
     const [imageErr, setImageErr] = useState<string | null>(null);
 
-    // posts
-    const [selected, setSelected] = useState<Post[]>(initialPosts ?? []);
+    // sections + posts
+    const [sections, setSections] = useState<SectionDraft[]>(() => buildInitialSections(initialSections));
+    const [sectionsInitialized, setSectionsInitialized] = useState(false);
+    const [newSectionTitle, setNewSectionTitle] = useState("");
 
     // search
     const [query, setQuery] = useState("");
@@ -102,7 +156,25 @@ export default function ModuleEditor({
         return isStaff(user.role);
     }, [user, ready]);
 
-    const selectedIds = useMemo(() => new Set(selected.map((p) => p.id)), [selected]);
+    const selectedIds = useMemo(() => {
+        const ids = new Set<number>();
+        for (const s of sections) {
+            for (const p of s.posts) ids.add(p.id);
+        }
+        return ids;
+    }, [sections]);
+
+    const unknownSectionTempId = useMemo(
+        () => sections.find((s) => s.isUnknown)?.tempId ?? "unknown",
+        [sections]
+    );
+    const [addTargetSectionId, setAddTargetSectionId] = useState<string>("unknown");
+
+    useEffect(() => {
+        if (!sections.some((s) => s.tempId === addTargetSectionId)) {
+            setAddTargetSectionId(unknownSectionTempId);
+        }
+    }, [sections, addTargetSectionId, unknownSectionTempId]);
 
     // guard
     useEffect(() => {
@@ -113,6 +185,19 @@ export default function ModuleEditor({
         }
         if (!isStaff(user.role)) router.replace("/learn");
     }, [user, ready, router]);
+
+    useEffect(() => {
+        if (sectionsInitialized) return;
+        if (mode === "create") {
+            setSections(buildInitialSections(undefined));
+            setSectionsInitialized(true);
+            return;
+        }
+        if (initialSections) {
+            setSections(buildInitialSections(initialSections));
+            setSectionsInitialized(true);
+        }
+    }, [initialSections, mode, sectionsInitialized]);
 
     // ✅ load module image on edit
     // ✅ load module image on edit
@@ -198,26 +283,127 @@ export default function ModuleEditor({
         };
     }, [debouncedQuery]);
 
-    function addPost(p: Post) {
-        if (selectedIds.has(p.id)) return;
-        setSelected((prev) => [...prev, p]);
+    function addSection() {
+        const title = newSectionTitle.trim();
+        if (!title) {
+            setErr("Section title is required.");
+            return;
+        }
+        setSections((prev) => {
+            const next = prev.slice();
+            const unknownIdx = next.findIndex((s) => s.isUnknown);
+            const insertIdx = unknownIdx >= 0 ? unknownIdx : next.length;
+            next.splice(insertIdx, 0, {
+                tempId: makeTempId(),
+                title,
+                description: null,
+                sort_order: insertIdx,
+                posts: [],
+            });
+            return next;
+        });
+        setNewSectionTitle("");
     }
 
-    function removePost(postId: number) {
-        setSelected((prev) => prev.filter((p) => p.id !== postId));
+    function removeSection(tempId: string) {
+        setSections((prev) => {
+            const removed = prev.find((s) => s.tempId === tempId);
+            if (!removed) return prev;
+
+            const next = prev.filter((s) => s.tempId !== tempId);
+            const unknownIdx = next.findIndex((s) => s.isUnknown);
+
+            if (removed.posts.length > 0) {
+                if (unknownIdx >= 0) {
+                    const unknown = next[unknownIdx];
+                    next[unknownIdx] = {
+                        ...unknown,
+                        posts: [...unknown.posts, ...removed.posts],
+                    };
+                } else {
+                    next.push({
+                        tempId: "unknown",
+                        title: "Без секции",
+                        description: null,
+                        sort_order: 2147483647,
+                        isUnknown: true,
+                        posts: removed.posts,
+                    });
+                }
+            }
+
+            return next;
+        });
     }
 
-    function move(postId: number, dir: -1 | 1) {
-        setSelected((prev) => {
-            const idx = prev.findIndex((p) => p.id === postId);
-            if (idx < 0) return prev;
-            const nextIdx = idx + dir;
-            if (nextIdx < 0 || nextIdx >= prev.length) return prev;
-            const copy = prev.slice();
-            const tmp = copy[idx];
-            copy[idx] = copy[nextIdx];
-            copy[nextIdx] = tmp;
-            return copy;
+    function addPostToSection(post: Post, targetTempId: string) {
+        setSections((prev) => {
+            let movedPost: Post | null = null;
+            const cleaned = prev.map((s) => {
+                const idx = s.posts.findIndex((p) => p.id === post.id);
+                if (idx < 0) return s;
+                const copy = s.posts.slice();
+                movedPost = copy.splice(idx, 1)[0];
+                return {...s, posts: copy};
+            });
+
+            const targetIdx = cleaned.findIndex((s) => s.tempId === targetTempId);
+            if (targetIdx < 0) return prev;
+            const target = cleaned[targetIdx];
+            cleaned[targetIdx] = {
+                ...target,
+                posts: [...target.posts, movedPost ?? post],
+            };
+            return cleaned;
+        });
+    }
+
+    function removePost(sectionTempId: string, postId: number) {
+        setSections((prev) =>
+            prev.map((s) =>
+                s.tempId === sectionTempId
+                    ? {...s, posts: s.posts.filter((p) => p.id !== postId)}
+                    : s
+            )
+        );
+    }
+
+    function movePost(sectionTempId: string, postId: number, dir: -1 | 1) {
+        setSections((prev) =>
+            prev.map((s) => {
+                if (s.tempId !== sectionTempId) return s;
+                const idx = s.posts.findIndex((p) => p.id === postId);
+                if (idx < 0) return s;
+                const nextIdx = idx + dir;
+                if (nextIdx < 0 || nextIdx >= s.posts.length) return s;
+                const copy = s.posts.slice();
+                const tmp = copy[idx];
+                copy[idx] = copy[nextIdx];
+                copy[nextIdx] = tmp;
+                return {...s, posts: copy};
+            })
+        );
+    }
+
+    function movePostToSection(sectionTempId: string, postId: number, targetTempId: string) {
+        if (sectionTempId === targetTempId) return;
+        setSections((prev) => {
+            let moving: Post | null = null;
+            const next = prev.map((s) => {
+                if (s.tempId !== sectionTempId) return s;
+                const idx = s.posts.findIndex((p) => p.id === postId);
+                if (idx < 0) return s;
+                const copy = s.posts.slice();
+                moving = copy.splice(idx, 1)[0];
+                return {...s, posts: copy};
+            });
+
+            if (!moving) return prev;
+            const targetIdx = next.findIndex((s) => s.tempId === targetTempId);
+            if (targetIdx < 0) return prev;
+            const target = next[targetIdx];
+            next[targetIdx] = {...target, posts: [...target.posts, moving]};
+            return next;
         });
     }
 
@@ -231,6 +417,13 @@ export default function ModuleEditor({
         const t = title.trim();
         if (!t) return setErr("Title is required.");
         if (mode === "edit" && !moduleId) return setErr("Missing moduleId.");
+
+        const sectionsToSave = sections.filter((s) => !s.isUnknown);
+        for (const s of sectionsToSave) {
+            if (!s.title.trim()) {
+                return setErr("Section title is required.");
+            }
+        }
 
         const image_upload_id = moduleImages[0]?.id ?? null;
 
@@ -247,14 +440,31 @@ export default function ModuleEditor({
 
                 const newId = await createModule(body);
 
-                for (let i = 0; i < selected.length; i++) {
-                    const p = selected[i];
-                    const itemBody: ModuleItemCreateRequest = {
+                const sectionIdByTemp = new Map<string, number>();
+                for (let i = 0; i < sectionsToSave.length; i++) {
+                    const s = sectionsToSave[i];
+                    const secBody: ModuleSectionCreateRequest = {
                         module_id: newId,
-                        post_id: p.id,
+                        title: s.title.trim(),
+                        description: s.description ?? null,
                         sort_order: i,
                     };
-                    await createModuleItem(itemBody);
+                    const sectionId = await createModuleSection(secBody);
+                    sectionIdByTemp.set(s.tempId, sectionId);
+                }
+
+                for (const s of sections) {
+                    const section_id = s.isUnknown ? null : sectionIdByTemp.get(s.tempId) ?? null;
+                    for (let i = 0; i < s.posts.length; i++) {
+                        const p = s.posts[i];
+                        const itemBody: ModuleItemCreateRequest = {
+                            module_id: newId,
+                            post_id: p.id,
+                            section_id,
+                            sort_order: i,
+                        };
+                        await createModuleItem(itemBody);
+                    }
                 }
 
                 router.push(`/learn/${newId}`);
@@ -272,9 +482,33 @@ export default function ModuleEditor({
             const currentItems: ModuleItem[] = await listModuleItems(moduleId!);
             for (const it of currentItems) await deleteModuleItem(it.id);
 
-            for (let i = 0; i < selected.length; i++) {
-                const p = selected[i];
-                await createModuleItem({module_id: moduleId!, post_id: p.id, sort_order: i});
+            const currentSections = await listModuleSections(moduleId!);
+            for (const s of currentSections) await deleteModuleSection(s.id);
+
+            const sectionIdByTemp = new Map<string, number>();
+            for (let i = 0; i < sectionsToSave.length; i++) {
+                const s = sectionsToSave[i];
+                const secBody: ModuleSectionCreateRequest = {
+                    module_id: moduleId!,
+                    title: s.title.trim(),
+                    description: s.description ?? null,
+                    sort_order: i,
+                };
+                const sectionId = await createModuleSection(secBody);
+                sectionIdByTemp.set(s.tempId, sectionId);
+            }
+
+            for (const s of sections) {
+                const section_id = s.isUnknown ? null : sectionIdByTemp.get(s.tempId) ?? null;
+                for (let i = 0; i < s.posts.length; i++) {
+                    const p = s.posts[i];
+                    await createModuleItem({
+                        module_id: moduleId!,
+                        post_id: p.id,
+                        section_id,
+                        sort_order: i,
+                    });
+                }
             }
 
             router.push(`/learn/${moduleId}`);
@@ -399,88 +633,193 @@ export default function ModuleEditor({
                         <div className={cn(cardBase, "p-6")}>
                             <div className="mb-3 flex items-center justify-between gap-3">
                                 <div>
-                                    <div className="text-sm font-medium text-fg">Selected posts</div>
-                                    <div className="text-xs text-muted-fg">Order matters (sort_order).</div>
+                                    <div className="text-sm font-medium text-fg">Sections</div>
+                                    <div className="text-xs text-muted-fg">Group posts by section.</div>
                                 </div>
-                                <div className="text-xs text-muted-fg">{selected.length} selected</div>
+                                <div className="text-xs text-muted-fg">{selectedIds.size} posts</div>
+                            </div>
+
+                            <div className="mb-3 flex items-center gap-2">
+                                <input
+                                    value={newSectionTitle}
+                                    onChange={(e) => setNewSectionTitle(e.target.value)}
+                                    className="input h-9 flex-1"
+                                    placeholder="New section title"
+                                    disabled={pending}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={addSection}
+                                    disabled={pending}
+                                    className={cn("btn px-3 py-2 text-sm", ringHover)}
+                                >
+                                    <AddIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+                                    Add section
+                                </button>
                             </div>
 
                             <div className="max-h-[50vh] overflow-auto pr-1">
-                                {selected.length === 0 ? (
-                                    <div className="text-sm text-muted-fg">No posts added yet.</div>
+                                {sections.length === 0 ? (
+                                    <div className="text-sm text-muted-fg">No sections yet.</div>
                                 ) : (
-                                    <ul className="space-y-2">
-                                        {selected.map((p, idx) => (
+                                    <ul className="space-y-3">
+                                        {sections.map((section) => (
                                             <li
-                                                key={p.id}
+                                                key={section.tempId}
                                                 className={cn(
-                                                    "rounded-xl p-3",
-                                                    "ring-1 ring-inset ring-border",
+                                                    "rounded-xl border border-border p-3",
                                                     "bg-[hsl(var(--ring)/0.03)]"
                                                 )}
                                             >
-                                                <div className="flex items-start gap-3">
+                                                <div className="mb-2 flex items-start justify-between gap-2">
                                                     <div className="min-w-0 flex-1">
-                                                        <div className="truncate text-sm font-medium text-fg">
-                                                            {idx + 1}. {p.title}
-                                                        </div>
-                                                        <div
-                                                            className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-fg">
-                              <span className="rounded-md border border-border bg-[hsl(var(--ring)/0.08)] px-2 py-0.5">
-                                {p.category_tag}
-                              </span>
-                                                            <span>{p.author}</span>
+                                                        {section.isUnknown ? (
+                                                            <div className="text-sm font-medium text-fg">
+                                                                Без секции
+                                                            </div>
+                                                        ) : (
+                                                            <input
+                                                                value={section.title}
+                                                                onChange={(e) =>
+                                                                    setSections((prev) =>
+                                                                        prev.map((s) =>
+                                                                            s.tempId === section.tempId
+                                                                                ? {...s, title: e.target.value}
+                                                                                : s
+                                                                        )
+                                                                    )
+                                                                }
+                                                                className="input h-9"
+                                                                placeholder="Section title"
+                                                                disabled={pending}
+                                                            />
+                                                        )}
+                                                        <div className="mt-1 text-xs text-muted-fg">
+                                                            {section.posts.length} posts
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex items-center gap-1">
+                                                    {!section.isUnknown ? (
                                                         <button
                                                             type="button"
-                                                            onClick={() => move(p.id, -1)}
-                                                            disabled={idx === 0 || pending}
-                                                            className={cn(
-                                                                "btn h-8 w-8 px-0",
-                                                                ringHover,
-                                                                "disabled:cursor-not-allowed disabled:opacity-50"
-                                                            )}
-                                                            title="Move up"
-                                                            aria-label="Move up"
-                                                        >
-                                                            <ArrowUpwardIcon sx={{fontSize: 18}}/>
-                                                        </button>
-
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => move(p.id, 1)}
-                                                            disabled={idx === selected.length - 1 || pending}
-                                                            className={cn(
-                                                                "btn h-8 w-8 px-0",
-                                                                ringHover,
-                                                                "disabled:cursor-not-allowed disabled:opacity-50"
-                                                            )}
-                                                            title="Move down"
-                                                            aria-label="Move down"
-                                                        >
-                                                            <ArrowDownwardIcon sx={{fontSize: 18}}/>
-                                                        </button>
-
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removePost(p.id)}
+                                                            onClick={() => removeSection(section.tempId)}
                                                             disabled={pending}
                                                             className={cn(
-                                                                "btn h-8 w-8 px-0",
+                                                                "btn h-8 px-2 text-xs",
                                                                 ringHover,
                                                                 "hover:bg-[hsl(0_90%_55%/0.10)] hover:border-[hsl(0_90%_55%/0.45)] hover:ring-2 hover:ring-inset hover:ring-[hsl(0_90%_55%/0.28)]",
                                                                 "disabled:cursor-not-allowed disabled:opacity-60"
                                                             )}
-                                                            title="Remove"
-                                                            aria-label="Remove"
                                                         >
-                                                            <CloseIcon sx={{fontSize: 18}}/>
+                                                            <CloseIcon sx={{fontSize: 16}}/>
+                                                            Delete
                                                         </button>
-                                                    </div>
+                                                    ) : null}
                                                 </div>
+
+                                                {section.posts.length === 0 ? (
+                                                    <div className="text-xs text-muted-fg">
+                                                        No posts in this section.
+                                                    </div>
+                                                ) : (
+                                                    <ul className="space-y-2">
+                                                        {section.posts.map((p, idx) => (
+                                                            <li
+                                                                key={p.id}
+                                                                className={cn(
+                                                                    "rounded-lg p-2",
+                                                                    "ring-1 ring-inset ring-border",
+                                                                    "bg-[hsl(var(--ring)/0.05)]"
+                                                                )}
+                                                            >
+                                                                <div className="flex items-start gap-3">
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <div
+                                                                            className="truncate text-sm font-medium text-fg">
+                                                                            {idx + 1}. {p.title}
+                                                                        </div>
+                                                                        <div
+                                                                            className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-fg">
+                                                                            <span
+                                                                                className="rounded-md border border-border bg-[hsl(var(--ring)/0.08)] px-2 py-0.5">
+                                                                                {p.category_tag}
+                                                                            </span>
+                                                                            <span>{p.author}</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-2">
+                                                                        <select
+                                                                            value={section.tempId}
+                                                                            onChange={(e) =>
+                                                                                movePostToSection(
+                                                                                    section.tempId,
+                                                                                    p.id,
+                                                                                    e.target.value
+                                                                                )
+                                                                            }
+                                                                            className="input h-8 px-2 text-xs"
+                                                                            disabled={pending}
+                                                                            aria-label="Move to section"
+                                                                        >
+                                                                            {sections.map((s) => (
+                                                                                <option key={s.tempId} value={s.tempId}>
+                                                                                    {s.isUnknown ? "Без секции" : s.title}
+                                                                                </option>
+                                                                            ))}
+                                                                        </select>
+
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => movePost(section.tempId, p.id, -1)}
+                                                                            disabled={idx === 0 || pending}
+                                                                            className={cn(
+                                                                                "btn h-8 w-8 px-0",
+                                                                                ringHover,
+                                                                                "disabled:cursor-not-allowed disabled:opacity-50"
+                                                                            )}
+                                                                            title="Move up"
+                                                                            aria-label="Move up"
+                                                                        >
+                                                                            <ArrowUpwardIcon sx={{fontSize: 18}}/>
+                                                                        </button>
+
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => movePost(section.tempId, p.id, 1)}
+                                                                            disabled={idx === section.posts.length - 1 || pending}
+                                                                            className={cn(
+                                                                                "btn h-8 w-8 px-0",
+                                                                                ringHover,
+                                                                                "disabled:cursor-not-allowed disabled:opacity-50"
+                                                                            )}
+                                                                            title="Move down"
+                                                                            aria-label="Move down"
+                                                                        >
+                                                                            <ArrowDownwardIcon sx={{fontSize: 18}}/>
+                                                                        </button>
+
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => removePost(section.tempId, p.id)}
+                                                                            disabled={pending}
+                                                                            className={cn(
+                                                                                "btn h-8 w-8 px-0",
+                                                                                ringHover,
+                                                                                "hover:bg-[hsl(0_90%_55%/0.10)] hover:border-[hsl(0_90%_55%/0.45)] hover:ring-2 hover:ring-inset hover:ring-[hsl(0_90%_55%/0.28)]",
+                                                                                "disabled:cursor-not-allowed disabled:opacity-60"
+                                                                            )}
+                                                                            title="Remove"
+                                                                            aria-label="Remove"
+                                                                        >
+                                                                            <CloseIcon sx={{fontSize: 18}}/>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
                                             </li>
                                         ))}
                                     </ul>
@@ -508,6 +847,22 @@ export default function ModuleEditor({
                                 disabled={pending}
                             />
 
+                            <div className="mt-3 flex items-center gap-2">
+                                <label className="text-xs text-muted-fg">Add to section</label>
+                                <select
+                                    value={addTargetSectionId}
+                                    onChange={(e) => setAddTargetSectionId(e.target.value)}
+                                    className="input h-8 px-2 text-xs"
+                                    disabled={pending}
+                                >
+                                    {sections.map((s) => (
+                                        <option key={s.tempId} value={s.tempId}>
+                                            {s.isUnknown ? "Без секции" : s.title}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
                             {searchErr ? (
                                 <div
                                     className={cn(
@@ -529,6 +884,10 @@ export default function ModuleEditor({
                                     <ul className="space-y-2">
                                         {results.map((p) => {
                                             const already = selectedIds.has(p.id);
+                                            const inTarget =
+                                                sections
+                                                    .find((s) => s.tempId === addTargetSectionId)
+                                                    ?.posts.some((sp) => sp.id === p.id) ?? false;
 
                                             return (
                                                 <li
@@ -555,21 +914,39 @@ export default function ModuleEditor({
 
                                                         <button
                                                             type="button"
-                                                            onClick={() => addPost(p)}
-                                                            disabled={already || pending}
+                                                            onClick={() => addPostToSection(p, addTargetSectionId)}
+                                                            disabled={inTarget || pending}
                                                             className={cn(
                                                                 "btn px-3 py-2 text-sm",
                                                                 ringHover,
                                                                 "disabled:cursor-not-allowed disabled:opacity-60"
                                                             )}
-                                                            aria-label={already ? "Already added" : "Add post"}
-                                                            title={already ? "Already added" : "Add post"}
+                                                            aria-label={
+                                                                inTarget
+                                                                    ? "Already in this section"
+                                                                    : already
+                                                                        ? "Move to section"
+                                                                        : "Add post"
+                                                            }
+                                                            title={
+                                                                inTarget
+                                                                    ? "Already in this section"
+                                                                    : already
+                                                                        ? "Move to section"
+                                                                        : "Add post"
+                                                            }
                                                         >
-                                                            {already ? (
+                                                            {inTarget ? (
                                                                 <>
                                                                     <CheckIcon sx={{fontSize: 18}}
                                                                                className="text-muted-fg"/>
                                                                     Added
+                                                                </>
+                                                            ) : already ? (
+                                                                <>
+                                                                    <ArrowUpwardIcon sx={{fontSize: 18}}
+                                                                                     className="text-muted-fg"/>
+                                                                    Move
                                                                 </>
                                                             ) : (
                                                                 <>

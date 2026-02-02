@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { ApiError } from "@/lib/apiClient";
 import { listMyReads, type ProgressPost } from "@/lib/api/me";
-import { listModules, getModulePosts, type Module, type Post as ModulePost } from "@/lib/api/modules";
+import { listModules, getModulePosts, type Module, type ModuleSectionPosts } from "@/lib/api/modules";
 
 import LinkIcon from "@mui/icons-material/Link";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
@@ -189,9 +189,10 @@ export default function MePage() {
 
                 const done: Module[] = [];
                 for (const m of mods) {
-                    const posts: ModulePost[] = await getModulePosts(m.id, {only_published: false});
+                    const sections: ModuleSectionPosts[] = await getModulePosts(m.id, {only_published: false});
                     if (cancelled) return;
 
+                    const posts = sections.flatMap((s) => s.posts);
                     if (posts.length === 0) continue;
                     const allDone = posts.every((p) => completedSet.has(p.id));
                     if (allDone) done.push(m);

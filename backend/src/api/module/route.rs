@@ -17,8 +17,12 @@ pub fn routes() -> Router<Context> {
         .route("/delete/{id}", delete(handler::delete))
         .route("/get-posts/{id}", get(handler::get_posts))
         .route("/{id}/items", get(handler::list_items))
+        .route("/{id}/sections", get(handler::list_sections))
         .route("/item/create", post(handler::create_item))
         .route("/item/update/{id}", put(handler::update_item))
         .route("/item/delete/{id}", delete(handler::delete_item))
+        .route("/section/create", post(handler::create_section))
+        .route("/section/update/{id}", put(handler::update_section))
+        .route("/section/delete/{id}", delete(handler::delete_section))
         .route("/nav/by-post/{post_id}", get(handler::nav_by_post))
 }

@@ -6,8 +6,7 @@ import ModuleEditor from "@/components/modules/ModuleEditor";
 import { ApiError } from "@/lib/apiClient";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { getModule, getModulePosts } from "@/lib/api/modules";
-import type { Module } from "@/lib/api/modules";
-import type { Post } from "@/lib/api/posts";
+import type { Module, ModuleSectionPosts } from "@/lib/api/modules";
 import type { UserRole } from "@/lib/types";
 
 const STAFF_ROLES: UserRole[] = ["admin", "moderator", "editor"];
@@ -22,7 +21,7 @@ export default function EditModulePage() {
     const { user, ready } = useAuth();
 
     const [mod, setMod] = useState<Module | null>(null);
-    const [posts, setPosts] = useState<Post[]>([]);
+    const [sections, setSections] = useState<ModuleSectionPosts[]>([]);
     const [err, setErr] = useState<string | null>(null);
 
     useEffect(() => {
@@ -46,7 +45,7 @@ export default function EditModulePage() {
                 const ps = await getModulePosts(moduleId, {only_published: false});
                 if (cancelled) return;
                 setMod(m);
-                setPosts(ps);
+                setSections(ps);
             } catch (e) {
                 if (cancelled) return;
                 if (e instanceof ApiError) setErr(e.message);
@@ -93,7 +92,7 @@ export default function EditModulePage() {
                 description: mod.description,
                 is_published: mod.is_published,
             }}
-            initialPosts={posts}
+            initialSections={sections}
         />
     );
 }

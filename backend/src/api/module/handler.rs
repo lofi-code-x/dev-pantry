@@ -4,12 +4,12 @@ use crate::api::error::{ApiError, JsonResult, StatusResult};
 use crate::app::Context;
 use crate::auth::extractor::StaffUser;
 use crate::domain::module::dto::{
-    InsertModuleItemParams, InsertModuleParams, ModulePostNav, ModuleSetPublicRequest,
-    NavByPostQuery, OnlyPublishedQuery, UpdateModuleItemParams, UpdateModuleParams,
+    InsertModuleItemParams, InsertModuleParams, InsertModuleSectionParams, ModulePostNav,
+    ModuleSectionPosts, ModuleSetPublicRequest, NavByPostQuery, OnlyPublishedQuery,
+    UpdateModuleItemParams, UpdateModuleParams, UpdateModuleSectionParams,
 };
-use crate::domain::module::model::{Module, ModuleItem};
+use crate::domain::module::model::{Module, ModuleItem, ModuleSection};
 use crate::domain::module::service;
-use crate::domain::post::model::Post;
 use axum::Json;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
@@ -40,7 +40,7 @@ pub async fn get_posts(
     State(ctx): State<Context>,
     Path(id): Path<i64>,
     Query(q): Query<OnlyPublishedQuery>,
-) -> JsonResult<Vec<Post>> {
+) -> JsonResult<Vec<ModuleSectionPosts>> {
     let response = service::get_module_posts(&ctx.pool, id, q.only_published.unwrap_or(true))
         .await
         .map_err(ApiError::map)?;
@@ -58,6 +58,18 @@ pub async fn list_items(
         .map_err(ApiError::map)?;
 
     Ok((StatusCode::OK, Json(items)))
+}
+
+pub async fn list_sections(
+    StaffUser(_staff): StaffUser,
+    State(ctx): State<Context>,
+    Path(id): Path<i64>,
+) -> JsonResult<Vec<ModuleSection>> {
+    let sections = service::list_module_sections(&ctx.pool, id)
+        .await
+        .map_err(ApiError::map)?;
+
+    Ok((StatusCode::OK, Json(sections)))
 }
 
 /// POST /api/module/create (staff)
@@ -150,6 +162,48 @@ pub async fn delete_item(
     Path(id): Path<i64>,
 ) -> StatusResult {
     service::delete_module_item(&ctx.pool, id)
+        .await
+        .map_err(ApiError::map)?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+// ---------------------------- Module Sections --------------------------
+
+/// POST /api/module/section/create (staff) -> id
+pub async fn create_section(
+    StaffUser(_staff): StaffUser,
+    State(ctx): State<Context>,
+    Json(params): Json<InsertModuleSectionParams>,
+) -> JsonResult<i64> {
+    let id = service::add_module_section(&ctx.pool, params)
+        .await
+        .map_err(ApiError::map)?;
+
+    Ok((StatusCode::CREATED, Json(id)))
+}
+
+/// PUT /api/module/section/update/{id} (staff) -> 204
+pub async fn update_section(
+    StaffUser(_staff): StaffUser,
+    State(ctx): State<Context>,
+    Path(id): Path<i64>,
+    Json(params): Json<UpdateModuleSectionParams>,
+) -> StatusResult {
+    service::update_module_section(&ctx.pool, id, params)
+        .await
+        .map_err(ApiError::map)?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// DELETE /api/module/section/delete/{id} (staff) -> 204
+pub async fn delete_section(
+    StaffUser(_staff): StaffUser,
+    State(ctx): State<Context>,
+    Path(id): Path<i64>,
+) -> StatusResult {
+    service::delete_module_section(&ctx.pool, id)
         .await
         .map_err(ApiError::map)?;
 

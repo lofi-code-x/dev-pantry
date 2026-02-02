@@ -12,7 +12,7 @@
         listModules,
         setModulePublic,
         type Module,
-        type Post,
+        type ModuleSectionPosts,
     } from "@/lib/api/modules";
     import type {UserRole} from "@/lib/types";
     import {PostCard} from "@/components/posts/PostCard";
@@ -61,7 +61,7 @@
         const staff = useMemo(() => (user ? isStaff(user.role) : false), [user]);
 
         const [mod, setMod] = useState<Module | null>(null);
-        const [posts, setPosts] = useState<Post[]>([]);
+        const [sections, setSections] = useState<ModuleSectionPosts[]>([]);
 
         const [pending, setPending] = useState(false);
         const [err, setErr] = useState<string | null>(null);
@@ -139,7 +139,7 @@
 
                     const found = mods.find((m) => m.id === mid) ?? null;
                     setMod(found);
-                    setPosts(modulePosts);
+                    setSections(modulePosts);
 
                     if (!found) {
                         setErr("Module not found (or not published).");
@@ -158,6 +158,11 @@
                 cancelled = true;
             };
         }, [moduleId, ready, staff]);
+
+        const flatPosts = useMemo(
+            () => sections.flatMap((s) => s.posts),
+            [sections]
+        );
 
         // ✅ NEW: load cover image (1 module => 1 request)
         useEffect(() => {
@@ -353,19 +358,42 @@
                 </header>
 
                 {/* posts list */}
-                <section className="grid gap-3">
-                    {pending && posts.length === 0 ? (
+                <section className="grid gap-4">
+                    {pending && flatPosts.length === 0 ? (
                         <div className={cn("surface p-6 text-sm text-muted-fg", "ring-1 ring-inset ring-border")}>
                             Loading…
                         </div>
-                    ) : posts.length === 0 ? (
+                    ) : flatPosts.length === 0 ? (
                         <div className={cn("surface p-6 text-sm text-muted-fg", "ring-1 ring-inset ring-border")}>
                             No posts in this module.
                         </div>
                     ) : (
-                        posts.map((p) => (
-                            <PostCard key={p.id} post={p} isCompleted={progressMap.get(p.id) === true}/>
-                        ))
+                        sections
+                            .filter((s) => s.posts.length > 0)
+                            .map((s) => (
+                                <div
+                                    key={s.id ?? "unknown"}
+                                    className={cn("surface p-4", "ring-1 ring-inset ring-border")}
+                                >
+                                    <div className="mb-3 flex items-center justify-between">
+                                        <div className="text-sm font-medium text-fg">
+                                            {s.is_unknown ? "Без секции" : s.title}
+                                        </div>
+                                        <div className="text-xs text-muted-fg">
+                                            {s.posts.length} posts
+                                        </div>
+                                    </div>
+                                    <div className="grid gap-3">
+                                        {s.posts.map((p) => (
+                                            <PostCard
+                                                key={p.id}
+                                                post={p}
+                                                isCompleted={progressMap.get(p.id) === true}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            ))
                     )}
                 </section>
             </main>
