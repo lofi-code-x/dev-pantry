@@ -1,13 +1,13 @@
 // src/app/me/page.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/auth/AuthProvider";
-import { ApiError } from "@/lib/apiClient";
-import { listMyReads, type ProgressPost } from "@/lib/api/me";
-import { listModules, getModulePosts, type Module, type ModuleSectionPosts } from "@/lib/api/modules";
+import {useRouter} from "next/navigation";
+import {useAuth} from "@/components/auth/AuthProvider";
+import {ApiError} from "@/lib/apiClient";
+import {getMyStats, listMyReads, type ProgressPost, type UserStats} from "@/lib/api/me";
+import {listModules, getModulePosts, type Module, type ModuleSectionPosts} from "@/lib/api/modules";
 
 import LinkIcon from "@mui/icons-material/Link";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
@@ -41,7 +41,7 @@ const ringHoverCard =
     "hover:ring-2 hover:ring-inset hover:ring-ring/30 " +
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55";
 
-function CompletedPostCard({ p }: { p: ProgressPost }) {
+function CompletedPostCard({p}: { p: ProgressPost }) {
     return (
         <Link
             href={`/posts/${p.post_id}`}
@@ -72,9 +72,10 @@ function CompletedPostCard({ p }: { p: ProgressPost }) {
     );
 }
 
-function CompletedModuleCard({ m }: { m: Module }) {
+function CompletedModuleCard({m}: { m: Module }) {
     return (
-        <Link href={`/learn/${m.id}`} className={cn("surface p-5", ringHoverCard)} aria-label={`Open module: ${m.title}`}>
+        <Link href={`/learn/${m.id}`} className={cn("surface p-5", ringHoverCard)}
+              aria-label={`Open module: ${m.title}`}>
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-muted-fg">
           <span
@@ -98,7 +99,7 @@ function CompletedModuleCard({ m }: { m: Module }) {
                     )}
                     title="Completed"
                 >
-          <TaskAltIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
+          <TaskAltIcon sx={{fontSize: 18}} className="text-muted-fg"/>
           <span>done</span>
         </span>
             </div>
@@ -118,7 +119,7 @@ type TabKey = "posts" | "modules";
 
 export default function MePage() {
     const router = useRouter();
-    const { user, ready } = useAuth();
+    const {user, ready} = useAuth();
 
     const [tab, setTab] = useState<TabKey>("posts");
 
@@ -129,6 +130,10 @@ export default function MePage() {
     const [completedModules, setCompletedModules] = useState<Module[]>([]);
     const [modulesLoading, setModulesLoading] = useState(false);
     const [modulesErr, setModulesErr] = useState<string | null>(null);
+
+    const [stats, setStats] = useState<UserStats | null>(null);
+    const [statsLoading, setStatsLoading] = useState(false);
+    const [statsErr, setStatsErr] = useState<string | null>(null);
 
     // guard
     useEffect(() => {
@@ -166,6 +171,33 @@ export default function MePage() {
         };
     }, [ready, user]);
 
+    // load stats
+    useEffect(() => {
+        if (!ready) return;
+        if (!user) return;
+
+        let cancelled = false;
+
+        async function load() {
+            setStatsErr(null);
+            setStatsLoading(true);
+            try {
+                const res = await getMyStats();
+                if (!cancelled) setStats(res);
+            } catch (e) {
+                if (cancelled) return;
+                setStatsErr(e instanceof ApiError ? e.message : "Failed to load stats.");
+            } finally {
+                if (!cancelled) setStatsLoading(false);
+            }
+        }
+
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, [ready, user]);
+
     // load completed modules (best-effort; N+1 but OK for now)
     useEffect(() => {
         if (!ready) return;
@@ -184,12 +216,12 @@ export default function MePage() {
                 if (cancelled) return;
                 const completedSet = new Set<number>(reads.map((r) => r.post_id));
 
-                const mods = await listModules({ only_published: false });
+                const mods = await listModules();
                 if (cancelled) return;
 
                 const done: Module[] = [];
                 for (const m of mods) {
-                    const sections: ModuleSectionPosts[] = await getModulePosts(m.id, {only_published: false});
+                    const sections: ModuleSectionPosts[] = await getModulePosts(m.id);
                     if (cancelled) return;
 
                     const posts = sections.flatMap((s) => s.posts);
@@ -261,7 +293,8 @@ export default function MePage() {
                             </div>
 
                             <div className="min-w-0">
-                                <div className="truncate text-xl font-semibold tracking-tight text-fg">{user.login}</div>
+                                <div
+                                    className="truncate text-xl font-semibold tracking-tight text-fg">{user.login}</div>
                                 <div className="mt-1 text-sm text-muted-fg">
                                     Role: <span className="text-fg">{user.role}</span>
                                 </div>
@@ -280,7 +313,7 @@ export default function MePage() {
                                 <div>
                                     <div className="text-xs text-muted-fg">Website</div>
                                     <div className="mt-1 flex items-center gap-2 text-sm text-fg">
-                                        <LinkIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
+                                        <LinkIcon sx={{fontSize: 18}} className="text-muted-fg"/>
                                         https://example.com
                                     </div>
                                 </div>
@@ -288,7 +321,7 @@ export default function MePage() {
                                 <div>
                                     <div className="text-xs text-muted-fg">GitHub</div>
                                     <div className="mt-1 flex items-center gap-2 text-sm text-fg">
-                                        <LinkIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
+                                        <LinkIcon sx={{fontSize: 18}} className="text-muted-fg"/>
                                         https://github.com/username
                                     </div>
                                 </div>
@@ -296,13 +329,15 @@ export default function MePage() {
                                 <div>
                                     <div className="text-xs text-muted-fg">Telegram</div>
                                     <div className="mt-1 flex items-center gap-2 text-sm text-fg">
-                                        <LinkIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
+                                        <LinkIcon sx={{fontSize: 18}} className="text-muted-fg"/>
                                         https://t.me/username
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="mt-3 text-xs text-muted-fg">Пока это затычки. Позже сделаем сохранение в таблицу профиля.</div>
+                            <div className="mt-3 text-xs text-muted-fg">Пока это затычки. Позже сделаем сохранение в
+                                таблицу профиля.
+                            </div>
                         </div>
                     </div>
 
@@ -310,8 +345,16 @@ export default function MePage() {
                     <div className="lg:col-span-4">
                         <div className={cn("surface p-4", "ring-1 ring-inset ring-border")}>
                             <div className="text-sm font-medium text-fg">User rating</div>
-                            <div className="mt-2 text-3xl font-semibold text-fg">—</div>
-                            <div className="mt-1 text-xs text-muted-fg">Placeholder (позже свяжем со статистикой/прогрессом).</div>
+                            <div className="mt-2 text-3xl font-semibold text-fg">
+                                {statsLoading ? "…" : stats ? stats.total_xp : "—"}
+                            </div>
+                            <div className="mt-1 text-xs text-muted-fg">
+                                {statsErr
+                                    ? statsErr
+                                    : stats
+                                        ? `${stats.posts_completed} posts • ${stats.modules_completed} modules`
+                                        : "No stats yet."}
+                            </div>
                         </div>
 
                         <div className={cn("mt-4 surface p-4", "ring-1 ring-inset ring-border")}>
@@ -337,7 +380,8 @@ export default function MePage() {
                         onClick={() => setTab("posts")}
                         className={cn(tabBase, tab === "posts" ? tabActive : tabInactive)}
                     >
-                        <TaskAltIcon sx={{ fontSize: 18 }} className={cn(tab === "posts" ? "text-primary-fg" : "text-muted-fg")} />
+                        <TaskAltIcon sx={{fontSize: 18}}
+                                     className={cn(tab === "posts" ? "text-primary-fg" : "text-muted-fg")}/>
                         Completed posts
                         <span
                             className={cn(
@@ -356,7 +400,8 @@ export default function MePage() {
                         onClick={() => setTab("modules")}
                         className={cn(tabBase, tab === "modules" ? tabActive : tabInactive)}
                     >
-                        <MenuBookIcon sx={{ fontSize: 18 }} className={cn(tab === "modules" ? "text-primary-fg" : "text-muted-fg")} />
+                        <MenuBookIcon sx={{fontSize: 18}}
+                                      className={cn(tab === "modules" ? "text-primary-fg" : "text-muted-fg")}/>
                         Completed modules
                         <span
                             className={cn(
@@ -376,7 +421,8 @@ export default function MePage() {
             {tab === "posts" ? (
                 <section className="mt-4">
                     {postsErr ? (
-                        <div className={cn("surface p-4 text-sm text-fg", "ring-1 ring-inset ring-ring/15", "bg-[hsl(var(--ring)/0.06)]")}>
+                        <div
+                            className={cn("surface p-4 text-sm text-fg", "ring-1 ring-inset ring-ring/15", "bg-[hsl(var(--ring)/0.06)]")}>
                             {postsErr}
                         </div>
                     ) : postsLoading ? (
@@ -390,7 +436,7 @@ export default function MePage() {
                     ) : (
                         <div className="grid gap-4">
                             {completedPosts.map((p) => (
-                                <CompletedPostCard key={p.post_id} p={p} />
+                                <CompletedPostCard key={p.post_id} p={p}/>
                             ))}
                         </div>
                     )}
@@ -398,7 +444,8 @@ export default function MePage() {
             ) : (
                 <section className="mt-4">
                     {modulesErr ? (
-                        <div className={cn("surface p-4 text-sm text-fg", "ring-1 ring-inset ring-ring/15", "bg-[hsl(var(--ring)/0.06)]")}>
+                        <div
+                            className={cn("surface p-4 text-sm text-fg", "ring-1 ring-inset ring-ring/15", "bg-[hsl(var(--ring)/0.06)]")}>
                             {modulesErr}
                         </div>
                     ) : modulesLoading ? (
@@ -412,7 +459,7 @@ export default function MePage() {
                     ) : (
                         <div className="grid gap-4">
                             {completedModules.map((m) => (
-                                <CompletedModuleCard key={m.id} m={m} />
+                                <CompletedModuleCard key={m.id} m={m}/>
                             ))}
                         </div>
                     )}

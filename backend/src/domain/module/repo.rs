@@ -386,6 +386,31 @@ pub async fn list_module_ids_by_post_id(pool: &PgPool, post_id: i64) -> error::R
     Ok(ids)
 }
 
+pub async fn is_module_completed_for_user(
+    pool: &PgPool,
+    user_id: i64,
+    module_id: i64,
+) -> error::Result<bool> {
+    let row = sqlx::query(
+        r#"
+        SELECT
+          COUNT(*) > 0
+          AND COUNT(*) FILTER (WHERE pp.is_completed = true) = COUNT(*) AS is_completed
+        FROM module_items mi
+        LEFT JOIN post_progress pp
+          ON pp.user_id = $1
+         AND pp.post_id = mi.post_id
+        WHERE mi.module_id = $2
+        "#,
+    )
+    .bind(user_id)
+    .bind(module_id)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(row.get::<bool, _>("is_completed"))
+}
+
 pub async fn list_post_ids_by_module_id(pool: &PgPool, module_id: i64) -> error::Result<Vec<i64>> {
     let rows = sqlx::query(
         r#"

@@ -42,6 +42,14 @@ export type PostState = {
     completed: boolean;
 };
 
+export type UserStats = {
+    user_id: number;
+    total_xp: number;
+    posts_completed: number;
+    modules_completed: number;
+    updated_at: string;
+};
+
 // ----------------------------- Helpers ----------------------------------
 
 function qs(params: Record<string, string | undefined>) {
@@ -121,4 +129,9 @@ export type ModuleProgress = {
 // GET /api/me/modules/progress
 export async function listMyModuleProgress(): Promise<ModuleProgress[]> {
     return apiFetchAuthed<ModuleProgress[]>("/api/me/modules/progress", { method: "GET" });
+}
+
+// GET /api/me/stats
+export async function getMyStats(): Promise<UserStats> {
+    return apiFetchAuthed<UserStats>("/api/me/stats", { method: "GET" });
 }

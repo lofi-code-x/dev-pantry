@@ -4,6 +4,7 @@ use crate::auth::extractor::Client;
 use crate::domain::me::dto::{OnlyPublishedQuery, PostIdBody, ProgressListQuery};
 use crate::domain::me::model::{BookmarkedPost, ModuleProgress, PostState, ProgressPost};
 use crate::domain::me::service::{bookmarks, module, post_state, progress};
+use crate::domain::xp;
 use axum::{
     Json,
     extract::{Path, Query, State},
@@ -113,4 +114,16 @@ pub async fn list_module_progress(
         .await
         .map_err(ApiError::map)?;
     Ok((StatusCode::OK, Json(res)))
+}
+
+/// GET /api/me/stats
+pub async fn get_stats(
+    client: Client,
+    State(ctx): State<Context>,
+) -> JsonResult<xp::model::UserStats> {
+    let user = client.require_user()?;
+    let stats = xp::service::get_user_stats(&ctx.pool, user.id)
+        .await
+        .map_err(ApiError::map)?;
+    Ok((StatusCode::OK, Json(stats)))
 }

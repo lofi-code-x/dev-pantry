@@ -1,6 +1,7 @@
 // src/domain/post/service.rs
 
 use crate::domain::me;
+use crate::domain::xp;
 use crate::domain::post::dto::{
     InsertParams, InsertQuizOptionParams, InsertQuizQuestionParams, PostCreateRequest, PostRequest,
     QuizAttemptView, QuizOptionView, QuizQuestionView, QuizSubmitRequest, QuizSubmitResult,
@@ -215,7 +216,11 @@ pub async fn submit_quiz(
     let attempt_id = repo::insert_quiz_attempt(pool, user_id, post_id, is_passed).await?;
     repo::insert_quiz_answers(pool, attempt_id, &req.answers).await?;
     if is_passed {
-        me::repo::mark_completed(pool, user_id, post_id).await?;
+        me::service::progress::mark_completed(pool, user_id, post_id).await?;
+        let delta = xp::service::quiz_delta(total_questions, correct_answers);
+        if delta > 0 {
+            xp::service::award_quiz_passed(pool, user_id, post_id, delta).await?;
+        }
     }
 
     Ok(QuizSubmitResult {

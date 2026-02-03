@@ -8,6 +8,7 @@ use axum::{
 pub fn routes() -> Router<Context> {
     Router::new()
         .nest("/bookmarks", bookmarks_routes())
+        .route("/stats", get(handler::get_stats))
         .route("/post-state/{post_id}", get(handler::get_post_state))
         .nest("/reads", reads_routes())
         .nest("/modules", modules_routes())

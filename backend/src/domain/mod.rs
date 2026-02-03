@@ -4,3 +4,4 @@ pub mod post;
 pub mod uploads;
 pub mod user;
 pub mod me;
+pub mod xp;
