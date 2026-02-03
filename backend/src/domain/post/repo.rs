@@ -6,7 +6,11 @@ use crate::domain::post::model::{Post, PostQuizOption, PostQuizQuestion, QuizAns
 use crate::error;
 use sqlx::{PgPool, Row};
 
-pub async fn search(pool: &PgPool, params: SearchParams) -> error::Result<Vec<Post>> {
+pub async fn search(
+    pool: &PgPool,
+    params: SearchParams,
+    only_published: bool,
+) -> error::Result<Vec<Post>> {
     Ok(sqlx::query_as::<_, Post>(
         r#"
         WITH query AS (
@@ -30,7 +34,7 @@ pub async fn search(pool: &PgPool, params: SearchParams) -> error::Result<Vec<Po
         FROM posts p
         CROSS JOIN query
         WHERE
-          p.is_published = true
+          ($6::bool = false OR p.is_published = true)
           AND ($2::text IS NULL OR p.category_tag = $2::text)
           AND (
             $3::bool = false
@@ -45,13 +49,18 @@ pub async fn search(pool: &PgPool, params: SearchParams) -> error::Result<Vec<Po
     .bind(params.query) // $1 query text
     .bind(params.tag) // $2 tag or NULL
     .bind(params.has_query) // $3 enable/disable FTS part
-    .bind((params.limit + 1) as i64) // $4 (берём +1 для next-page)
+    .bind((params.limit + 1) as i64) // $4 (+1 для next-page)
     .bind(params.offset as i64) // $5
+    .bind(only_published) // $6
     .fetch_all(pool)
     .await?)
 }
 
-pub async fn select_by_id(pool: &PgPool, id: i64) -> error::Result<Option<Post>> {
+pub async fn select_by_id(
+    pool: &PgPool,
+    id: i64,
+    only_published: bool,
+) -> error::Result<Option<Post>> {
     Ok(sqlx::query_as::<_, Post>(
         r#"
         SELECT
@@ -66,10 +75,13 @@ pub async fn select_by_id(pool: &PgPool, id: i64) -> error::Result<Option<Post>>
             created_at,
             updated_at
         FROM posts
-        WHERE id = $1 AND is_published = true
+        WHERE
+            id = $1
+            AND ($2::bool = false OR is_published = true)
         "#,
     )
-    .bind(id)
+    .bind(id) // $1
+    .bind(only_published) // $2
     .fetch_optional(pool)
     .await?)
 }

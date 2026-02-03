@@ -1,6 +1,6 @@
 use crate::api::error::{ApiError, JsonResult, StatusResult};
 use crate::app::Context;
-use crate::auth::extractor::StaffUser;
+use crate::auth::extractor::Client;
 use crate::domain::category::dto::CategoryRequest;
 use crate::domain::category::model::Category;
 use crate::domain::category::service;
@@ -14,10 +14,12 @@ pub async fn get_all(State(ctx): State<Context>) -> JsonResult<Vec<Category>> {
 }
 
 pub async fn create(
-    StaffUser(_staff): StaffUser,
+    client: Client,
     State(ctx): State<Context>,
     Json(payload): Json<CategoryRequest>,
 ) -> JsonResult<Category> {
+    client.require_staff()?;
+
     let response = service::create(&ctx, payload)
         .await
         .map_err(ApiError::map)?;
@@ -25,10 +27,12 @@ pub async fn create(
 }
 
 pub async fn delete(
-    StaffUser(_staff): StaffUser,
+    client: Client,
     State(ctx): State<Context>,
     Path(tag): Path<String>,
 ) -> StatusResult {
+    client.require_staff()?;
+
     service::delete(&ctx, &tag).await.map_err(ApiError::map)?;
     Ok(StatusCode::NO_CONTENT)
 }

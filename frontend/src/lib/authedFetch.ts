@@ -1,6 +1,6 @@
 // src/lib/api/authedFetch.ts
-import { apiFetch } from "@/lib/apiClient";
-import { getToken } from "@/lib/authSession";
+import {apiFetch} from "@/lib/apiClient";
+import {getToken} from "@/lib/authSession";
 
 export async function apiFetchAuthed<T>(
     path: string,
@@ -12,7 +12,7 @@ export async function apiFetchAuthed<T>(
         ...init,
         headers: {
             ...(init.headers ?? {}),
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(token ? {Authorization: `Bearer ${token}`} : {}),
         },
     });
 }

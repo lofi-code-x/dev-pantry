@@ -6,5 +6,6 @@ pub mod route;
 mod uploads;
 pub mod user;
 mod me;
+mod meta;
 
 pub use route::routes;

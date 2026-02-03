@@ -1,6 +1,6 @@
 use crate::api::error::{ApiError, JsonResult};
 use crate::app::Context;
-use crate::auth::extractor::CurrentUser;
+use crate::auth::extractor::Client;
 use crate::domain::uploads::dto::{ModuleImagesBatchQuery, UploadResponse, UploadView};
 use crate::domain::uploads::service;
 use axum::Json;
@@ -10,10 +10,11 @@ use std::collections::HashMap;
 
 // POST /api/uploads/images
 pub async fn upload_image(
-    CurrentUser(user): CurrentUser, // важно: чтобы был user.id
+    client: Client,
     State(ctx): State<Context>,
     multipart: Multipart,
 ) -> JsonResult<UploadResponse> {
+    let user = client.require_user()?;
     let resp = service::upload_image(&ctx.pool, multipart, Some(user.id))
         .await
         .map_err(ApiError::map)?;
@@ -22,7 +23,6 @@ pub async fn upload_image(
 
 // GET /api/uploads/images/{post_id}
 pub async fn list_images(
-    CurrentUser(_user): CurrentUser,
     State(ctx): State<Context>,
     Path(post_id): Path<i64>,
 ) -> JsonResult<Vec<UploadView>> {
@@ -34,7 +34,6 @@ pub async fn list_images(
 
 // ✅ GET /api/uploads/modules/{module_id}/images
 pub async fn list_module_images(
-    CurrentUser(_user): CurrentUser,
     State(ctx): State<Context>,
     Path(module_id): Path<i64>,
 ) -> JsonResult<Vec<UploadView>> {
@@ -45,7 +44,6 @@ pub async fn list_module_images(
 }
 
 pub async fn list_module_images_batch(
-    CurrentUser(_user): CurrentUser,
     State(ctx): State<Context>,
     Query(q): Query<ModuleImagesBatchQuery>,
 ) -> JsonResult<HashMap<i64, Option<UploadView>>> {
@@ -68,13 +66,10 @@ fn parse_ids_csv(s: &str) -> Vec<i64> {
 
     for part in s.split(',') {
         let p = part.trim();
-        if p.is_empty() {
-            continue;
-        }
-        if let Ok(n) = p.parse::<i64>() {
-            if n > 0 {
-                out.push(n);
-            }
+        if let Ok(n) = p.parse::<i64>()
+            && n > 0
+        {
+            out.push(n);
         }
     }
 

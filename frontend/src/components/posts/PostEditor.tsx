@@ -80,6 +80,7 @@ export default function PostEditor({
 }) {
     const router = useRouter();
     const {user} = useAuth();
+    const canEditQuiz = isStaff(user?.role);
 
     const [title, setTitle] = useState(initial?.title ?? "");
     const [categoryTag, setCategoryTag] = useState(initial?.category_tag ?? "");
@@ -200,6 +201,7 @@ export default function PostEditor({
         async function loadQuiz() {
             if (mode !== "edit") return;
             if (typeof postId !== "number") return;
+            if (!canEditQuiz) return;
 
             setQuizLoading(true);
             setQuizErr(null);
@@ -231,7 +233,7 @@ export default function PostEditor({
         return () => {
             cancelled = true;
         };
-    }, [mode, postId]);
+    }, [mode, postId, canEditQuiz]);
 
     async function onSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -253,8 +255,10 @@ export default function PostEditor({
         if (!body.category_tag) return setError("Category is required.");
         if (!body.content_markdown.trim()) return setError("Content is required.");
 
-        const quizValidationError = validateQuiz(quiz);
-        if (quizValidationError) return setError(quizValidationError);
+        if (canEditQuiz) {
+            const quizValidationError = validateQuiz(quiz);
+            if (quizValidationError) return setError(quizValidationError);
+        }
 
         setPending(true);
         try {
@@ -263,7 +267,9 @@ export default function PostEditor({
             else if (mode === "suggest") id = await suggestPost(body);
             else id = await updatePost(postId!, body);
 
-            await saveQuiz(id);
+            if (canEditQuiz) {
+                await saveQuiz(id);
+            }
 
             router.push(`/posts/${id}`);
             router.refresh();
@@ -406,175 +412,177 @@ export default function PostEditor({
                         <MdEditor value={content} onChange={setContent}/>
                     </section>
 
-                    <section className={cn(cardBase, "p-6")}>
-                        <div className="mb-3 flex items-center justify-between gap-3">
-                            <div>
-                                <div className="text-sm font-medium text-fg">Quiz</div>
-                                <div className="text-xs text-muted-fg">Add questions and answers.</div>
+                    {canEditQuiz ? (
+                        <section className={cn(cardBase, "p-6")}>
+                            <div className="mb-3 flex items-center justify-between gap-3">
+                                <div>
+                                    <div className="text-sm font-medium text-fg">Quiz</div>
+                                    <div className="text-xs text-muted-fg">Add questions and answers.</div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setQuiz((prev) => [...prev, makeQuizQuestion()])}
+                                    disabled={pending}
+                                    className={cn("btn px-3 py-2 text-sm")}
+                                >
+                                    Add question
+                                </button>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => setQuiz((prev) => [...prev, makeQuizQuestion()])}
-                                disabled={pending}
-                                className={cn("btn px-3 py-2 text-sm")}
-                            >
-                                Add question
-                            </button>
-                        </div>
 
-                        {quizErr ? (
-                            <div
-                                className={cn(
-                                    "mb-3 rounded-xl border p-3 text-sm text-fg",
-                                    "border-[hsl(var(--ring)/0.35)] bg-[hsl(var(--ring)/0.06)]",
-                                    "ring-1 ring-inset ring-ring/15"
-                                )}
-                            >
-                                {quizErr}
-                            </div>
-                        ) : null}
+                            {quizErr ? (
+                                <div
+                                    className={cn(
+                                        "mb-3 rounded-xl border p-3 text-sm text-fg",
+                                        "border-[hsl(var(--ring)/0.35)] bg-[hsl(var(--ring)/0.06)]",
+                                        "ring-1 ring-inset ring-ring/15"
+                                    )}
+                                >
+                                    {quizErr}
+                                </div>
+                            ) : null}
 
-                        {quizLoading ? (
-                            <div className="text-sm text-muted-fg">Loading quiz…</div>
-                        ) : quiz.length === 0 ? (
-                            <div className="text-sm text-muted-fg">No questions yet.</div>
-                        ) : (
-                            <div className="space-y-4">
-                                {quiz.map((q, qi) => (
-                                    <div
-                                        key={`q-${qi}`}
-                                        className={cn(
-                                            "rounded-xl border p-4",
-                                            "border-border bg-[hsl(var(--ring)/0.03)]"
-                                        )}
-                                    >
-                                        <div className="mb-3 flex items-start justify-between gap-2">
-                                            <div className="min-w-0 flex-1">
-                                                <label className="block text-xs text-muted-fg">
-                                                    Question {qi + 1}
-                                                </label>
-                                                <input
-                                                    value={q.text}
-                                                    onChange={(e) => {
-                                                        const v = e.target.value;
-                                                        setQuiz((prev) =>
-                                                            prev.map((x, idx) =>
-                                                                idx === qi ? { ...x, text: v } : x
-                                                            )
-                                                        );
-                                                    }}
-                                                    className="input mt-2"
-                                                    placeholder="Question text"
-                                                    disabled={pending}
-                                                />
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    setQuiz((prev) => prev.filter((_, idx) => idx !== qi))
-                                                }
-                                                disabled={pending}
-                                                className={cn("btn h-8 px-2 text-xs")}
-                                            >
-                                                Remove
-                                            </button>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            {q.options.map((opt, oi) => (
-                                                <div key={`q-${qi}-o-${oi}`} className="flex items-center gap-2">
+                            {quizLoading ? (
+                                <div className="text-sm text-muted-fg">Loading quiz…</div>
+                            ) : quiz.length === 0 ? (
+                                <div className="text-sm text-muted-fg">No questions yet.</div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {quiz.map((q, qi) => (
+                                        <div
+                                            key={`q-${qi}`}
+                                            className={cn(
+                                                "rounded-xl border p-4",
+                                                "border-border bg-[hsl(var(--ring)/0.03)]"
+                                            )}
+                                        >
+                                            <div className="mb-3 flex items-start justify-between gap-2">
+                                                <div className="min-w-0 flex-1">
+                                                    <label className="block text-xs text-muted-fg">
+                                                        Question {qi + 1}
+                                                    </label>
                                                     <input
-                                                        type="radio"
-                                                        name={`q-${qi}-correct`}
-                                                        checked={opt.is_correct}
-                                                        onChange={() => {
-                                                            setQuiz((prev) =>
-                                                                prev.map((x, idx) => {
-                                                                    if (idx !== qi) return x;
-                                                                    return {
-                                                                        ...x,
-                                                                        options: x.options.map((o, oidx) => ({
-                                                                            ...o,
-                                                                            is_correct: oidx === oi,
-                                                                        })),
-                                                                    };
-                                                                })
-                                                            );
-                                                        }}
-                                                        disabled={pending}
-                                                    />
-                                                    <input
-                                                        value={opt.text}
+                                                        value={q.text}
                                                         onChange={(e) => {
                                                             const v = e.target.value;
                                                             setQuiz((prev) =>
-                                                                prev.map((x, idx) => {
-                                                                    if (idx !== qi) return x;
-                                                                    return {
-                                                                        ...x,
-                                                                        options: x.options.map((o, oidx) =>
-                                                                            oidx === oi ? { ...o, text: v } : o
-                                                                        ),
-                                                                    };
-                                                                })
+                                                                prev.map((x, idx) =>
+                                                                    idx === qi ? { ...x, text: v } : x
+                                                                )
                                                             );
                                                         }}
-                                                        className="input h-9 flex-1"
-                                                        placeholder={`Option ${oi + 1}`}
+                                                        className="input mt-2"
+                                                        placeholder="Question text"
                                                         disabled={pending}
                                                     />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setQuiz((prev) =>
-                                                                prev.map((x, idx) => {
-                                                                    if (idx !== qi) return x;
-                                                                    const next = x.options.filter((_, oidx) => oidx !== oi);
-                                                                    if (!next.some((o) => o.is_correct) && next.length > 0) {
-                                                                        next[0] = { ...next[0], is_correct: true };
-                                                                    }
-                                                                    return { ...x, options: next };
-                                                                })
-                                                            );
-                                                        }}
-                                                        disabled={pending || q.options.length <= 2}
-                                                        className={cn("btn h-8 px-2 text-xs")}
-                                                    >
-                                                        Delete
-                                                    </button>
                                                 </div>
-                                            ))}
-                                        </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setQuiz((prev) => prev.filter((_, idx) => idx !== qi))
+                                                    }
+                                                    disabled={pending}
+                                                    className={cn("btn h-8 px-2 text-xs")}
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
 
-                                        <div className="mt-3">
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    setQuiz((prev) =>
-                                                        prev.map((x, idx) =>
-                                                            idx === qi
-                                                                ? {
-                                                                      ...x,
-                                                                      options: [
-                                                                          ...x.options,
-                                                                          { text: "", is_correct: false },
-                                                                      ],
-                                                                  }
-                                                                : x
+                                            <div className="space-y-2">
+                                                {q.options.map((opt, oi) => (
+                                                    <div key={`q-${qi}-o-${oi}`} className="flex items-center gap-2">
+                                                        <input
+                                                            type="radio"
+                                                            name={`q-${qi}-correct`}
+                                                            checked={opt.is_correct}
+                                                            onChange={() => {
+                                                                setQuiz((prev) =>
+                                                                    prev.map((x, idx) => {
+                                                                        if (idx !== qi) return x;
+                                                                        return {
+                                                                            ...x,
+                                                                            options: x.options.map((o, oidx) => ({
+                                                                                ...o,
+                                                                                is_correct: oidx === oi,
+                                                                            })),
+                                                                        };
+                                                                    })
+                                                                );
+                                                            }}
+                                                            disabled={pending}
+                                                        />
+                                                        <input
+                                                            value={opt.text}
+                                                            onChange={(e) => {
+                                                                const v = e.target.value;
+                                                                setQuiz((prev) =>
+                                                                    prev.map((x, idx) => {
+                                                                        if (idx !== qi) return x;
+                                                                        return {
+                                                                            ...x,
+                                                                            options: x.options.map((o, oidx) =>
+                                                                                oidx === oi ? { ...o, text: v } : o
+                                                                            ),
+                                                                        };
+                                                                    })
+                                                                );
+                                                            }}
+                                                            className="input h-9 flex-1"
+                                                            placeholder={`Option ${oi + 1}`}
+                                                            disabled={pending}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setQuiz((prev) =>
+                                                                    prev.map((x, idx) => {
+                                                                        if (idx !== qi) return x;
+                                                                        const next = x.options.filter((_, oidx) => oidx !== oi);
+                                                                        if (!next.some((o) => o.is_correct) && next.length > 0) {
+                                                                            next[0] = { ...next[0], is_correct: true };
+                                                                        }
+                                                                        return { ...x, options: next };
+                                                                    })
+                                                                );
+                                                            }}
+                                                            disabled={pending || q.options.length <= 2}
+                                                            className={cn("btn h-8 px-2 text-xs")}
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <div className="mt-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setQuiz((prev) =>
+                                                            prev.map((x, idx) =>
+                                                                idx === qi
+                                                                    ? {
+                                                                          ...x,
+                                                                          options: [
+                                                                              ...x.options,
+                                                                              { text: "", is_correct: false },
+                                                                          ],
+                                                                      }
+                                                                    : x
+                                                            )
                                                         )
-                                                    )
-                                                }
-                                                disabled={pending}
-                                                className={cn("btn px-3 py-2 text-xs")}
-                                            >
-                                                Add option
-                                            </button>
+                                                    }
+                                                    disabled={pending}
+                                                    className={cn("btn px-3 py-2 text-xs")}
+                                                >
+                                                    Add option
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </section>
+                                    ))}
+                                </div>
+                            )}
+                        </section>
+                    ) : null}
 
                     <div className="flex items-center justify-end">
                         <button

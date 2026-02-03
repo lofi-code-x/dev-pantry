@@ -1,11 +1,9 @@
 // src/lib/api/category.ts
-import { apiFetch } from "@/lib/apiClient";
 import { apiFetchAuthed } from "@/lib/authedFetch";
 
 export type Category = {
     tag: string;
     title: string;
-    created_at?: string; // если есть на бэке
 };
 
 export type CategoryRequest = {
@@ -14,7 +12,7 @@ export type CategoryRequest = {
 
 // GET /api/category/get-all
 export async function getAllCategories(): Promise<Category[]> {
-    return apiFetch<Category[]>("/api/category/get-all");
+    return apiFetchAuthed<Category[]>("/api/category/get-all");
 }
 
 // POST /api/category/create (staff only) -> Category

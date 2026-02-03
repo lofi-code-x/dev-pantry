@@ -32,7 +32,11 @@ pub async fn select_module_list(pool: &PgPool, only_published: bool) -> error::R
     .await?)
 }
 
-pub async fn select_module_by_id(pool: &PgPool, id: i64) -> error::Result<Option<Module>> {
+pub async fn select_module_by_id(
+    pool: &PgPool,
+    id: i64,
+    only_published: bool,
+) -> error::Result<Option<Module>> {
     Ok(sqlx::query_as::<_, Module>(
         r#"
         SELECT
@@ -46,10 +50,13 @@ pub async fn select_module_by_id(pool: &PgPool, id: i64) -> error::Result<Option
           m.updated_at
         FROM modules m
         JOIN users u ON u.id = m.author_id
-        WHERE m.id = $1
+        WHERE
+          m.id = $1
+          AND ($2::bool = false OR m.is_published = true)
         "#,
     )
     .bind(id)
+    .bind(only_published)
     .fetch_optional(pool)
     .await?)
 }
@@ -112,44 +119,6 @@ pub async fn delete_module_by_id(pool: &PgPool, id: i64) -> error::Result<u64> {
 }
 
 //------------------------------------- Module Items ------------------------------------------------
-
-pub async fn select_module_posts(
-    pool: &PgPool,
-    module_id: i64,
-    only_published: bool,
-) -> error::Result<Vec<Post>> {
-    Ok(sqlx::query_as::<_, Post>(
-        r#"
-        SELECT
-          p.id,
-          p.title,
-          p.category_tag,
-          p.content_markdown,
-          p.preview_text,
-          p.author,
-          p.rating,
-          p.is_published,
-          p.created_at,
-          p.updated_at
-        FROM module_items mi
-        JOIN posts p
-          ON p.id = mi.post_id
-        WHERE
-          mi.module_id = $1
-          AND ($2::bool = false OR p.is_published = true)
-        ORDER BY
-          mi.sort_order ASC,
-          mi.id ASC
-        "#,
-    )
-    .bind(module_id)
-    .bind(only_published)
-    .fetch_all(pool)
-    .await?)
-}
-
-
-
 pub async fn select_module_posts_with_section(
     pool: &PgPool,
     module_id: i64,

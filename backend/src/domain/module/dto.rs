@@ -66,11 +66,6 @@ pub struct ModuleSectionPosts {
     pub posts: Vec<Post>,
 }
 
-#[derive(serde::Deserialize)]
-pub struct OnlyPublishedQuery {
-    pub only_published: Option<bool>,
-}
-
 #[derive(Deserialize)]
 pub struct ModuleSetPublicRequest {
     pub is_public: bool,

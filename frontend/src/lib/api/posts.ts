@@ -1,5 +1,4 @@
 // src/lib/api/posts.ts
-import {apiFetch} from "@/lib/apiClient";
 import {apiFetchAuthed} from "@/lib/authedFetch";
 
 
@@ -116,12 +115,12 @@ export async function searchPosts(params: PostRequest): Promise<Post[]> {
     if (typeof params.limit === "number") sp.set("limit", String(params.limit));
 
     const qs = sp.toString();
-    return apiFetch<Post[]>(`/api/post/search${qs ? `?${qs}` : ""}`);
+    return apiFetchAuthed<Post[]>(`/api/post/search${qs ? `?${qs}` : ""}`);
 }
 
 // GET /api/posts/get/{id}
 export async function getPost(id: number): Promise<Post> {
-    return apiFetch<Post>(`/api/post/get/${id}`);
+    return apiFetchAuthed<Post>(`/api/post/get/${id}`);
 }
 
 // POST /api/posts/create (staff only) -> id
@@ -166,7 +165,7 @@ export async function deletePost(id: number): Promise<void> {
 // ----------------------------- Quiz -------------------------------------
 
 export async function getPostQuiz(postId: number): Promise<QuizQuestion[]> {
-    return apiFetch<QuizQuestion[]>(`/api/post/${postId}/quiz`);
+    return apiFetchAuthed<QuizQuestion[]>(`/api/post/${postId}/quiz`);
 }
 
 export async function getPostQuizAdmin(postId: number): Promise<QuizQuestionAdmin[]> {
@@ -253,5 +252,5 @@ export async function getPostModuleNav(
     }
 
     const qs = sp.toString();
-    return apiFetch<ModulePostNav>(`/api/module/nav/by-post/${postId}${qs ? `?${qs}` : ""}`);
+    return apiFetchAuthed<ModulePostNav>(`/api/module/nav/by-post/${postId}${qs ? `?${qs}` : ""}`);
 }

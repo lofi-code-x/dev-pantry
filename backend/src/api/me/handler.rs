@@ -1,6 +1,6 @@
 use crate::api::error::{ApiError, JsonResult, StatusResult};
 use crate::app::Context;
-use crate::auth::extractor::CurrentUser;
+use crate::auth::extractor::Client;
 use crate::domain::me::dto::{OnlyPublishedQuery, PostIdBody, ProgressListQuery};
 use crate::domain::me::model::{BookmarkedPost, ModuleProgress, PostState, ProgressPost};
 use crate::domain::me::service::{bookmarks, module, post_state, progress};
@@ -13,10 +13,11 @@ use axum::{
 // ------------------------------ Bookmarks -------------------------------
 
 pub async fn list_bookmarks(
-    CurrentUser(user): CurrentUser,
+    client: Client,
     State(ctx): State<Context>,
     Query(q): Query<OnlyPublishedQuery>,
 ) -> JsonResult<Vec<BookmarkedPost>> {
+    let user = client.require_user()?;
     let only_published = q.only_published.unwrap_or(true);
     let response = bookmarks::list(&ctx.pool, user.id, only_published)
         .await
@@ -25,10 +26,11 @@ pub async fn list_bookmarks(
 }
 
 pub async fn add_bookmark(
-    CurrentUser(user): CurrentUser,
+    client: Client,
     State(ctx): State<Context>,
     Json(body): Json<PostIdBody>,
 ) -> StatusResult {
+    let user = client.require_user()?;
     bookmarks::add(&ctx.pool, user.id, body.post_id)
         .await
         .map_err(ApiError::map)?;
@@ -36,10 +38,11 @@ pub async fn add_bookmark(
 }
 
 pub async fn remove_bookmark(
-    CurrentUser(user): CurrentUser,
+    client: Client,
     State(ctx): State<Context>,
     Path(post_id): Path<i64>,
 ) -> StatusResult {
+    let user = client.require_user()?;
     bookmarks::remove(&ctx.pool, user.id, post_id)
         .await
         .map_err(ApiError::map)?;
@@ -49,10 +52,11 @@ pub async fn remove_bookmark(
 // ------------------------------- Progress --------------------------------
 
 pub async fn list_reads(
-    CurrentUser(user): CurrentUser,
+    client: Client,
     State(ctx): State<Context>,
     Query(q): Query<ProgressListQuery>,
 ) -> JsonResult<Vec<ProgressPost>> {
+    let user = client.require_user()?;
     let only_published = q.only_published.unwrap_or(true);
 
     let response = progress::list(&ctx.pool, user.id, only_published, q.only_completed)
@@ -63,10 +67,11 @@ pub async fn list_reads(
 }
 
 pub async fn mark_read_completed(
-    CurrentUser(user): CurrentUser,
+    client: Client,
     State(ctx): State<Context>,
     Path(post_id): Path<i64>,
 ) -> StatusResult {
+    let user = client.require_user()?;
     progress::mark_completed(&ctx.pool, user.id, post_id)
         .await
         .map_err(ApiError::map)?;
@@ -74,10 +79,11 @@ pub async fn mark_read_completed(
 }
 
 pub async fn uncomplete_read(
-    CurrentUser(user): CurrentUser,
+    client: Client,
     State(ctx): State<Context>,
     Path(post_id): Path<i64>,
 ) -> StatusResult {
+    let user = client.require_user()?;
     progress::uncomplete(&ctx.pool, user.id, post_id)
         .await
         .map_err(ApiError::map)?;
@@ -85,10 +91,11 @@ pub async fn uncomplete_read(
 }
 
 pub async fn get_post_state(
-    CurrentUser(user): CurrentUser,
+    client: Client,
     State(ctx): State<Context>,
     Path(post_id): Path<i64>,
 ) -> JsonResult<PostState> {
+    let user = client.require_user()?;
     let st = post_state::get(&ctx.pool, user.id, post_id)
         .await
         .map_err(ApiError::map)?;
@@ -98,9 +105,10 @@ pub async fn get_post_state(
 
 /// GET /api/me/modules/progress
 pub async fn list_module_progress(
-    CurrentUser(user): CurrentUser,
+    client: Client,
     State(ctx): State<Context>,
 ) -> JsonResult<Vec<ModuleProgress>> {
+    let user = client.require_user()?;
     let res = module::list_progress(&ctx.pool, user.id)
         .await
         .map_err(ApiError::map)?;

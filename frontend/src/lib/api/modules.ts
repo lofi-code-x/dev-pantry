@@ -1,7 +1,6 @@
 // src/lib/api/modules.ts
-import { apiFetch } from "@/lib/apiClient";
-import { apiFetchAuthed } from "@/lib/authedFetch";
-import type { Post } from "@/lib/api/posts";
+import {apiFetchAuthed} from "@/lib/authedFetch";
+import type {Post} from "@/lib/api/posts";
 
 /** То, что возвращает select_module_list: author как login (строка), без posts */
 export type Module = {
@@ -16,7 +15,7 @@ export type Module = {
 };
 
 // ✅ чтобы можно было: `import { type Post } from "@/lib/api/modules"`
-export type { Post };
+export type {Post};
 
 export type ModuleCreateRequest = {
     title: string;
@@ -91,42 +90,30 @@ export type ModuleSectionUpdateRequest = {
     sort_order: number;
 };
 
-export type OnlyPublishedQuery = {
-    only_published?: boolean;
-};
-
-function qsOnlyPublished(q?: OnlyPublishedQuery) {
-    const sp = new URLSearchParams();
-    if (typeof q?.only_published === "boolean") sp.set("only_published", String(q.only_published));
-    const qs = sp.toString();
-    return qs ? `?${qs}` : "";
-}
-
 // ----------------------------- Modules ----------------------------------
 
 // GET /api/module/list?only_published=true
-export async function listModules(q?: OnlyPublishedQuery): Promise<Module[]> {
-    return apiFetch<Module[]>(`/api/module/list${qsOnlyPublished(q)}`);
+export async function listModules(): Promise<Module[]> {
+    return apiFetchAuthed<Module[]>(`/api/module/list`);
 }
 
-export async function getModule(id: number): Promise<Module> {
-    return apiFetch<Module>(`/api/module/get/${id}`);
+export async function getModule(moduleId: number | null): Promise<Module> {
+    return apiFetchAuthed<Module>(`/api/module/get/${moduleId}`);
 }
 
 // GET /api/module/get-posts/{id}?only_published=true
 export async function getModulePosts(
     moduleId: number | null,
-    q?: OnlyPublishedQuery
 ): Promise<ModuleSectionPosts[]> {
-    return apiFetch<ModuleSectionPosts[]>(`/api/module/get-posts/${moduleId}${qsOnlyPublished(q)}`);
+    return apiFetchAuthed<ModuleSectionPosts[]>(`/api/module/get-posts/${moduleId}`);
 }
 
 export async function listModuleItems(moduleId: number): Promise<ModuleItem[]> {
-    return apiFetchAuthed<ModuleItem[]>(`/api/module/${moduleId}/items`, { method: "GET" });
+    return apiFetchAuthed<ModuleItem[]>(`/api/module/${moduleId}/items`, {method: "GET"});
 }
 
 export async function listModuleSections(moduleId: number): Promise<ModuleSection[]> {
-    return apiFetchAuthed<ModuleSection[]>(`/api/module/${moduleId}/sections`, { method: "GET" });
+    return apiFetchAuthed<ModuleSection[]>(`/api/module/${moduleId}/sections`, {method: "GET"});
 }
 
 // POST /api/module/create (staff) -> id
@@ -149,13 +136,13 @@ export async function updateModule(id: number, body: ModuleUpdateRequest): Promi
 export async function setModulePublic(id: number, isPublic: boolean): Promise<void> {
     await apiFetchAuthed<void>(`/api/module/set-public/${id}`, {
         method: "PUT",
-        body: JSON.stringify({ is_public: isPublic } satisfies ModuleSetPublicRequest),
+        body: JSON.stringify({is_public: isPublic} satisfies ModuleSetPublicRequest),
     });
 }
 
 // DELETE /api/module/delete/{id} (staff) -> 204
 export async function deleteModule(id: number): Promise<void> {
-    await apiFetchAuthed<void>(`/api/module/delete/${id}`, { method: "DELETE" });
+    await apiFetchAuthed<void>(`/api/module/delete/${id}`, {method: "DELETE"});
 }
 
 // --------------------------- Module Items --------------------------------
@@ -178,7 +165,7 @@ export async function updateModuleItem(id: number, body: ModuleItemUpdateRequest
 
 // DELETE /api/module/item/delete/{id} (staff) -> 204
 export async function deleteModuleItem(id: number): Promise<void> {
-    await apiFetchAuthed<void>(`/api/module/item/delete/${id}`, { method: "DELETE" });
+    await apiFetchAuthed<void>(`/api/module/item/delete/${id}`, {method: "DELETE"});
 }
 
 // -------------------------- Module Sections -----------------------------
@@ -201,5 +188,5 @@ export async function updateModuleSection(id: number, body: ModuleSectionUpdateR
 
 // DELETE /api/module/section/delete/{id} (staff) -> 204
 export async function deleteModuleSection(id: number): Promise<void> {
-    await apiFetchAuthed<void>(`/api/module/section/delete/${id}`, { method: "DELETE" });
+    await apiFetchAuthed<void>(`/api/module/section/delete/${id}`, {method: "DELETE"});
 }

@@ -2,10 +2,9 @@
 
 use crate::domain::me;
 use crate::domain::post::dto::{
-    InsertParams, InsertQuizOptionParams, InsertQuizQuestionParams, PostCreateRequest,
-    PostRequest, QuizAttemptView, QuizQuestionView, QuizOptionView, QuizSubmitRequest,
-    QuizSubmitResult, UpdateParams, UpdateQuizOptionParams,
-    UpdateQuizQuestionParams,
+    InsertParams, InsertQuizOptionParams, InsertQuizQuestionParams, PostCreateRequest, PostRequest,
+    QuizAttemptView, QuizOptionView, QuizQuestionView, QuizSubmitRequest, QuizSubmitResult,
+    UpdateParams, UpdateQuizOptionParams, UpdateQuizQuestionParams,
 };
 use crate::domain::post::model::Post;
 use crate::domain::post::repo;
@@ -16,12 +15,16 @@ use sqlx::PgPool;
 use std::collections::HashSet;
 use uuid::Uuid;
 
-pub async fn search(pool: &PgPool, req: PostRequest) -> error::Result<Vec<Post>> {
-    repo::search(pool, req.into()).await
+pub async fn search(
+    pool: &PgPool,
+    req: PostRequest,
+    only_published: bool,
+) -> error::Result<Vec<Post>> {
+    repo::search(pool, req.into(), only_published).await
 }
 
-pub async fn get(pool: &PgPool, id: i64) -> error::Result<Post> {
-    repo::select_by_id(pool, id)
+pub async fn get(pool: &PgPool, id: i64, only_published: bool) -> error::Result<Post> {
+    repo::select_by_id(pool, id, only_published)
         .await?
         .ok_or(error::Error::NotFound(format!("post {} not found", id)))
 }
@@ -269,10 +272,7 @@ pub async fn delete_quiz_question(pool: &PgPool, id: i64) -> error::Result<()> {
     Ok(())
 }
 
-pub async fn add_quiz_option(
-    pool: &PgPool,
-    params: InsertQuizOptionParams,
-) -> error::Result<i64> {
+pub async fn add_quiz_option(pool: &PgPool, params: InsertQuizOptionParams) -> error::Result<i64> {
     repo::insert_quiz_option(pool, params).await
 }
 

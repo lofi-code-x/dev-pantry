@@ -3,126 +3,115 @@ use crate::app::Context;
 use crate::auth::jwt::decode_jwt;
 use crate::domain::user;
 use crate::domain::user::model::{User, UserRole};
+
 use axum::{
     extract::{FromRef, FromRequestParts},
     http::{header, request::Parts},
 };
 
-pub struct CurrentUser(pub User);
+pub enum Client {
+    Staff(User),
+    User(User),
+    Anonymous,
+}
 
-impl<C> FromRequestParts<C> for CurrentUser
+impl Client {
+    pub fn require_user(&self) -> Result<&User, ApiError> {
+        match self {
+            Client::Staff(u) | Client::User(u) => Ok(u),
+            Client::Anonymous => Err(ApiError::unauthorized()),
+        }
+    }
+
+    pub fn require_staff(&self) -> Result<&User, ApiError> {
+        match self {
+            Client::Staff(u) => Ok(u),
+            Client::User(_) => Err(ApiError::forbidden()),
+            Client::Anonymous => Err(ApiError::unauthorized()),
+        }
+    }
+
+    pub fn is_staff(&self) -> bool {
+        matches!(self, Client::Staff(_))
+    }
+}
+
+impl<C> FromRequestParts<C> for Client
 where
     C: Send + Sync,
     Context: FromRef<C>,
 {
     type Rejection = ApiError;
 
-    async fn from_request_parts(parts: &mut Parts, ctx: &C) -> Result<Self, Self::Rejection> {
-        let ctx = Context::from_ref(ctx);
+    fn from_request_parts(
+        parts: &mut Parts,
+        state: &C,
+    ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
+        let ctx = Context::from_ref(state);
 
-        let auth_header = parts
-            .headers
-            .get(header::AUTHORIZATION)
-            .and_then(|v| v.to_str().ok())
-            .ok_or_else(ApiError::unauthorized)?;
+        async move {
+            let user_opt = auth_user_or_error(&ctx, parts).await?;
 
-        let token = auth_header
-            .strip_prefix("Bearer ")
-            .ok_or_else(ApiError::unauthorized)?;
+            let Some(u) = user_opt else {
+                return Ok(Client::Anonymous);
+            };
 
-        let claims = decode_jwt(token, &ctx.jwt_keys).map_err(|_| ApiError::unauthorized())?;
-
-        let user = user::repo::select_by_id(&ctx.pool, claims.sub)
-            .await
-            .map_err(ApiError::internal)?;
-
-        Ok(CurrentUser(user))
-    }
-}
-
-pub struct StaffUser(pub User);
-
-impl StaffUser {
-    fn allowed(role: &UserRole) -> bool {
-        matches!(
-            role,
-            UserRole::Admin | UserRole::Moderator | UserRole::Editor
-        )
-    }
-}
-
-impl<S> FromRequestParts<S> for StaffUser
-where
-    S: Send + Sync,
-    Context: FromRef<S>,
-{
-    type Rejection = ApiError;
-
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let CurrentUser(user) = CurrentUser::from_request_parts(parts, state).await?;
-        if !Self::allowed(&user.role) {
-            return Err(ApiError::forbidden());
+            if is_staff_role(&u.role) {
+                Ok(Client::Staff(u))
+            } else {
+                Ok(Client::User(u))
+            }
         }
-        Ok(StaffUser(user))
     }
 }
 
-// pub struct Admin(pub User);
-//
-// impl<C> FromRequestParts<C> for Admin
-// where
-//     C: Send + Sync,
-//     Context: FromRef<C>,
-// {
-//     type Rejection = ApiError;
-//
-//     async fn from_request_parts(parts: &mut Parts, ctx: &C) -> Result<Self, Self::Rejection> {
-//         let CurrentUser(user) = CurrentUser::from_request_parts(parts, ctx).await?;
-//
-//         if user.role != UserRole::Admin {
-//             return Err(ApiError::forbidden());
-//         }
-//
-//         Ok(Admin(user))
-//     }
-// }
-//
-// pub struct Moderator(pub User);
-//
-// impl<C> FromRequestParts<C> for Moderator
-// where
-//     C: Send + Sync,
-//     Context: FromRef<C>,
-// {
-//     type Rejection = ApiError;
-//
-//     async fn from_request_parts(parts: &mut Parts, ctx: &C) -> Result<Self, Self::Rejection> {
-//         let CurrentUser(user) = CurrentUser::from_request_parts(parts, ctx).await?;
-//
-//         if user.role != UserRole::Moderator {
-//             return Err(ApiError::forbidden());
-//         }
-//
-//         Ok(Moderator(user))
-//     }
-// }
-//
-// pub struct Editor(pub User);
-//
-// impl<C> FromRequestParts<C> for Editor
-// where
-//     C: Send + Sync,
-//     Context: FromRef<C>,
-// {
-//     type Rejection = ApiError;
-//
-//     async fn from_request_parts(parts: &mut Parts, ctx: &C) -> Result<Self, Self::Rejection> {
-//         let CurrentUser(user) = CurrentUser::from_request_parts(parts, ctx).await?;
-//
-//         if user.role != UserRole::Editor {
-//             return Err(ApiError::forbidden());
-//         }
-//
-//         Ok(Editor(user))
-//     }
-// }
+fn is_staff_role(role: &UserRole) -> bool {
+    matches!(
+        role,
+        UserRole::Admin | UserRole::Moderator | UserRole::Editor
+    )
+}
+
+/// Возвращает:
+/// - Ok(None): заголовка Authorization нет => Anonymous
+/// - Ok(Some(token)): Bearer token извлечён
+/// - Err: заголовок есть, но кривой формат => unauthorized
+fn bearer_token_optional_strict(parts: &Parts) -> Result<Option<&str>, ApiError> {
+    let Some(hv) = parts.headers.get(header::AUTHORIZATION) else {
+        return Ok(None);
+    };
+
+    let auth = hv.to_str().map_err(|_| ApiError::unauthorized())?;
+    let auth = auth.trim();
+
+    if auth.is_empty() {
+        return Err(ApiError::unauthorized());
+    }
+
+    let token = auth
+        .strip_prefix("Bearer ")
+        .ok_or_else(ApiError::unauthorized)?
+        .trim();
+
+    if token.is_empty() {
+        return Err(ApiError::unauthorized());
+    }
+
+    Ok(Some(token))
+}
+
+async fn auth_user_or_error(ctx: &Context, parts: &Parts) -> Result<Option<User>, ApiError> {
+    let Some(token) = bearer_token_optional_strict(parts)? else {
+        return Ok(None);
+    };
+
+    let claims = decode_jwt(token, &ctx.jwt_keys).map_err(|_| ApiError::unauthorized())?;
+
+    match user::repo::select_by_id(&ctx.pool, claims.sub).await {
+        Ok(u) => Ok(Some(u)),
+        Err(e) => match e {
+            crate::error::Error::Sqlx(sqlx::Error::RowNotFound) => Err(ApiError::unauthorized()),
+            other => Err(ApiError::internal(other)),
+        },
+    }
+}

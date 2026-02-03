@@ -21,8 +21,8 @@ pub async fn list(pool: &PgPool, only_published: bool) -> error::Result<Vec<Modu
     repo::select_module_list(pool, only_published).await
 }
 
-pub async fn get_module(pool: &PgPool, id: i64) -> error::Result<Module> {
-    repo::select_module_by_id(pool, id)
+pub async fn get_module(pool: &PgPool, id: i64, only_published: bool) -> error::Result<Module> {
+    repo::select_module_by_id(pool, id, only_published)
         .await?
         .ok_or(error::Error::NotFound(format!("module {} not found", id)))
 }
@@ -47,7 +47,7 @@ pub async fn create_module(pool: &PgPool, params: InsertModuleParams) -> error::
                 upload_ids: vec![upload_id],
             },
         )
-            .await?;
+        .await?;
     }
 
     Ok(module_id)
@@ -59,7 +59,11 @@ pub async fn create_module(pool: &PgPool, params: InsertModuleParams) -> error::
 /// И мы считаем, что это ЖЕЛАЕМОЕ состояние:
 ///   Some(x) -> установить/заменить на x
 ///   None    -> убрать картинку
-pub async fn update_module(pool: &PgPool, id: i64, params: UpdateModuleParams) -> error::Result<i64> {
+pub async fn update_module(
+    pool: &PgPool,
+    id: i64,
+    params: UpdateModuleParams,
+) -> error::Result<i64> {
     // desired single image (copy before params moved)
     let new_image: Option<Uuid> = params.image_upload_id;
 
@@ -107,7 +111,7 @@ pub async fn update_module(pool: &PgPool, id: i64, params: UpdateModuleParams) -
                 upload_ids: to_add,
             },
         )
-            .await?;
+        .await?;
     }
 
     Ok(updated_id)
