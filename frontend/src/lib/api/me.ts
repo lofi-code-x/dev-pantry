@@ -50,6 +50,22 @@ export type UserStats = {
     updated_at: string;
 };
 
+export type UserContacts = {
+    user_id: number;
+    email: string | null;
+    website: string | null;
+    github: string | null;
+    telegram: string | null;
+    updated_at: string;
+};
+
+export type UpdateContactsRequest = {
+    email?: string | null;
+    website?: string | null;
+    github?: string | null;
+    telegram?: string | null;
+};
+
 // ----------------------------- Helpers ----------------------------------
 
 function qs(params: Record<string, string | undefined>) {
@@ -134,4 +150,17 @@ export async function listMyModuleProgress(): Promise<ModuleProgress[]> {
 // GET /api/me/stats
 export async function getMyStats(): Promise<UserStats> {
     return apiFetchAuthed<UserStats>("/api/me/stats", { method: "GET" });
+}
+
+// GET /api/me/contacts
+export async function getMyContacts(): Promise<UserContacts> {
+    return apiFetchAuthed<UserContacts>("/api/me/contacts", { method: "GET" });
+}
+
+// PUT /api/me/contacts
+export async function updateMyContacts(body: UpdateContactsRequest): Promise<UserContacts> {
+    return apiFetchAuthed<UserContacts>("/api/me/contacts", {
+        method: "PUT",
+        body: JSON.stringify(body),
+    });
 }

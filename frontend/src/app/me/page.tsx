@@ -6,12 +6,21 @@ import Link from "next/link";
 import {useRouter} from "next/navigation";
 import {useAuth} from "@/components/auth/AuthProvider";
 import {ApiError} from "@/lib/apiClient";
-import {getMyStats, listMyReads, type ProgressPost, type UserStats} from "@/lib/api/me";
+import {
+    getMyContacts,
+    getMyStats,
+    listMyReads,
+    updateMyContacts,
+    type ProgressPost,
+    type UserContacts,
+    type UserStats,
+} from "@/lib/api/me";
 import {listModules, getModulePosts, type Module, type ModuleSectionPosts} from "@/lib/api/modules";
 
 import LinkIcon from "@mui/icons-material/Link";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
+import EditIcon from "@mui/icons-material/Edit";
 
 function cn(...parts: Array<string | false | null | undefined>) {
     return parts.filter(Boolean).join(" ");
@@ -135,6 +144,18 @@ export default function MePage() {
     const [statsLoading, setStatsLoading] = useState(false);
     const [statsErr, setStatsErr] = useState<string | null>(null);
 
+    const [contacts, setContacts] = useState<UserContacts | null>(null);
+    const [contactsLoading, setContactsLoading] = useState(false);
+    const [contactsErr, setContactsErr] = useState<string | null>(null);
+    const [contactsSaving, setContactsSaving] = useState(false);
+    const [contactsSaved, setContactsSaved] = useState(false);
+    const [contactsEditing, setContactsEditing] = useState(false);
+
+    const [email, setEmail] = useState("");
+    const [website, setWebsite] = useState("");
+    const [github, setGithub] = useState("");
+    const [telegram, setTelegram] = useState("");
+
     // guard
     useEffect(() => {
         if (!ready) return;
@@ -197,6 +218,60 @@ export default function MePage() {
             cancelled = true;
         };
     }, [ready, user]);
+
+    // load contacts
+    useEffect(() => {
+        if (!ready) return;
+        if (!user) return;
+
+        let cancelled = false;
+
+        async function load() {
+            setContactsErr(null);
+            setContactsLoading(true);
+            try {
+                const res = await getMyContacts();
+                if (cancelled) return;
+                setContacts(res);
+                setEmail(res.email ?? "");
+                setWebsite(res.website ?? "");
+                setGithub(res.github ?? "");
+                setTelegram(res.telegram ?? "");
+            } catch (e) {
+                if (cancelled) return;
+                setContactsErr(e instanceof ApiError ? e.message : "Failed to load contacts.");
+            } finally {
+                if (!cancelled) setContactsLoading(false);
+            }
+        }
+
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, [ready, user]);
+
+    async function onSaveContacts(e: React.FormEvent) {
+        e.preventDefault();
+        setContactsErr(null);
+        setContactsSaved(false);
+        setContactsSaving(true);
+        try {
+            const res = await updateMyContacts({
+                email,
+                website,
+                github,
+                telegram,
+            });
+            setContacts(res);
+            setContactsSaved(true);
+            setContactsEditing(false);
+        } catch (e) {
+            setContactsErr(e instanceof ApiError ? e.message : "Failed to save contacts.");
+        } finally {
+            setContactsSaving(false);
+        }
+    }
 
     // load completed modules (best-effort; N+1 but OK for now)
     useEffect(() => {
@@ -303,41 +378,155 @@ export default function MePage() {
 
                         {/* Contacts */}
                         <div className={cn("mt-5 surface p-4", "ring-1 ring-inset ring-border")}>
-                            <div className="text-sm font-medium text-fg">Contacts</div>
-                            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                                <div>
-                                    <div className="text-xs text-muted-fg">Email</div>
-                                    <div className="mt-1 text-sm text-fg">user@example.com</div>
-                                </div>
-
-                                <div>
-                                    <div className="text-xs text-muted-fg">Website</div>
-                                    <div className="mt-1 flex items-center gap-2 text-sm text-fg">
-                                        <LinkIcon sx={{fontSize: 18}} className="text-muted-fg"/>
-                                        https://example.com
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div className="text-xs text-muted-fg">GitHub</div>
-                                    <div className="mt-1 flex items-center gap-2 text-sm text-fg">
-                                        <LinkIcon sx={{fontSize: 18}} className="text-muted-fg"/>
-                                        https://github.com/username
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div className="text-xs text-muted-fg">Telegram</div>
-                                    <div className="mt-1 flex items-center gap-2 text-sm text-fg">
-                                        <LinkIcon sx={{fontSize: 18}} className="text-muted-fg"/>
-                                        https://t.me/username
-                                    </div>
-                                </div>
+                            <div className="flex items-center justify-between">
+                                <div className="text-sm font-medium text-fg">Contacts</div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!contactsEditing) {
+                                            setContactsSaved(false);
+                                        }
+                                        setContactsEditing((prev) => !prev);
+                                    }}
+                                    className={cn(
+                                        "inline-flex items-center justify-center rounded-md border px-2 py-1",
+                                        "border-border bg-card text-fg hover:bg-[hsl(var(--ring)/0.10)]"
+                                    )}
+                                    title={contactsEditing ? "Exit edit mode" : "Edit contacts"}
+                                    aria-label={contactsEditing ? "Exit edit mode" : "Edit contacts"}
+                                >
+                                    <EditIcon sx={{fontSize: 16}} className="text-muted-fg"/>
+                                </button>
                             </div>
+                            {contactsLoading ? (
+                                <div className="mt-3 text-sm text-muted-fg">Loading contacts…</div>
+                            ) : contactsEditing ? (
+                                <form className="mt-3 grid gap-3 sm:grid-cols-2" onSubmit={onSaveContacts}>
+                                    <label className="block">
+                                        <div className="text-xs text-muted-fg">Email</div>
+                                        <input
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            className="input mt-1"
+                                            placeholder="you@example.com"
+                                            disabled={contactsSaving}
+                                        />
+                                    </label>
 
-                            <div className="mt-3 text-xs text-muted-fg">Пока это затычки. Позже сделаем сохранение в
-                                таблицу профиля.
-                            </div>
+                                    <label className="block">
+                                        <div className="text-xs text-muted-fg">Website</div>
+                                        <div className="mt-1 flex items-center gap-2">
+                                            <LinkIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+                                            <input
+                                                value={website}
+                                                onChange={(e) => setWebsite(e.target.value)}
+                                                className="input flex-1"
+                                                placeholder="https://example.com"
+                                                disabled={contactsSaving}
+                                            />
+                                        </div>
+                                    </label>
+
+                                    <label className="block">
+                                        <div className="text-xs text-muted-fg">GitHub</div>
+                                        <div className="mt-1 flex items-center gap-2">
+                                            <LinkIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+                                            <input
+                                                value={github}
+                                                onChange={(e) => setGithub(e.target.value)}
+                                                className="input flex-1"
+                                                placeholder="https://github.com/username"
+                                                disabled={contactsSaving}
+                                            />
+                                        </div>
+                                    </label>
+
+                                    <label className="block">
+                                        <div className="text-xs text-muted-fg">Telegram</div>
+                                        <div className="mt-1 flex items-center gap-2">
+                                            <LinkIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+                                            <input
+                                                value={telegram}
+                                                onChange={(e) => setTelegram(e.target.value)}
+                                                className="input flex-1"
+                                                placeholder="https://t.me/username"
+                                                disabled={contactsSaving}
+                                            />
+                                        </div>
+                                    </label>
+
+                                    <div className="sm:col-span-2 flex items-center justify-between gap-3">
+                                        <div className="text-xs text-muted-fg">
+                                            {contactsErr
+                                                ? contactsErr
+                                                : contactsSaved
+                                                    ? "Saved."
+                                                    : contacts
+                                                        ? " "
+                                                        : "No contacts yet."}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                disabled={contactsSaving}
+                                                onClick={() => {
+                                                    setContactsEditing(false);
+                                                    setContactsErr(null);
+                                                    setContactsSaved(false);
+                                                    setEmail(contacts?.email ?? "");
+                                                    setWebsite(contacts?.website ?? "");
+                                                    setGithub(contacts?.github ?? "");
+                                                    setTelegram(contacts?.telegram ?? "");
+                                                }}
+                                                className={cn("btn px-3 py-2", "disabled:cursor-not-allowed disabled:opacity-60")}
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                disabled={contactsSaving}
+                                                className={cn(
+                                                    "btn-primary px-4 py-2",
+                                                    "disabled:cursor-not-allowed disabled:opacity-60"
+                                                )}
+                                            >
+                                                {contactsSaving ? "Saving…" : "Save contacts"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            ) : (
+                                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                    <div>
+                                        <div className="text-xs text-muted-fg">Email</div>
+                                        <div className="mt-1 text-sm text-fg">{contacts?.email ?? "—"}</div>
+                                    </div>
+
+                                    <div>
+                                        <div className="text-xs text-muted-fg">Website</div>
+                                        <div className="mt-1 flex items-center gap-2 text-sm text-fg">
+                                            <LinkIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+                                            {contacts?.website ?? "—"}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div className="text-xs text-muted-fg">GitHub</div>
+                                        <div className="mt-1 flex items-center gap-2 text-sm text-fg">
+                                            <LinkIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+                                            {contacts?.github ?? "—"}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div className="text-xs text-muted-fg">Telegram</div>
+                                        <div className="mt-1 flex items-center gap-2 text-sm text-fg">
+                                            <LinkIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+                                            {contacts?.telegram ?? "—"}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 

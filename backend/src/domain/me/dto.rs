@@ -13,3 +13,11 @@ pub struct ProgressListQuery {
 pub struct PostIdBody {
     pub post_id: i64,
 }
+
+#[derive(serde::Deserialize)]
+pub struct UpdateContactsRequest {
+    pub email: Option<String>,
+    pub website: Option<String>,
+    pub github: Option<String>,
+    pub telegram: Option<String>,
+}

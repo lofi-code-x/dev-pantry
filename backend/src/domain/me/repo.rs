@@ -1,6 +1,6 @@
 use sqlx::PgPool;
 
-use crate::domain::me::model::{BookmarkedPost, ModuleProgress, PostState, ProgressPost};
+use crate::domain::me::model::{BookmarkedPost, ModuleProgress, PostState, ProgressPost, UserContacts};
 use crate::error;
 
 // ------------------------------ Bookmarks ------------------------------
@@ -193,4 +193,49 @@ pub async fn list_module_progress(pool: &PgPool, user_id: i64) -> error::Result<
         .bind(user_id)
         .fetch_all(pool)
         .await?)
+}
+
+// ------------------------------ Contacts ------------------------------
+
+pub async fn get_contacts(pool: &PgPool, user_id: i64) -> error::Result<Option<UserContacts>> {
+    Ok(sqlx::query_as::<_, UserContacts>(
+        r#"
+        SELECT user_id, email, website, github, telegram, updated_at
+        FROM user_contacts
+        WHERE user_id = $1
+        "#,
+    )
+    .bind(user_id)
+    .fetch_optional(pool)
+    .await?)
+}
+
+pub async fn upsert_contacts(
+    pool: &PgPool,
+    user_id: i64,
+    email: Option<String>,
+    website: Option<String>,
+    github: Option<String>,
+    telegram: Option<String>,
+) -> error::Result<UserContacts> {
+    Ok(sqlx::query_as::<_, UserContacts>(
+        r#"
+        INSERT INTO user_contacts (user_id, email, website, github, telegram)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (user_id) DO UPDATE SET
+            email = EXCLUDED.email,
+            website = EXCLUDED.website,
+            github = EXCLUDED.github,
+            telegram = EXCLUDED.telegram,
+            updated_at = NOW()
+        RETURNING user_id, email, website, github, telegram, updated_at
+        "#,
+    )
+    .bind(user_id)
+    .bind(email)
+    .bind(website)
+    .bind(github)
+    .bind(telegram)
+    .fetch_one(pool)
+    .await?)
 }

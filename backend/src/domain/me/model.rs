@@ -38,3 +38,12 @@ pub struct ModuleProgress {
     pub is_completed: bool,
 }
 
+#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize)]
+pub struct UserContacts {
+    pub user_id: i64,
+    pub email: Option<String>,
+    pub website: Option<String>,
+    pub github: Option<String>,
+    pub telegram: Option<String>,
+    pub updated_at: DateTime<Utc>,
+}
