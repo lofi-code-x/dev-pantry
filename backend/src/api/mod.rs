@@ -1,4 +1,5 @@
 mod category;
+mod admin;
 pub mod error;
 mod leaderboard;
 mod module;

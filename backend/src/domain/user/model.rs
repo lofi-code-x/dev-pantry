@@ -33,3 +33,12 @@ pub struct PublicUserProfileRow {
     pub posts_completed: i64,
     pub modules_completed: i64,
 }
+
+#[derive(sqlx::FromRow)]
+pub struct AdminUserRow {
+    pub id: i64,
+    pub login: String,
+    pub role: UserRole,
+    pub created_at: DateTime<Utc>,
+    pub avatar_key: Option<String>,
+}

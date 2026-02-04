@@ -1,5 +1,6 @@
 use crate::domain::user::model::{User, UserRole};
 use serde::{Deserialize, Serialize};
+use chrono::{DateTime, Utc};
 
 #[derive(Deserialize)]
 pub struct LoginRequest {
@@ -46,6 +47,28 @@ pub struct PublicUserProfile {
     pub avatar_url: Option<String>,
     pub contacts: PublicUserContacts,
     pub stats: PublicUserStats,
+}
+
+#[derive(Serialize)]
+pub struct AdminUserListItem {
+    pub id: i64,
+    pub login: String,
+    pub role: UserRole,
+    pub created_at: DateTime<Utc>,
+    pub avatar_url: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct AdminUserListResponse {
+    pub items: Vec<AdminUserListItem>,
+    pub page: i64,
+    pub limit: i64,
+    pub total: i64,
+}
+
+#[derive(Deserialize)]
+pub struct UpdateUserRoleRequest {
+    pub role: UserRole,
 }
 
 #[derive(Serialize)]

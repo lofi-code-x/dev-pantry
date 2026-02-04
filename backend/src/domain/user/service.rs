@@ -1,7 +1,15 @@
 use crate::app::Context;
 use crate::auth::crypt::verify;
 use crate::auth::jwt::create_jwt;
-use crate::domain::user::dto::{AuthResponse, LoginRequest, PublicUserContacts, PublicUserProfile, PublicUserStats};
+use crate::domain::user::dto::{
+    AdminUserListItem,
+    AdminUserListResponse,
+    AuthResponse,
+    LoginRequest,
+    PublicUserContacts,
+    PublicUserProfile,
+    PublicUserStats,
+};
 use crate::domain::user::model::UserRole;
 use crate::domain::user::repo;
 use crate::{auth, error};
@@ -60,6 +68,103 @@ pub async fn get_public_profile(ctx: &Context, login: &str) -> error::Result<Pub
             modules_completed: row.modules_completed,
         },
     })
+}
+
+pub async fn list_users_admin(
+    ctx: &Context,
+    page: i64,
+    limit: i64,
+    q: Option<String>,
+) -> error::Result<AdminUserListResponse> {
+    if page < 1 {
+        return Err(error::Error::BadRequest("page must be >= 1".to_string()));
+    }
+    if !(1..=100).contains(&limit) {
+        return Err(error::Error::BadRequest("limit must be between 1 and 100".to_string()));
+    }
+
+    let offset = (page - 1) * limit;
+    let q = q.map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+
+    let (total, rows) = if let Some(ref query) = q {
+        let total = repo::count_users_filtered(&ctx.pool, query).await?;
+        let rows = repo::list_users_page_filtered(&ctx.pool, query, limit, offset).await?;
+        (total, rows)
+    } else {
+        let total = repo::count_users(&ctx.pool).await?;
+        let rows = repo::list_users_page(&ctx.pool, limit, offset).await?;
+        (total, rows)
+    };
+
+    let items = rows
+        .into_iter()
+        .map(|r| AdminUserListItem {
+            id: r.id,
+            login: r.login,
+            role: r.role,
+            created_at: r.created_at,
+            avatar_url: r.avatar_key.map(|k| format!("/uploads/{}", k)),
+        })
+        .collect();
+
+    Ok(AdminUserListResponse {
+        items,
+        page,
+        limit,
+        total,
+    })
+}
+
+pub async fn update_user_role_admin(
+    ctx: &Context,
+    user_id: i64,
+    role: UserRole,
+) -> error::Result<()> {
+    if role == UserRole::Admin {
+        return Err(error::Error::BadRequest(
+            "assigning admin role is not allowed".to_string(),
+        ));
+    }
+
+    let user = repo::select_by_id(&ctx.pool, user_id).await.map_err(|e| match e {
+        error::Error::Sqlx(sqlx::Error::RowNotFound) => {
+            error::Error::NotFound(format!("User {} not found", user_id))
+        }
+        other => other,
+    })?;
+
+    if user.role == UserRole::Admin {
+        return Err(error::Error::BadRequest(
+            "changing admin role is not allowed".to_string(),
+        ));
+    }
+
+    let rows = repo::update_user_role(&ctx.pool, user_id, role).await?;
+    if rows == 0 {
+        return Err(error::Error::NotFound(format!("User {} not found", user_id)));
+    }
+    Ok(())
+}
+
+pub async fn delete_user_admin(ctx: &Context, user_id: i64) -> error::Result<()> {
+    let user = repo::select_by_id(&ctx.pool, user_id).await.map_err(|e| match e {
+        error::Error::Sqlx(sqlx::Error::RowNotFound) => {
+            error::Error::NotFound(format!("User {} not found", user_id))
+        }
+        other => other,
+    })?;
+
+    if user.role == UserRole::Admin {
+        return Err(error::Error::BadRequest(
+            "deleting admin users is not allowed".to_string(),
+        ));
+    }
+
+    let rows = repo::delete_user(&ctx.pool, user_id).await?;
+    if rows == 0 {
+        return Err(error::Error::NotFound(format!("User {} not found", user_id)));
+    }
+    Ok(())
 }
 
 fn validate_login(login: &str) -> error::Result<()> {
