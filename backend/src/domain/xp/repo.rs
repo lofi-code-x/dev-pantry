@@ -1,6 +1,6 @@
 use sqlx::{Postgres, Transaction};
 
-use crate::domain::xp::model::UserStats;
+use crate::domain::xp::model::{LeaderboardRow, UserStats};
 use crate::error;
 
 pub async fn insert_event_tx(
@@ -89,5 +89,27 @@ pub async fn select_user_stats_tx(
     )
     .bind(user_id)
     .fetch_one(&mut **tx)
+    .await?)
+}
+
+pub async fn list_leaderboard(
+    tx: &mut Transaction<'_, Postgres>,
+    limit: i64,
+) -> error::Result<Vec<LeaderboardRow>> {
+    Ok(sqlx::query_as::<_, LeaderboardRow>(
+        r#"
+        SELECT
+            u.login,
+            up.key AS avatar_key,
+            us.total_xp
+        FROM user_stats us
+        JOIN users u ON u.id = us.user_id
+        LEFT JOIN uploads up ON up.id = u.avatar_upload_id
+        ORDER BY us.total_xp DESC, u.login ASC
+        LIMIT $1
+        "#,
+    )
+    .bind(limit)
+    .fetch_all(&mut **tx)
     .await?)
 }

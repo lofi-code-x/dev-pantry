@@ -1,5 +1,6 @@
 mod category;
 pub mod error;
+mod leaderboard;
 mod module;
 mod post;
 pub mod route;

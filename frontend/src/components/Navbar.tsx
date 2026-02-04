@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import SearchIcon from "@mui/icons-material/Search";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import HomeIcon from "@mui/icons-material/Home";
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 
 type NavItem = { href: string; label: string; icon: React.ReactNode };
 
@@ -29,6 +30,7 @@ export function Navbar() {
         { href: "/", label: "Home", icon: <HomeIcon sx={{ fontSize: 18 }} /> },
         { href: "/posts", label: "Explore", icon: <SearchIcon sx={{ fontSize: 18 }} /> },
         { href: "/learn", label: "Learn", icon: <MenuBookIcon sx={{ fontSize: 18 }} /> },
+        { href: "/leaderboard", label: "Leaderboard", icon: <EmojiEventsIcon sx={{ fontSize: 18 }} /> },
     ];
 
     return (

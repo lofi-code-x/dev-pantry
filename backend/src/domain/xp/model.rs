@@ -10,3 +10,17 @@ pub struct UserStats {
     pub modules_completed: i64,
     pub updated_at: DateTime<Utc>,
 }
+
+#[derive(Serialize, FromRow)]
+pub struct LeaderboardUser {
+    pub login: String,
+    pub avatar_url: Option<String>,
+    pub total_xp: i32,
+}
+
+#[derive(FromRow)]
+pub struct LeaderboardRow {
+    pub login: String,
+    pub avatar_key: Option<String>,
+    pub total_xp: i32,
+}

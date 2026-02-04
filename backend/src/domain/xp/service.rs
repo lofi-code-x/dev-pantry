@@ -92,3 +92,18 @@ pub async fn get_user_stats(pool: &PgPool, user_id: i64) -> error::Result<UserSt
     tx.commit().await?;
     Ok(stats)
 }
+
+pub async fn list_leaderboard(pool: &PgPool, limit: i64) -> error::Result<Vec<crate::domain::xp::model::LeaderboardUser>> {
+    let mut tx = pool.begin().await?;
+    let rows = repo::list_leaderboard(&mut tx, limit).await?;
+    tx.commit().await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|r| crate::domain::xp::model::LeaderboardUser {
+            login: r.login,
+            avatar_url: r.avatar_key.map(|k| format!("/uploads/{}", k)),
+            total_xp: r.total_xp,
+        })
+        .collect())
+}

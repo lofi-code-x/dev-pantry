@@ -1,4 +1,4 @@
-use crate::api::{category, me, meta, module, post, uploads, user};
+use crate::api::{category, leaderboard, me, meta, module, post, uploads, user};
 use crate::app::Context;
 use axum::Router;
 
@@ -6,6 +6,7 @@ pub fn routes() -> Router<Context> {
     Router::new()
         .nest("/auth", user::routes())
         .nest("/user", user::public_routes())
+        .nest("/leaderboard", leaderboard::routes())
         .nest("/category", category::routes())
         .nest("/post", post::routes())
         .nest("/uploads", uploads::routes())
