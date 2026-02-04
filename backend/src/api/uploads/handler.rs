@@ -1,4 +1,4 @@
-use crate::api::error::{ApiError, JsonResult};
+use crate::api::error::{ApiError, JsonResult, StatusResult};
 use crate::app::Context;
 use crate::auth::extractor::Client;
 use crate::domain::uploads::dto::{ModuleImagesBatchQuery, UploadResponse, UploadView};
@@ -19,6 +19,28 @@ pub async fn upload_image(
         .await
         .map_err(ApiError::map)?;
     Ok((StatusCode::OK, Json(resp)))
+}
+
+// POST /api/uploads/avatar
+pub async fn upload_avatar(
+    client: Client,
+    State(ctx): State<Context>,
+    multipart: Multipart,
+) -> JsonResult<UploadResponse> {
+    let user = client.require_user()?;
+    let resp = service::upload_user_avatar(&ctx.pool, multipart, user.id)
+        .await
+        .map_err(ApiError::map)?;
+    Ok((StatusCode::OK, Json(resp)))
+}
+
+// DELETE /api/uploads/avatar
+pub async fn delete_avatar(client: Client, State(ctx): State<Context>) -> StatusResult {
+    let user = client.require_user()?;
+    service::delete_user_avatar(&ctx.pool, user.id)
+        .await
+        .map_err(ApiError::map)?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 // GET /api/uploads/images/{post_id}

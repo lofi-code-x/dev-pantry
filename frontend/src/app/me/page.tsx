@@ -1,11 +1,11 @@
 // src/app/me/page.tsx
 "use client";
 
-import React, {useEffect, useMemo, useState} from "react";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import Link from "next/link";
 import {useRouter} from "next/navigation";
 import {useAuth} from "@/components/auth/AuthProvider";
-import {ApiError} from "@/lib/apiClient";
+import {ApiError, toAbsoluteUrl} from "@/lib/apiClient";
 import {
     getMyContacts,
     getMyStats,
@@ -16,11 +16,13 @@ import {
     type UserStats,
 } from "@/lib/api/me";
 import {listModules, getModulePosts, type Module, type ModuleSectionPosts} from "@/lib/api/modules";
+import {deleteAvatar, uploadAvatar} from "@/lib/api/uploads";
 
 import LinkIcon from "@mui/icons-material/Link";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import EditIcon from "@mui/icons-material/Edit";
+import UploadIcon from "@mui/icons-material/Upload";
 
 function cn(...parts: Array<string | false | null | undefined>) {
     return parts.filter(Boolean).join(" ");
@@ -155,6 +157,12 @@ export default function MePage() {
     const [website, setWebsite] = useState("");
     const [github, setGithub] = useState("");
     const [telegram, setTelegram] = useState("");
+
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [avatarErr, setAvatarErr] = useState<string | null>(null);
+    const [avatarUploading, setAvatarUploading] = useState(false);
+    const [avatarDeleting, setAvatarDeleting] = useState(false);
+    const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
     // guard
     useEffect(() => {
@@ -321,7 +329,17 @@ export default function MePage() {
         };
     }, [ready, user]);
 
-    const avatarLetter = useMemo(() => (user ? initialLetter(user.login) : "?"), [user]);
+    // load avatar from local storage (best-effort)
+    useEffect(() => {
+        if (!ready || !user) return;
+        if (typeof window === "undefined") return;
+
+        const key = `devpantry_avatar_url_${user.id}`;
+        const stored = localStorage.getItem(key);
+        setAvatarUrl(stored || null);
+    }, [ready, user]);
+
+    const avatarBusy = avatarUploading || avatarDeleting;
 
     if (!ready) return null;
     if (!user) return null;
@@ -354,30 +372,81 @@ export default function MePage() {
                     {/* Left */}
                     <div className="lg:col-span-8">
                         <div className="flex items-start gap-4">
-                            <div
-                                className={cn(
-                                    "flex h-14 w-14 shrink-0 items-center justify-center rounded-full",
-                                    "border border-border bg-[hsl(var(--ring)/0.10)] text-fg",
-                                    "text-lg font-semibold",
-                                    "ring-1 ring-inset ring-ring/15"
-                                )}
-                                aria-label="User avatar"
-                                title={user.login}
-                            >
-                                {avatarLetter}
+                            <div className="flex flex-col items-start gap-2">
+                                <button
+                                    type="button"
+                                    disabled={avatarBusy}
+                                    onClick={() => avatarInputRef.current?.click()}
+                                    className={cn(
+                                        "relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full",
+                                        "border border-border bg-[hsl(var(--ring)/0.10)] text-fg", ringHoverCard
+                                    )}
+                                    aria-label={avatarUrl ? "Replace avatar" : "Upload avatar"}
+                                    title={avatarUploading ? "Uploading…" : avatarUrl ? "Replace avatar" : "Upload avatar"}
+                                >
+                                    {avatarUrl ? (
+                                        <img
+                                            src={toAbsoluteUrl(avatarUrl)}
+                                            alt={`${user.login} avatar`}
+                                            className="h-full w-full object-cover"
+                                        />
+                                    ) : (
+                                        <UploadIcon sx={{fontSize: 22}} className="text-muted-fg"/>
+                                    )}
+                                </button>
+
+                                <input
+                                    ref={avatarInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        setAvatarErr(null);
+                                        setAvatarUploading(true);
+                                        try {
+                                            if (avatarUrl) {
+                                                await deleteAvatar();
+                                            }
+                                            const res = await uploadAvatar(file);
+                                            setAvatarUrl(res.url);
+                                            if (typeof window !== "undefined") {
+                                                const key = `devpantry_avatar_url_${user.id}`;
+                                                localStorage.setItem(key, res.url);
+                                            }
+                                        } catch (err) {
+                                            setAvatarErr(err instanceof ApiError ? err.message : "Failed to upload avatar.");
+                                        } finally {
+                                            setAvatarUploading(false);
+                                            if (avatarInputRef.current) {
+                                                avatarInputRef.current.value = "";
+                                            }
+                                        }
+                                    }}
+                                />
+
+                                {avatarUrl ? null : null}
                             </div>
 
-                            <div className="min-w-0">
+                            <div className="min-w-6">
                                 <div
                                     className="truncate text-xl font-semibold tracking-tight text-fg">{user.login}</div>
                                 <div className="mt-1 text-sm text-muted-fg">
                                     Role: <span className="text-fg">{user.role}</span>
                                 </div>
+                                {avatarErr ? (
+                                    <div className="mt-2 text-xs text-muted-fg">{avatarErr}</div>
+                                ) : null}
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        {/* Contacts */}
-                        <div className={cn("mt-5 surface p-4", "ring-1 ring-inset ring-border")}>
+                <div className="mt-5 grid gap-4 lg:grid-cols-12 lg:items-stretch">
+                    {/* Contacts */}
+                    <div className="lg:col-span-8">
+                        <div className={cn("surface p-4", "ring-1 ring-inset ring-border")}>
                             <div className="flex items-center justify-between">
                                 <div className="text-sm font-medium text-fg">Contacts</div>
                                 <button
@@ -530,9 +599,16 @@ export default function MePage() {
                         </div>
                     </div>
 
-                    {/* Right */}
+                    {/* User rating */}
                     <div className="lg:col-span-4">
-                        <div className={cn("surface p-4", "ring-1 ring-inset ring-border")}>
+                        <div
+                            className={cn(
+                                "surface p-4",
+                                "ring-1 ring-inset ring-border",
+                                "h-full",
+                                "flex flex-col items-center justify-center text-center"
+                            )}
+                        >
                             <div className="text-sm font-medium text-fg">User rating</div>
                             <div className="mt-2 text-3xl font-semibold text-fg">
                                 {statsLoading ? "…" : stats ? stats.total_xp : "—"}
@@ -543,18 +619,6 @@ export default function MePage() {
                                     : stats
                                         ? `${stats.posts_completed} posts • ${stats.modules_completed} modules`
                                         : "No stats yet."}
-                            </div>
-                        </div>
-
-                        <div className={cn("mt-4 surface p-4", "ring-1 ring-inset ring-border")}>
-                            <div className="text-sm font-medium text-fg">Quick links</div>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                                <Link href="/me/saved" className="btn">
-                                    Saved posts
-                                </Link>
-                                <Link href="/learn" className="btn">
-                                    Learn
-                                </Link>
                             </div>
                         </div>
                     </div>

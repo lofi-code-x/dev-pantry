@@ -22,6 +22,20 @@ export async function uploadImage(file: File): Promise<UploadResponse> {
     });
 }
 
+export async function uploadAvatar(file: File): Promise<UploadResponse> {
+    const form = new FormData();
+    form.append("file", file);
+
+    return apiFetchFormAuthed<UploadResponse>("/api/uploads/avatar", {
+        method: "POST",
+        body: form,
+    });
+}
+
+export async function deleteAvatar(): Promise<void> {
+    await apiFetchAuthed<void>("/api/uploads/avatar", {method: "DELETE"});
+}
+
 // ✅ GET: картинки поста
 export async function getPostImages(postId: number): Promise<UploadView[]> {
     return apiFetchAuthed<UploadView[]>(`/api/uploads/images/${postId}`, {

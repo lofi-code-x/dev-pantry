@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { toAbsoluteUrl } from "@/lib/apiClient";
 
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
@@ -36,6 +37,7 @@ export function NavbarAuth() {
     const { user, logout } = useAuth();
 
     const [open, setOpen] = useState(false);
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const rootRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
@@ -48,6 +50,13 @@ export function NavbarAuth() {
         document.addEventListener("mousedown", onDocClick);
         return () => document.removeEventListener("mousedown", onDocClick);
     }, [open]);
+
+    useEffect(() => {
+        if (!user) return;
+        if (typeof window === "undefined") return;
+        const key = `devpantry_avatar_url_${user.id}`;
+        setAvatarUrl(localStorage.getItem(key));
+    }, [user, open]);
 
     function onLogout() {
         logout();
@@ -72,7 +81,7 @@ export function NavbarAuth() {
                 aria-haspopup="menu"
                 aria-expanded={open}
                 className={cn(
-                    "inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card",
+                    "inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card overflow-hidden",
                     "text-sm font-semibold text-fg",
                     // чуть “глянца” на кнопке-аватарке
                     "shadow-sm",
@@ -80,7 +89,15 @@ export function NavbarAuth() {
                 )}
                 title={user.login}
             >
-                {initialLetter(user.login)}
+                {avatarUrl ? (
+                    <img
+                        src={toAbsoluteUrl(avatarUrl)}
+                        alt={`${user.login} avatar`}
+                        className="h-full w-full object-cover"
+                    />
+                ) : (
+                    initialLetter(user.login)
+                )}
             </button>
 
             {open ? (

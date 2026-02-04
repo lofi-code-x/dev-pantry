@@ -1,5 +1,7 @@
 use std::collections::HashMap;
-use crate::domain::uploads::dto::{InsertUploadParams, UploadResponse, UploadView};
+use crate::domain::uploads::dto::{
+    InsertUploadParams, SetUserAvatarParams, UploadResponse, UploadView,
+};
 use crate::domain::uploads::repo;
 use crate::error;
 use axum::extract::Multipart;
@@ -120,6 +122,62 @@ pub async fn upload_image(
     Err(error::Error::BadRequest(
         "Поле 'file' не найдено".to_string(),
     ))
+}
+
+/// Загрузить аватар: сохранить upload + привязать к пользователю.
+/// Если уже был аватар — удаляем его (и файл), если он больше нигде не используется.
+pub async fn upload_user_avatar(
+    pool: &PgPool,
+    multipart: Multipart,
+    user_id: i64,
+) -> error::Result<UploadResponse> {
+    let previous = repo::get_user_avatar(pool, user_id).await?;
+
+    let uploaded = upload_image(pool, multipart, Some(user_id)).await?;
+
+    let rows = repo::set_user_avatar(
+        pool,
+        SetUserAvatarParams {
+            user_id,
+            upload_id: uploaded.id,
+        },
+    )
+    .await?;
+
+    if rows == 0 {
+        // user not found -> откатываем загруженный upload
+        let _ = delete_uploads_and_files(pool, &[uploaded.id]).await;
+        return Err(error::Error::NotFound(format!("User {} not found", user_id)));
+    }
+
+    if let Some(prev) = previous {
+        let in_use = repo::list_in_use_upload_ids(pool, &[prev.id]).await?;
+        if in_use.is_empty() {
+            delete_uploads_and_files(pool, &[prev.id]).await?;
+        }
+    }
+
+    Ok(uploaded)
+}
+
+/// Удалить аватар пользователя: очистить users.avatar_upload_id и удалить upload + файл,
+/// если он больше нигде не используется.
+pub async fn delete_user_avatar(pool: &PgPool, user_id: i64) -> error::Result<()> {
+    let previous = repo::get_user_avatar(pool, user_id).await?;
+
+    let rows = repo::clear_user_avatar(pool, user_id).await?;
+    if rows == 0 {
+        return Err(error::Error::NotFound(format!("User {} not found", user_id)));
+    }
+
+    if let Some(prev) = previous {
+        let in_use = repo::list_in_use_upload_ids(pool, &[prev.id]).await?;
+        if in_use.is_empty() {
+            delete_uploads_and_files(pool, &[prev.id]).await?;
+        }
+    }
+
+    Ok(())
 }
 
 pub async fn list_post_image_views(pool: &PgPool, post_id: i64) -> error::Result<Vec<UploadView>> {
