@@ -1,7 +1,7 @@
 use crate::app::Context;
 use crate::auth::crypt::verify;
 use crate::auth::jwt::create_jwt;
-use crate::domain::user::dto::{AuthResponse, LoginRequest};
+use crate::domain::user::dto::{AuthResponse, LoginRequest, PublicUserContacts, PublicUserProfile, PublicUserStats};
 use crate::domain::user::model::UserRole;
 use crate::domain::user::repo;
 use crate::{auth, error};
@@ -37,6 +37,28 @@ pub async fn login(ctx: &Context, req: LoginRequest) -> error::Result<AuthRespon
     Ok(AuthResponse {
         token,
         user: user.into(),
+    })
+}
+
+pub async fn get_public_profile(ctx: &Context, login: &str) -> error::Result<PublicUserProfile> {
+    let row = repo::select_public_profile_by_login(&ctx.pool, login).await?;
+    let row = row.ok_or_else(|| error::Error::NotFound("User not found".to_string()))?;
+
+    Ok(PublicUserProfile {
+        login: row.login,
+        role: row.role,
+        avatar_url: row.avatar_key.map(|k| format!("/uploads/{}", k)),
+        contacts: PublicUserContacts {
+            email: row.email,
+            website: row.website,
+            github: row.github,
+            telegram: row.telegram,
+        },
+        stats: PublicUserStats {
+            total_xp: row.total_xp,
+            posts_completed: row.posts_completed,
+            modules_completed: row.modules_completed,
+        },
     })
 }
 

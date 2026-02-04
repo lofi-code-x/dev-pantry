@@ -19,3 +19,17 @@ pub enum UserRole {
     Editor,
     User,
 }
+
+#[derive(sqlx::FromRow)]
+pub struct PublicUserProfileRow {
+    pub login: String,
+    pub role: UserRole,
+    pub avatar_key: Option<String>,
+    pub email: Option<String>,
+    pub website: Option<String>,
+    pub github: Option<String>,
+    pub telegram: Option<String>,
+    pub total_xp: i32,
+    pub posts_completed: i64,
+    pub modules_completed: i64,
+}

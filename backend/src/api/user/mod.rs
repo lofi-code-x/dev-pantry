@@ -1,4 +1,4 @@
 pub mod handler;
 pub mod route;
 
-pub use route::routes;
+pub use route::{public_routes, routes};

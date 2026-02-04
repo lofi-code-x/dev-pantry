@@ -5,6 +5,7 @@ use axum::Router;
 pub fn routes() -> Router<Context> {
     Router::new()
         .nest("/auth", user::routes())
+        .nest("/user", user::public_routes())
         .nest("/category", category::routes())
         .nest("/post", post::routes())
         .nest("/uploads", uploads::routes())
