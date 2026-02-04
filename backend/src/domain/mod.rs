@@ -1,4 +1,5 @@
 pub mod category;
+pub mod analytics;
 pub mod module;
 pub mod post;
 pub mod uploads;

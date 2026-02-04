@@ -15,10 +15,24 @@ export type AdminUserListResponse = {
     total: number;
 };
 
+export type AdminDailyStat = {
+    day: string;
+    pageviews: number;
+    pageviews_auth: number;
+    pageviews_anon: number;
+    unique_visitors: number;
+    unique_auth: number;
+    unique_anon: number;
+};
+
 export async function listAdminUsers(page = 1, limit = 50): Promise<AdminUserListResponse> {
     return apiFetchAuthed<AdminUserListResponse>(`/api/admin/users?page=${page}&limit=${limit}`, {
         method: "GET",
     });
+}
+
+export async function listAdminDailyStats(days = 30): Promise<AdminDailyStat[]> {
+    return apiFetchAuthed<AdminDailyStat[]>(`/api/admin/stats/daily?days=${days}`, { method: "GET" });
 }
 
 export async function updateUserRole(userId: number, role: string): Promise<void> {

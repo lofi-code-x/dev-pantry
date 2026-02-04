@@ -10,6 +10,7 @@ import { toAbsoluteUrl } from "@/lib/apiClient";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import LogoutIcon from "@mui/icons-material/Logout";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 
 function cn(...parts: Array<string | false | null | undefined>) {
     return parts.filter(Boolean).join(" ");
@@ -127,6 +128,18 @@ export function NavbarAuth() {
                         <PersonOutlineIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                         View profile
                     </Link>
+
+                    {String(user.role).toLowerCase() === "admin" ? (
+                        <Link
+                            href="/admin"
+                            role="menuitem"
+                            onClick={() => setOpen(false)}
+                            className={menuItem}
+                        >
+                            <AdminPanelSettingsIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
+                            Admin panel
+                        </Link>
+                    ) : null}
 
                     <Link
                         href="/me/saved"

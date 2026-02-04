@@ -8,6 +8,7 @@ import "@uiw/react-markdown-preview/markdown.css";
 import React, { ReactNode } from "react";
 import { Navbar } from "@/components/Navbar";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 import { Inter } from "next/font/google";
 
 export const metadata: Metadata = {
@@ -56,6 +57,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
         <body className="min-h-screen bg-bg text-fg antialiased font-sans">
         <AuthProvider>
+            <AnalyticsTracker />
             <Navbar />
             <div className="min-h-[calc(100vh-3.5rem)]">{children}</div>
         </AuthProvider>

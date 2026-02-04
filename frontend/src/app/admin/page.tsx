@@ -7,8 +7,10 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { ApiError } from "@/lib/apiClient";
 import {
     deleteUser,
+    listAdminDailyStats,
     listAdminUsers,
     updateUserRole,
+    type AdminDailyStat,
     type AdminUserListItem,
 } from "@/lib/api/admin";
 
@@ -31,6 +33,69 @@ function formatDate(iso: string) {
     }
 }
 
+function StatCard({ label, value }: { label: string; value: number }) {
+    return (
+        <div className={cn("surface p-3", "ring-1 ring-inset ring-border")}>
+            <div className="text-xs text-muted-fg">{label}</div>
+            <div className="mt-1 text-lg font-semibold text-fg">{value}</div>
+        </div>
+    );
+}
+
+function StatsChart({ stats }: { stats: AdminDailyStat[] }) {
+    const data = [...stats].reverse();
+    const values = data.map((s) => s.pageviews);
+    const max = Math.max(1, ...values);
+    const min = Math.min(...values);
+    const pad = 16;
+    const w = 560;
+    const h = 200;
+    const dx = data.length > 1 ? (w - pad * 2) / (data.length - 1) : 0;
+
+    const points = data.map((s, i) => {
+        const x = pad + i * dx;
+        const norm = max === min ? 0.5 : (s.pageviews - min) / (max - min);
+        const y = pad + (1 - norm) * (h - pad * 2);
+        return `${x},${y}`;
+    });
+
+    return (
+        <div className={cn("surface p-4", "ring-1 ring-inset ring-border")}>
+            <div className="flex items-center justify-between text-xs text-muted-fg">
+                <span>Pageviews</span>
+                <span>
+                    {formatDate(data[0]?.day ?? "")} – {formatDate(data[data.length - 1]?.day ?? "")}
+                </span>
+            </div>
+            <svg
+                viewBox={`0 0 ${w} ${h}`}
+                className="mt-3 h-48 w-full"
+                role="img"
+                aria-label="Pageviews chart"
+            >
+                <polyline
+                    fill="none"
+                    stroke="hsl(var(--ring))"
+                    strokeWidth="2"
+                    points={points.join(" ")}
+                />
+                {points.map((p, i) => {
+                    const [x, y] = p.split(",");
+                    return (
+                        <circle
+                            key={data[i]?.day ?? i}
+                            cx={x}
+                            cy={y}
+                            r="2.5"
+                            fill="hsl(var(--ring))"
+                        />
+                    );
+                })}
+            </svg>
+        </div>
+    );
+}
+
 function nextRole(role: string): string | null {
     const r = role.toLowerCase();
     if (r === "user") return "editor";
@@ -51,6 +116,10 @@ export default function AdminPage() {
     const [limit] = useState(50);
     const [total, setTotal] = useState(0);
     const [tab, setTab] = useState<AdminTab>("users");
+    const [stats, setStats] = useState<AdminDailyStat[]>([]);
+    const [statsLoading, setStatsLoading] = useState(false);
+    const [statsErr, setStatsErr] = useState<string | null>(null);
+    const [statsDays, setStatsDays] = useState(30);
 
     useEffect(() => {
         if (!ready) return;
@@ -92,6 +161,33 @@ export default function AdminPage() {
             cancelled = true;
         };
     }, [ready, user, page, limit, tab]);
+
+    useEffect(() => {
+        if (!ready || !user || String(user.role).toLowerCase() !== "admin") return;
+        if (tab !== "stats") return;
+
+        let cancelled = false;
+
+        async function load() {
+            setStatsErr(null);
+            setStatsLoading(true);
+            try {
+                const res = await listAdminDailyStats(statsDays);
+                if (!cancelled) setStats(res);
+            } catch (e) {
+                if (cancelled) return;
+                setStatsErr(e instanceof ApiError ? e.message : "Failed to load stats.");
+                setStats([]);
+            } finally {
+                if (!cancelled) setStatsLoading(false);
+            }
+        }
+
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, [ready, user, tab, statsDays]);
 
     const totalPages = useMemo(() => Math.max(1, Math.ceil(total / limit)), [total, limit]);
     const canPrev = page > 1;
@@ -287,7 +383,52 @@ export default function AdminPage() {
                     </>
                 ) : (
                     <div className={cn("mt-5 surface p-4", "ring-1 ring-inset ring-border")}>
-                        <div className="text-sm text-muted-fg">Statistics will be here.</div>
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="text-sm font-medium text-fg">Daily stats</div>
+                            <div className="flex items-center gap-2 text-sm text-muted-fg">
+                                <span>Days</span>
+                                <select
+                                    value={statsDays}
+                                    onChange={(e) => setStatsDays(Number(e.target.value))}
+                                    className="input h-8 py-0 text-sm"
+                                >
+                                    <option value={7}>7</option>
+                                    <option value={14}>14</option>
+                                    <option value={30}>30</option>
+                                    <option value={90}>90</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="mt-4">
+                        {statsErr ? (
+                            <div
+                                className={cn(
+                                    "surface p-4 text-sm text-fg",
+                                    "ring-1 ring-inset ring-ring/15",
+                                    "bg-[hsl(var(--ring)/0.06)]"
+                                )}
+                            >
+                                {statsErr}
+                            </div>
+                        ) : statsLoading ? (
+                            <div className="text-sm text-muted-fg">Loading…</div>
+                        ) : stats.length === 0 ? (
+                            <div className="text-sm text-muted-fg">No stats yet.</div>
+                        ) : (
+                            <div className="flex flex-col gap-4">
+                                <StatsChart stats={stats} />
+                                <div className="grid gap-3 sm:grid-cols-3">
+                                    <StatCard label="Pageviews (total)" value={stats[0]?.pageviews ?? 0} />
+                                    <StatCard label="Pageviews (auth)" value={stats[0]?.pageviews_auth ?? 0} />
+                                    <StatCard label="Pageviews (anon)" value={stats[0]?.pageviews_anon ?? 0} />
+                                    <StatCard label="Unique visitors" value={stats[0]?.unique_visitors ?? 0} />
+                                    <StatCard label="Unique auth" value={stats[0]?.unique_auth ?? 0} />
+                                    <StatCard label="Unique anon" value={stats[0]?.unique_anon ?? 0} />
+                                </div>
+                            </div>
+                        )}
+                        </div>
                     </div>
                 )}
             </section>

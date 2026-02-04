@@ -1,6 +1,8 @@
 use crate::api::error::{ApiError, JsonResult, StatusResult};
 use crate::app::Context;
 use crate::auth::extractor::Client;
+use crate::domain::analytics::model::DailyStats;
+use crate::domain::analytics::service as analytics_service;
 use crate::domain::user::dto::{AdminUserListResponse, UpdateUserRoleRequest};
 use crate::domain::user::model::UserRole;
 use crate::domain::user::service;
@@ -13,6 +15,11 @@ pub struct AdminUsersQuery {
     pub page: Option<i64>,
     pub limit: Option<i64>,
     pub q: Option<String>,
+}
+
+#[derive(serde::Deserialize)]
+pub struct AdminStatsQuery {
+    pub days: Option<i64>,
 }
 
 pub async fn list_users(
@@ -65,4 +72,25 @@ pub async fn delete_user(
         .await
         .map_err(ApiError::map)?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn daily_stats(
+    client: Client,
+    State(ctx): State<Context>,
+    Query(q): Query<AdminStatsQuery>,
+) -> JsonResult<Vec<DailyStats>> {
+    let user = client.require_user()?;
+    if user.role != UserRole::Admin {
+        return Err(ApiError::forbidden());
+    }
+
+    let days = q.days.unwrap_or(30);
+    if days < 1 || days > 365 {
+        return Err(ApiError::bad_request("days must be between 1 and 365".to_string()));
+    }
+
+    let res = analytics_service::get_daily_stats(&ctx.pool, days)
+        .await
+        .map_err(ApiError::map)?;
+    Ok((StatusCode::OK, Json(res)))
 }
