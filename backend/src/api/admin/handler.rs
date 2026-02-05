@@ -35,7 +35,7 @@ pub async fn update_user_role(
     Path(user_id): Path<i64>,
     Json(body): Json<UpdateUserRoleRequest>,
 ) -> StatusResult {
-    if client.is_admin() {
+    if !client.is_admin() {
         return Err(ApiError::forbidden());
     }
 
@@ -50,7 +50,7 @@ pub async fn delete_user(
     State(ctx): State<Context>,
     Path(user_id): Path<i64>,
 ) -> StatusResult {
-    if client.is_admin() {
+    if !client.is_admin() {
         return Err(ApiError::forbidden());
     }
 
@@ -65,7 +65,7 @@ pub async fn daily_stats(
     State(ctx): State<Context>,
     Query(q): Query<AdminStatsQuery>,
 ) -> JsonResult<Vec<DailyStats>> {
-    if client.is_admin() {
+    if !client.is_admin() {
         return Err(ApiError::forbidden());
     }
 
