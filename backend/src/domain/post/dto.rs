@@ -150,6 +150,21 @@ pub struct QuizQuestionView {
     pub options: Vec<QuizOptionView>,
 }
 
+#[derive(serde::Serialize)]
+pub struct QuizOptionAdminView {
+    pub id: i64,
+    pub option_text: String,
+    pub is_correct: bool,
+}
+
+#[derive(serde::Serialize)]
+pub struct QuizQuestionAdminView {
+    pub id: i64,
+    pub question_text: String,
+    pub sort_order: i32,
+    pub options: Vec<QuizOptionAdminView>,
+}
+
 #[derive(serde::Deserialize)]
 pub struct QuizSubmitRequest {
     pub answers: Vec<QuizAnswer>,

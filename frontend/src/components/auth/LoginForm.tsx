@@ -95,7 +95,7 @@ export function LoginForm() {
                     <button
                         type="submit"
                         disabled={pending}
-                        className={cn("btn-primary w-full", "disabled:cursor-not-allowed disabled:opacity-60")}
+                        className={cn("btn w-full", "disabled:cursor-not-allowed disabled:opacity-60")}
                     >
                         {pending ? "Logging in..." : "Log in"}
                     </button>

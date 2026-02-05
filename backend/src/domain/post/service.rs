@@ -3,8 +3,9 @@
 use crate::domain::me;
 use crate::domain::post::dto::{
     InsertParams, InsertQuizOptionParams, InsertQuizQuestionParams, PostCreateRequest, PostRequest,
-    QuizAttemptView, QuizOptionView, QuizQuestionView, QuizSubmitRequest, QuizSubmitResult,
-    UpdateParams, UpdateQuizOptionParams, UpdateQuizQuestionParams,
+    QuizAttemptView, QuizOptionAdminView, QuizOptionView, QuizQuestionAdminView, QuizQuestionView,
+    QuizSubmitRequest, QuizSubmitResult, UpdateParams, UpdateQuizOptionParams,
+    UpdateQuizQuestionParams,
 };
 use crate::domain::post::model::Post;
 use crate::domain::post::repo;
@@ -172,6 +173,40 @@ pub async fn list_quiz_questions(
     let mut out = Vec::with_capacity(questions.len());
     for q in questions {
         out.push(QuizQuestionView {
+            id: q.id,
+            question_text: q.question_text,
+            sort_order: q.sort_order,
+            options: options_map.remove(&q.id).unwrap_or_default(),
+        });
+    }
+
+    Ok(out)
+}
+
+pub async fn list_quiz_questions_admin(
+    pool: &PgPool,
+    post_id: i64,
+) -> error::Result<Vec<QuizQuestionAdminView>> {
+    let questions = repo::select_quiz_questions_by_post_id(pool, post_id).await?;
+    let question_ids: Vec<i64> = questions.iter().map(|q| q.id).collect();
+    let options = repo::select_quiz_options_by_question_ids(pool, &question_ids).await?;
+
+    let mut options_map: std::collections::HashMap<i64, Vec<QuizOptionAdminView>> =
+        std::collections::HashMap::new();
+    for opt in options {
+        options_map
+            .entry(opt.question_id)
+            .or_default()
+            .push(QuizOptionAdminView {
+                id: opt.id,
+                option_text: opt.option_text,
+                is_correct: opt.is_correct,
+            });
+    }
+
+    let mut out = Vec::with_capacity(questions.len());
+    for q in questions {
+        out.push(QuizQuestionAdminView {
             id: q.id,
             question_text: q.question_text,
             sort_order: q.sort_order,

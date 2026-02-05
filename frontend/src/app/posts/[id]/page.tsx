@@ -1,7 +1,7 @@
 // src/app/posts/[id]/page.tsx
 "use client";
 
-import React, {useEffect, useMemo, useState} from "react";
+import React, {useEffect, useMemo, useState, useRef} from "react";
 import Link from "next/link";
 import {useParams, useRouter, useSearchParams} from "next/navigation";
 import {ApiError} from "@/lib/apiClient";
@@ -264,6 +264,9 @@ export default function PostPage() {
         };
     }, [postId, moduleIdFromQs]);
 
+    // ✅ show header divider only when the "top panel" exists
+    const hasTopPanel = Boolean(nav || navLoading || staff);
+
     async function onDelete() {
         if (!post) return;
         const ok = confirm(`Delete post "${post.title}"? This cannot be undone.`);
@@ -383,150 +386,6 @@ export default function PostPage() {
 
     return (
         <main className="mx-auto w-full max-w-6xl px-6 py-10">
-            {/* Top actions bar (NO jumping) */}
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <button type="button" onClick={() => router.back()} className={cn("btn", btnHover)}>
-                    <ArrowBackIcon sx={{fontSize: 18}}/>
-                    Back
-                </button>
-
-                <div className="flex flex-wrap items-center gap-2">
-                    {/* User actions */}
-                    {Number.isFinite(postId) ? (
-                        <>
-                            <button
-                                type="button"
-                                onClick={onToggleSaved}
-                                disabled={actionPending}
-                                className={cn("btn", btnHover, "disabled:cursor-not-allowed disabled:opacity-60")}
-                                title={saved ? "Remove from saved" : "Save post"}
-                            >
-                                {saved ? (
-                                    <BookmarkIcon sx={{fontSize: 18}} className="text-muted-fg"/>
-                                ) : (
-                                    <BookmarkBorderIcon sx={{fontSize: 18}} className="text-muted-fg"/>
-                                )}
-                                {saved ? "Unsave" : "Save"}
-                            </button>
-                        </>
-                    ) : null}
-
-                    {/* Staff actions */}
-                    {staff && post ? (
-                        <>
-                            <span className="mx-1 h-6 w-px bg-border"/>
-
-                            <Link href={`/posts/${postId}/edit`} className={cn("btn", btnHover)}>
-                                <EditIcon sx={{fontSize: 18}} className="text-muted-fg"/>
-                                Edit post
-                            </Link>
-
-                            <button
-                                type="button"
-                                onClick={onTogglePublic}
-                                disabled={actionPending}
-                                className={cn("btn", btnHover, "disabled:cursor-not-allowed disabled:opacity-60")}
-                            >
-                                {post.is_published ? (
-                                    <LockIcon sx={{fontSize: 18}} className="text-muted-fg"/>
-                                ) : (
-                                    <PublicIcon sx={{fontSize: 18}} className="text-muted-fg"/>
-                                )}
-                                {post.is_published ? "Make private" : "Make public"}
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={onDelete}
-                                disabled={actionPending}
-                                className={cn(
-                                    "btn",
-                                    "disabled:cursor-not-allowed disabled:opacity-60",
-                                    // delete hover (no lift)
-                                    "transition-[background-color,border-color,box-shadow] duration-150",
-                                    "hover:bg-[hsl(0_90%_55%/0.10)] hover:border-[hsl(0_90%_55%/0.45)]",
-                                    "hover:ring-2 hover:ring-inset hover:ring-[hsl(0_90%_55%/0.28)]",
-                                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(0_90%_55%/0.45)]"
-                                )}
-                            >
-                                <DeleteOutlineIcon sx={{fontSize: 18}} className="text-muted-fg"/>
-                                Delete post
-                            </button>
-                        </>
-                    ) : null}
-                </div>
-            </div>
-
-            {/* ✅ Module nav (FIX: flex row, no jumping) */}
-            {nav ? (
-                <div
-                    className={cn(
-                        "mb-6 flex flex-wrap items-center gap-2",
-                        "rounded-xl border border-border bg-card p-3 shadow-sm"
-                    )}
-                >
-                    {/* Prev */}
-                    {nav.prev ? (
-                        <Link
-                            href={
-                                moduleIdFromQs
-                                    ? `/posts/${nav.prev.id}?module_id=${nav.module_id}`
-                                    : `/posts/${nav.prev.id}`
-                            }
-                            className={cn("btn", btnHover)}
-                            title={nav.prev.title}
-                        >
-                            <NavigateBeforeIcon sx={{fontSize: 20}}/>
-                            Prev
-                        </Link>
-                    ) : (
-                        <button type="button" disabled
-                                className={cn("btn", "disabled:cursor-not-allowed disabled:opacity-60")}>
-                            <NavigateBeforeIcon sx={{fontSize: 20}}/>
-                            Prev
-                        </button>
-                    )}
-
-                    {/* Module */}
-                    <Link href={`/learn/${nav.module_id}`} className={cn("btn", btnHover)}
-                          title={`Open module #${nav.module_id}`}>
-                        <MenuBookIcon sx={{fontSize: 18}} className="text-muted-fg"/>
-                        Module
-                    </Link>
-
-                    {/* Next */}
-                    {nav.next ? (
-                        <Link
-                            href={
-                                moduleIdFromQs
-                                    ? `/posts/${nav.next.id}?module_id=${nav.module_id}`
-                                    : `/posts/${nav.next.id}`
-                            }
-                            className={cn("btn", btnHover)}
-                            title={nav.next.title}
-                        >
-                            Next
-                            <NavigateNextIcon sx={{fontSize: 20}}/>
-                        </Link>
-                    ) : (
-                        <button type="button" disabled
-                                className={cn("btn", "disabled:cursor-not-allowed disabled:opacity-60")}>
-                            Next
-                            <NavigateNextIcon sx={{fontSize: 20}}/>
-                        </button>
-                    )}
-
-                    {/* status (keeps alignment) */}
-                    <div className={cn("text-xs text-muted-fg whitespace-nowrap", "ml-0 sm:ml-auto")}>
-                        {navLoading ? "Loading nav…" : null}
-                    </div>
-                </div>
-            ) : navLoading ? (
-                <div className="mb-6 rounded-xl border border-border bg-card p-3 text-xs text-muted-fg shadow-sm">
-                    Loading module navigation…
-                </div>
-            ) : null}
-
             {/* Content */}
             {loading ? (
                 <section className="rounded-xl border border-border bg-card p-6 text-sm text-muted-fg shadow-sm">
@@ -537,36 +396,188 @@ export default function PostPage() {
                     {err}
                 </section>
             ) : !post ? null : (
-                // ✅ Reading area is STATIC: no hover ring, no lift
-                <article className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                    <header className="border-b border-border pb-4">
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-fg">
-                            <span
-                                className="rounded-md border border-border bg-card px-2 py-1">{post.category_tag}</span>
-                            <span>•</span>
-                            <span className="truncate">by {post.author}</span>
-                            <span>•</span>
-                            <span>updated {formatDateTime(post.updated_at)}</span>
-
-                            {staff ? (
-                                <>
-                                    <span>•</span>
+                <>
+                    <section className="mb-6 rounded-xl border border-border bg-card p-6 shadow-sm">
+                        <div className={cn(hasTopPanel && "border-b border-border pb-4")}>
+                            <h1 className="text-2xl font-semibold tracking-tight text-fg">{post.title}</h1>
+                            <div
+                                className="mt-2 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-fg">
+                                <div className="flex flex-wrap items-center gap-2">
                                     <span className="rounded-md border border-border bg-card px-2 py-1">
-                    {post.is_published ? "public" : "private"}
-                  </span>
-                                </>
-                            ) : null}
+                                        {post.category_tag}
+                                    </span>
+                                    <span>•</span>
+                                    <Link
+                                        href={`/user/${encodeURIComponent(post.author)}`}
+                                        className="truncate font-medium text-fg/90 underline decoration-dotted underline-offset-2 hover:text-fg hover:decoration-solid"
+                                    >
+                                        by {post.author}
+                                    </Link>
+                                    <span>•</span>
+                                    <span>updated {formatDateTime(post.updated_at)}</span>
+                                    {staff ? (
+                                        <>
+                                            <span>•</span>
+                                            <span className="rounded-md border border-border bg-card px-2 py-1">
+                                                {post.is_published ? "public" : "private"}
+                                            </span>
+                                        </>
+                                    ) : null}
+                                </div>
+
+                                {Number.isFinite(postId) ? (
+                                    <button
+                                        type="button"
+                                        onClick={onToggleSaved}
+                                        disabled={actionPending}
+                                        className={cn(
+                                            "btn",
+                                            btnHover,
+                                            "h-8 px-3 py-1 text-xs",
+                                            "disabled:cursor-not-allowed disabled:opacity-60"
+                                        )}
+                                        title={saved ? "Remove from saved" : "Save post"}
+                                    >
+                                        {saved ? (
+                                            <BookmarkIcon sx={{fontSize: 16}} className="text-muted-fg"/>
+                                        ) : (
+                                            <BookmarkBorderIcon sx={{fontSize: 16}} className="text-muted-fg"/>
+                                        )}
+                                        {saved ? "Unsave" : "Save"}
+                                    </button>
+                                ) : null}
+                            </div>
                         </div>
 
-                        <h1 className="mt-3 text-2xl font-semibold tracking-tight text-fg">{post.title}</h1>
-                        {post.preview_text ? <p className="mt-2 text-sm text-muted-fg">{post.preview_text}</p> : null}
-                    </header>
+                        {hasTopPanel ? (
+                            <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    {nav ? (
+                                        <>
+                                            {nav.prev ? (
+                                                <Link
+                                                    href={
+                                                        moduleIdFromQs
+                                                            ? `/posts/${nav.prev.id}?module_id=${nav.module_id}`
+                                                            : `/posts/${nav.prev.id}`
+                                                    }
+                                                    className={cn("btn", btnHover)}
+                                                    title={nav.prev.title}
+                                                >
+                                                    <NavigateBeforeIcon sx={{fontSize: 20}}/>
+                                                    Prev
+                                                </Link>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    disabled
+                                                    className={cn(
+                                                        "btn",
+                                                        "disabled:cursor-not-allowed disabled:opacity-60"
+                                                    )}
+                                                >
+                                                    <NavigateBeforeIcon sx={{fontSize: 20}}/>
+                                                    Prev
+                                                </button>
+                                            )}
 
-                    <div className="pt-5">
+                                            <Link
+                                                href={`/learn/${nav.module_id}`}
+                                                className={cn("btn", btnHover)}
+                                                title={`Open module #${nav.module_id}`}
+                                            >
+                                                <MenuBookIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+                                                Module
+                                            </Link>
+
+                                            {nav.next ? (
+                                                <Link
+                                                    href={
+                                                        moduleIdFromQs
+                                                            ? `/posts/${nav.next.id}?module_id=${nav.module_id}`
+                                                            : `/posts/${nav.next.id}`
+                                                    }
+                                                    className={cn("btn", btnHover)}
+                                                    title={nav.next.title}
+                                                >
+                                                    Next
+                                                    <NavigateNextIcon sx={{fontSize: 20}}/>
+                                                </Link>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    disabled
+                                                    className={cn(
+                                                        "btn",
+                                                        "disabled:cursor-not-allowed disabled:opacity-60"
+                                                    )}
+                                                >
+                                                    Next
+                                                    <NavigateNextIcon sx={{fontSize: 20}}/>
+                                                </button>
+                                            )}
+
+                                            {navLoading ? (
+                                                <span className="ml-2 text-xs text-muted-fg">Loading nav…</span>
+                                            ) : null}
+                                        </>
+                                    ) : navLoading ? (
+                                        <span className="text-xs text-muted-fg">Loading module navigation…</span>
+                                    ) : null}
+                                </div>
+
+                                {staff && post ? (
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <Link href={`/posts/${postId}/edit`} className={cn("btn", btnHover)}>
+                                            <EditIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+                                            Edit post
+                                        </Link>
+
+                                        <button
+                                            type="button"
+                                            onClick={onTogglePublic}
+                                            disabled={actionPending}
+                                            className={cn(
+                                                "btn",
+                                                btnHover,
+                                                "disabled:cursor-not-allowed disabled:opacity-60"
+                                            )}
+                                        >
+                                            {post.is_published ? (
+                                                <LockIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+                                            ) : (
+                                                <PublicIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+                                            )}
+                                            {post.is_published ? "Make private" : "Make public"}
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={onDelete}
+                                            disabled={actionPending}
+                                            className={cn(
+                                                "btn",
+                                                "disabled:cursor-not-allowed disabled:opacity-60",
+                                                "transition-[background-color,border-color,box-shadow] duration-150",
+                                                "hover:bg-[hsl(0_90%_55%/0.10)] hover:border-[hsl(0_90%_55%/0.45)]",
+                                                "hover:ring-2 hover:ring-inset hover:ring-[hsl(0_90%_55%/0.28)]",
+                                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(0_90%_55%/0.45)]"
+                                            )}
+                                        >
+                                            <DeleteOutlineIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+                                            Delete post
+                                        </button>
+                                    </div>
+                                ) : null}
+                            </div>
+                        ) : null}
+                    </section>
+
+                    <article className="rounded-xl border border-border bg-card p-6 shadow-sm">
                         <MdPreview source={post.content_markdown ?? ""}/>
-                    </div>
+                    </article>
 
-                    <div className="mt-8 border-t border-border pt-5">
+                    <section className="mt-6 rounded-xl border border-border bg-card p-6 shadow-sm">
                         {quizLoading ? (
                             <div className="text-sm text-muted-fg">Loading quiz…</div>
                         ) : quizErr ? (
@@ -641,7 +652,8 @@ export default function PostPage() {
                                     onClick={onSubmitQuiz}
                                     disabled={quizPending}
                                     className={cn(
-                                        "btn-primary px-4 py-2",
+                                        "btn px-4 py-2",
+                                        btnHover,
                                         "disabled:cursor-not-allowed disabled:opacity-60"
                                     )}
                                 >
@@ -649,8 +661,8 @@ export default function PostPage() {
                                 </button>
                             </div>
                         )}
-                    </div>
-                </article>
+                    </section>
+                </>
             )}
         </main>
     );

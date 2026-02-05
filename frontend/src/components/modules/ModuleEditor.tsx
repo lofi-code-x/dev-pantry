@@ -32,6 +32,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
 import CheckIcon from "@mui/icons-material/Check";
+import SaveIcon from "@mui/icons-material/Save";
 
 type Mode = "create" | "edit";
 
@@ -970,8 +971,9 @@ export default function ModuleEditor({
                         <button
                             type="submit"
                             disabled={pending}
-                            className={cn("btn-primary px-4 py-2", "disabled:cursor-not-allowed disabled:opacity-60")}
+                            className={cn("btn px-4 py-2", "disabled:cursor-not-allowed disabled:opacity-60")}
                         >
+                            <SaveIcon sx={{fontSize: 18}} className="text-muted-fg"/>
                             {pending ? "Saving..." : mode === "create" ? "Create module" : "Save changes"}
                         </button>
                     </div>

@@ -27,6 +27,8 @@ import SendIcon from "@mui/icons-material/Send";
 import SaveIcon from "@mui/icons-material/Save";
 import EditIcon from "@mui/icons-material/Edit";
 import LightbulbOutlineIcon from "@mui/icons-material/LightbulbOutline";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 type Mode = "create" | "suggest" | "edit";
 
@@ -117,11 +119,11 @@ export default function PostEditor({
 
     const submitIcon =
         mode === "create" ? (
-            <PublishIcon sx={{fontSize: 18}} className="text-primary-fg"/>
+            <PublishIcon sx={{fontSize: 18}} className="text-muted-fg"/>
         ) : mode === "suggest" ? (
-            <SendIcon sx={{fontSize: 18}} className="text-primary-fg"/>
+            <SendIcon sx={{fontSize: 18}} className="text-muted-fg"/>
         ) : (
-            <SaveIcon sx={{fontSize: 18}} className="text-primary-fg"/>
+            <SaveIcon sx={{fontSize: 18}} className="text-muted-fg"/>
         );
 
     const headingIcon =
@@ -425,6 +427,7 @@ export default function PostEditor({
                                     disabled={pending}
                                     className={cn("btn px-3 py-2 text-sm")}
                                 >
+                                    <AddIcon sx={{ fontSize: 18 }} className="text-muted-fg" />
                                     Add question
                                 </button>
                             </div>
@@ -483,6 +486,7 @@ export default function PostEditor({
                                                     disabled={pending}
                                                     className={cn("btn h-8 px-2 text-xs")}
                                                 >
+                                                    <DeleteOutlineIcon sx={{ fontSize: 16 }} className="text-muted-fg" />
                                                     Remove
                                                 </button>
                                             </div>
@@ -547,6 +551,7 @@ export default function PostEditor({
                                                             disabled={pending || q.options.length <= 2}
                                                             className={cn("btn h-8 px-2 text-xs")}
                                                         >
+                                                            <DeleteOutlineIcon sx={{ fontSize: 16 }} className="text-muted-fg" />
                                                             Delete
                                                         </button>
                                                     </div>
@@ -574,6 +579,7 @@ export default function PostEditor({
                                                     disabled={pending}
                                                     className={cn("btn px-3 py-2 text-xs")}
                                                 >
+                                                    <AddIcon sx={{ fontSize: 16 }} className="text-muted-fg" />
                                                     Add option
                                                 </button>
                                             </div>
@@ -589,8 +595,7 @@ export default function PostEditor({
                             type="submit"
                             disabled={pending}
                             className={cn(
-                                "btn-primary px-4 py-2",
-                                "focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55",
+                                "btn px-4 py-2",
                                 "disabled:cursor-not-allowed disabled:opacity-60"
                             )}
                         >

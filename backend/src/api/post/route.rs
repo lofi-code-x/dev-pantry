@@ -11,6 +11,7 @@ pub fn routes() -> Router<Context> {
         .route("/search", get(handler::search))
         .route("/get/{id}", get(handler::get))
         .route("/{id}/quiz", get(handler::get_quiz))
+        .route("/{id}/quiz/admin", get(handler::get_quiz_admin))
         .route("/{id}/quiz/submit", post(handler::submit_quiz))
         .route("/{id}/quiz/attempt", get(handler::get_quiz_attempt))
         .route("/create", post(handler::create))

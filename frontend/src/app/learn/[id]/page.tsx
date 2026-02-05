@@ -23,6 +23,8 @@ import EditIcon from "@mui/icons-material/Edit";
 import PublicIcon from "@mui/icons-material/Public";
 import LockIcon from "@mui/icons-material/Lock";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 
 const STAFF_ROLES: UserRole[] = ["admin", "moderator", "editor"];
 
@@ -60,6 +62,7 @@ export default function ModulePage() {
 
     const [mod, setMod] = useState<Module | null>(null);
     const [sections, setSections] = useState<ModuleSectionPosts[]>([]);
+    const [openSections, setOpenSections] = useState<Set<string>>(new Set());
 
     // ✅ фатальная ошибка загрузки модуля/постов
     const [loadPending, setLoadPending] = useState(false);
@@ -121,6 +124,7 @@ export default function ModulePage() {
             setLoadErr("Invalid module id.");
             setMod(null);
             setSections([]);
+            setOpenSections(new Set());
             return;
         }
 
@@ -141,18 +145,21 @@ export default function ModulePage() {
                 if (!m) {
                     setMod(null);
                     setSections([]);
+                    setOpenSections(new Set());
                     setLoadErr("Module not found (or not published).");
                     return;
                 }
 
                 setMod(m);
                 setSections(modulePosts);
+                setOpenSections(new Set(modulePosts.map((s, idx) => sectionKey(s, idx))));
             } catch (e) {
                 if (cancelled) return;
                 if (e instanceof ApiError) setLoadErr(e.message);
                 else setLoadErr("Failed to load module.");
                 setMod(null);
                 setSections([]);
+                setOpenSections(new Set());
             } finally {
                 if (!cancelled) setLoadPending(false);
             }
@@ -163,6 +170,8 @@ export default function ModulePage() {
             cancelled = true;
         };
     }, [moduleId, ready, staff]);
+
+    const sectionKey = (s: ModuleSectionPosts, idx: number) => String(s.id ?? `unknown-${idx}`);
 
     const flatPosts = useMemo(
         () => sections.flatMap((s) => s.posts),
@@ -328,56 +337,55 @@ export default function ModulePage() {
                             ) : null}
                         </div>
                     </div>
-
-                    {/* right: staff actions */}
-                    {staff ? (
-                        <div className="flex shrink-0 flex-wrap items-center gap-2">
-                            {canUseId ? (
-                                <Link
-                                    href={`/learn/${moduleId}/edit`}
-                                    className={cn("btn", "disabled:opacity-60")}
-                                    aria-disabled={pending}
-                                >
-                                    <EditIcon sx={{fontSize: 18}} className="text-muted-fg"/>
-                                    Edit module
-                                </Link>
-                            ) : (
-                                <button type="button" className={cn("btn", "disabled:opacity-60")} disabled>
-                                    <EditIcon sx={{fontSize: 18}} className="text-muted-fg"/>
-                                    Edit module
-                                </button>
-                            )}
-
-                            <button
-                                type="button"
-                                onClick={onTogglePublic}
-                                disabled={pending || !mod}
-                                className={cn("btn", "disabled:cursor-not-allowed disabled:opacity-60")}
-                            >
-                                {mod?.is_published ? (
-                                    <LockIcon sx={{fontSize: 18}} className="text-muted-fg"/>
-                                ) : (
-                                    <PublicIcon sx={{fontSize: 18}} className="text-muted-fg"/>
-                                )}
-                                {mod?.is_published ? "Set draft" : "Set public"}
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={onDelete}
-                                disabled={pending || !mod}
-                                className={cn(
-                                    "btn",
-                                    "hover:bg-[hsl(0_90%_55%/0.10)] hover:border-[hsl(0_90%_55%/0.45)]",
-                                    "disabled:cursor-not-allowed disabled:opacity-60"
-                                )}
-                            >
-                                <DeleteOutlineIcon sx={{fontSize: 18}} className="text-muted-fg"/>
-                                Delete
-                            </button>
-                        </div>
-                    ) : null}
                 </div>
+
+                {staff ? (
+                    <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-3 shadow-sm">
+                        {canUseId ? (
+                            <Link
+                                href={`/learn/${moduleId}/edit`}
+                                className={cn("btn", "disabled:opacity-60")}
+                                aria-disabled={pending}
+                            >
+                                <EditIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+                                Edit module
+                            </Link>
+                        ) : (
+                            <button type="button" className={cn("btn", "disabled:opacity-60")} disabled>
+                                <EditIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+                                Edit module
+                            </button>
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={onTogglePublic}
+                            disabled={pending || !mod}
+                            className={cn("btn", "disabled:cursor-not-allowed disabled:opacity-60")}
+                        >
+                            {mod?.is_published ? (
+                                <LockIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+                            ) : (
+                                <PublicIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+                            )}
+                            {mod?.is_published ? "Set draft" : "Set public"}
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={onDelete}
+                            disabled={pending || !mod}
+                            className={cn(
+                                "btn",
+                                "hover:bg-[hsl(0_90%_55%/0.10)] hover:border-[hsl(0_90%_55%/0.45)]",
+                                "disabled:cursor-not-allowed disabled:opacity-60"
+                            )}
+                        >
+                            <DeleteOutlineIcon sx={{fontSize: 18}} className="text-muted-fg"/>
+                            Delete
+                        </button>
+                    </div>
+                ) : null}
 
                 {actionErr ? (
                     <div
@@ -405,30 +413,55 @@ export default function ModulePage() {
                 ) : (
                     sections
                         .filter((s) => s.posts.length > 0)
-                        .map((s) => (
-                            <div
-                                key={s.id ?? "unknown"}
-                                className={cn("surface p-4", "ring-1 ring-inset ring-border")}
-                            >
-                                <div className="mb-3 flex items-center justify-between">
-                                    <div className="text-sm font-medium text-fg">
-                                        {s.is_unknown ? "Без секции" : s.title}
+                        .map((s, idx) => {
+                            const key = sectionKey(s, idx);
+                            const isOpen = openSections.has(key);
+                            return (
+                                <div
+                                    key={key}
+                                    className={cn("surface p-4", "ring-1 ring-inset ring-border")}
+                                >
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="text-sm font-medium text-fg">
+                                            {s.is_unknown ? "Без секции" : s.title}
+                                        </div>
+                                        <div className="flex items-center gap-3 text-xs text-muted-fg">
+                                            <span>{s.posts.length} posts</span>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setOpenSections((prev) => {
+                                                        const next = new Set(prev);
+                                                        if (next.has(key)) next.delete(key);
+                                                        else next.add(key);
+                                                        return next;
+                                                    })
+                                                }
+                                                className={cn("btn h-8 px-2 text-xs")}
+                                                aria-expanded={isOpen}
+                                            >
+                                                {isOpen ? (
+                                                    <KeyboardArrowUpIcon sx={{ fontSize: 18 }} />
+                                                ) : (
+                                                    <KeyboardArrowDownIcon sx={{ fontSize: 18 }} />
+                                                )}
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="text-xs text-muted-fg">
-                                        {s.posts.length} posts
-                                    </div>
+                                    {isOpen ? (
+                                        <div className="mt-3 grid gap-3">
+                                            {s.posts.map((p) => (
+                                                <PostCard
+                                                    key={p.id}
+                                                    post={p}
+                                                    isCompleted={progressMap.get(p.id) === true}
+                                                />
+                                            ))}
+                                        </div>
+                                    ) : null}
                                 </div>
-                                <div className="grid gap-3">
-                                    {s.posts.map((p) => (
-                                        <PostCard
-                                            key={p.id}
-                                            post={p}
-                                            isCompleted={progressMap.get(p.id) === true}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        ))
+                            );
+                        })
                 )}
             </section>
         </main>

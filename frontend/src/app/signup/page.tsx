@@ -99,7 +99,7 @@ export default function SignUpPage() {
                         type="submit"
                         disabled={pending}
                         className={cn(
-                            "btn-primary w-full",
+                            "btn w-full",
                             "disabled:cursor-not-allowed disabled:opacity-60"
                         )}
                     >

@@ -555,7 +555,7 @@ export default function MePage() {
                                                 type="submit"
                                                 disabled={contactsSaving}
                                                 className={cn(
-                                                    "btn-primary px-4 py-2",
+                                                    "btn px-4 py-2",
                                                     "disabled:cursor-not-allowed disabled:opacity-60"
                                                 )}
                                             >

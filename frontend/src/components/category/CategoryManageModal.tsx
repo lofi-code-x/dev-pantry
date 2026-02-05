@@ -14,9 +14,8 @@ function cn(...parts: Array<string | false | null | undefined>) {
     return parts.filter(Boolean).join(" ");
 }
 
-const ringHover =
-    "transition-[transform,background-color,border-color,box-shadow] duration-150 " +
-    "hover:-translate-y-[1px] " +
+const btnHover =
+    "transition-[background-color,border-color,box-shadow] duration-150 " +
     "hover:bg-[hsl(var(--ring)/0.10)] hover:border-[hsl(var(--ring)/0.45)] " +
     "hover:ring-2 hover:ring-inset hover:ring-ring/30 " +
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55";
@@ -112,10 +111,7 @@ export default function CategoryManageModal({
                     <button
                         type="button"
                         onClick={() => onOpenChange(false)}
-                        className={cn(
-                            "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-fg",
-                            ringHover
-                        )}
+                        className={cn("btn h-9 w-9 p-0 text-muted-fg", btnHover)}
                         aria-label="Close"
                     >
                         <CloseIcon sx={{ fontSize: 20 }} />
@@ -138,7 +134,7 @@ export default function CategoryManageModal({
                         <button
                             type="submit"
                             disabled={pendingCreate || !newTitle.trim()}
-                            className={cn("btn-primary", "disabled:cursor-not-allowed disabled:opacity-60")}
+                            className={cn("btn", btnHover, "disabled:cursor-not-allowed disabled:opacity-60")}
                         >
                             {pendingCreate ? "Adding..." : "Add"}
                         </button>
@@ -182,7 +178,7 @@ export default function CategoryManageModal({
                                                     disabled={pendingDeleteTag === c.tag}
                                                     className={cn(
                                                         "btn text-xs px-2 py-1.5",
-                                                        ringHover,
+                                                        btnHover,
                                                         "disabled:cursor-not-allowed disabled:opacity-60",
                                                         // delete accent (keeps theme)
                                                         "hover:bg-[hsl(0_90%_55%/0.10)] hover:border-[hsl(0_90%_55%/0.45)] hover:ring-2 hover:ring-inset hover:ring-[hsl(0_90%_55%/0.28)]"
@@ -206,11 +202,11 @@ export default function CategoryManageModal({
                 </div>
 
                 <div className="flex items-center justify-end gap-2 border-t border-border p-4">
-                    <button type="button" onClick={load} className={cn("btn", ringHover)}>
+                    <button type="button" onClick={load} className={cn("btn", btnHover)}>
                         Refresh
                     </button>
 
-                    <button type="button" onClick={() => onOpenChange(false)} className="btn-primary">
+                    <button type="button" onClick={() => onOpenChange(false)} className={cn("btn", btnHover)}>
                         Done
                     </button>
                 </div>

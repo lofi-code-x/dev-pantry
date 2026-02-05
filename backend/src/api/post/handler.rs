@@ -3,8 +3,8 @@ use crate::app::Context;
 use crate::auth::extractor::Client;
 use crate::domain::post::dto::{
     InsertQuizOptionParams, InsertQuizQuestionParams, PostCreateRequest, PostRequest,
-    PostSetPublicRequest, QuizAttemptView, QuizQuestionView, QuizSubmitRequest, QuizSubmitResult,
-    UpdateQuizOptionParams, UpdateQuizQuestionParams,
+    PostSetPublicRequest, QuizAttemptView, QuizQuestionAdminView, QuizQuestionView,
+    QuizSubmitRequest, QuizSubmitResult, UpdateQuizOptionParams, UpdateQuizQuestionParams,
 };
 use crate::domain::post::model::Post;
 use crate::domain::post::service;
@@ -107,6 +107,18 @@ pub async fn get_quiz(
     Path(post_id): Path<i64>,
 ) -> JsonResult<Vec<QuizQuestionView>> {
     let res = service::list_quiz_questions(&ctx.pool, post_id)
+        .await
+        .map_err(ApiError::map)?;
+    Ok((StatusCode::OK, Json(res)))
+}
+
+pub async fn get_quiz_admin(
+    client: Client,
+    State(ctx): State<Context>,
+    Path(post_id): Path<i64>,
+) -> JsonResult<Vec<QuizQuestionAdminView>> {
+    client.require_staff()?;
+    let res = service::list_quiz_questions_admin(&ctx.pool, post_id)
         .await
         .map_err(ApiError::map)?;
     Ok((StatusCode::OK, Json(res)))
