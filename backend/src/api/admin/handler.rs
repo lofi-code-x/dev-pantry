@@ -3,32 +3,20 @@ use crate::app::Context;
 use crate::auth::extractor::Client;
 use crate::domain::analytics::model::DailyStats;
 use crate::domain::analytics::service as analytics_service;
-use crate::domain::user::dto::{AdminUserListResponse, UpdateUserRoleRequest};
-use crate::domain::user::model::UserRole;
+use crate::domain::user::dto::{
+    AdminStatsQuery, AdminUserListResponse, AdminUsersQuery, UpdateUserRoleRequest,
+};
 use crate::domain::user::service;
+use axum::Json;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
-use axum::Json;
-
-#[derive(serde::Deserialize)]
-pub struct AdminUsersQuery {
-    pub page: Option<i64>,
-    pub limit: Option<i64>,
-    pub q: Option<String>,
-}
-
-#[derive(serde::Deserialize)]
-pub struct AdminStatsQuery {
-    pub days: Option<i64>,
-}
 
 pub async fn list_users(
     client: Client,
     State(ctx): State<Context>,
     Query(q): Query<AdminUsersQuery>,
 ) -> JsonResult<AdminUserListResponse> {
-    let user = client.require_user()?;
-    if user.role != UserRole::Admin {
+    if !client.is_admin() {
         return Err(ApiError::forbidden());
     }
 
@@ -47,8 +35,7 @@ pub async fn update_user_role(
     Path(user_id): Path<i64>,
     Json(body): Json<UpdateUserRoleRequest>,
 ) -> StatusResult {
-    let user = client.require_user()?;
-    if user.role != UserRole::Admin {
+    if client.is_admin() {
         return Err(ApiError::forbidden());
     }
 
@@ -63,8 +50,7 @@ pub async fn delete_user(
     State(ctx): State<Context>,
     Path(user_id): Path<i64>,
 ) -> StatusResult {
-    let user = client.require_user()?;
-    if user.role != UserRole::Admin {
+    if client.is_admin() {
         return Err(ApiError::forbidden());
     }
 
@@ -79,14 +65,15 @@ pub async fn daily_stats(
     State(ctx): State<Context>,
     Query(q): Query<AdminStatsQuery>,
 ) -> JsonResult<Vec<DailyStats>> {
-    let user = client.require_user()?;
-    if user.role != UserRole::Admin {
+    if client.is_admin() {
         return Err(ApiError::forbidden());
     }
 
     let days = q.days.unwrap_or(30);
-    if days < 1 || days > 365 {
-        return Err(ApiError::bad_request("days must be between 1 and 365".to_string()));
+    if !(1..=365).contains(&days) {
+        return Err(ApiError::bad_request(
+            "days must be between 1 and 365".to_string(),
+        ));
     }
 
     let res = analytics_service::get_daily_stats(&ctx.pool, days)

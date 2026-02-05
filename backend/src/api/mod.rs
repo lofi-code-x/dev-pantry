@@ -1,14 +1,14 @@
-mod category;
 mod admin;
+mod category;
 pub mod error;
 mod leaderboard;
-mod module;
-mod post;
-mod track;
-pub mod route;
-mod uploads;
-pub mod user;
 mod me;
 mod meta;
+mod module;
+mod post;
+pub mod route;
+mod track;
+mod uploads;
+pub mod user;
 
 pub use route::routes;

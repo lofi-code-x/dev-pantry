@@ -40,7 +40,11 @@ pub async fn add_event(
     Ok(true)
 }
 
-pub async fn award_post_completed(pool: &PgPool, user_id: i64, post_id: i64) -> error::Result<bool> {
+pub async fn award_post_completed(
+    pool: &PgPool,
+    user_id: i64,
+    post_id: i64,
+) -> error::Result<bool> {
     add_event(pool, user_id, KIND_POST_COMPLETED, "post", post_id, 1).await
 }
 
@@ -61,7 +65,11 @@ pub async fn award_quiz_passed(
     add_event(pool, user_id, KIND_QUIZ_PASSED, "post", post_id, delta).await
 }
 
-pub async fn award_streak_daily(pool: &PgPool, user_id: i64, date: NaiveDate) -> error::Result<bool> {
+pub async fn award_streak_daily(
+    pool: &PgPool,
+    user_id: i64,
+    date: NaiveDate,
+) -> error::Result<bool> {
     let ref_id = (date.year() as i64) * 10000 + (date.month() as i64) * 100 + (date.day() as i64);
     add_event(pool, user_id, KIND_STREAK_DAILY, "day", ref_id, 1).await
 }
@@ -93,7 +101,10 @@ pub async fn get_user_stats(pool: &PgPool, user_id: i64) -> error::Result<UserSt
     Ok(stats)
 }
 
-pub async fn list_leaderboard(pool: &PgPool, limit: i64) -> error::Result<Vec<crate::domain::xp::model::LeaderboardUser>> {
+pub async fn list_leaderboard(
+    pool: &PgPool,
+    limit: i64,
+) -> error::Result<Vec<crate::domain::xp::model::LeaderboardUser>> {
     let mut tx = pool.begin().await?;
     let rows = repo::list_leaderboard(&mut tx, limit).await?;
     tx.commit().await?;

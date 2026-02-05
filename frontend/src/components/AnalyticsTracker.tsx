@@ -1,22 +1,26 @@
-// src/components/AnalyticsTracker.tsx
 "use client";
 
-import { useEffect } from "react";
-import { usePathname } from "next/navigation";
-import { apiFetchAuthed } from "@/lib/authedFetch";
+import {useEffect, useRef} from "react";
+import {usePathname} from "next/navigation";
+import {apiFetchAuthed} from "@/lib/authedFetch";
 
 export function AnalyticsTracker() {
     const pathname = usePathname();
+    const last = useRef<string | null>(null);
 
     useEffect(() => {
         if (!pathname) return;
         if (pathname.startsWith("/admin")) return;
 
-        const body = JSON.stringify({ path: pathname });
+        if (last.current === pathname) return;
+        last.current = pathname;
+
         apiFetchAuthed<void>("/api/track/pageview", {
             method: "POST",
-            body,
-        }).catch(() => {});
+            body: JSON.stringify({path: pathname}),
+            keepalive: true,
+        }).catch(() => {
+        });
     }, [pathname]);
 
     return null;

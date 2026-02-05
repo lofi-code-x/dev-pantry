@@ -28,56 +28,13 @@ pub async fn insert_upload(pool: &PgPool, params: InsertUploadParams) -> error::
             created_at
         "#,
     )
-        .bind(params.id)
-        .bind(params.key)
-        .bind(params.content_type)
-        .bind(params.size_bytes)
-        .bind(params.created_by)
-        .fetch_one(pool)
-        .await?)
-}
-
-pub async fn select_upload_by_id(pool: &PgPool, id: Uuid) -> error::Result<Option<Upload>> {
-    Ok(sqlx::query_as::<_, Upload>(
-        r#"
-        SELECT
-            id,
-            key,
-            content_type,
-            size_bytes,
-            created_by,
-            created_at
-        FROM uploads
-        WHERE id = $1
-        "#,
-    )
-        .bind(id)
-        .fetch_optional(pool)
-        .await?)
-}
-
-pub async fn select_uploads_by_ids(pool: &PgPool, ids: &[Uuid]) -> error::Result<Vec<Upload>> {
-    if ids.is_empty() {
-        return Ok(vec![]);
-    }
-
-    Ok(sqlx::query_as::<_, Upload>(
-        r#"
-        SELECT
-            id,
-            key,
-            content_type,
-            size_bytes,
-            created_by,
-            created_at
-        FROM uploads
-        WHERE id = ANY($1::uuid[])
-        ORDER BY created_at DESC
-        "#,
-    )
-        .bind(ids)
-        .fetch_all(pool)
-        .await?)
+    .bind(params.id)
+    .bind(params.key)
+    .bind(params.content_type)
+    .bind(params.size_bytes)
+    .bind(params.created_by)
+    .fetch_one(pool)
+    .await?)
 }
 
 pub async fn select_upload_keys_by_ids(
@@ -95,49 +52,14 @@ pub async fn select_upload_keys_by_ids(
         WHERE id = ANY($1::uuid[])
         "#,
     )
-        .bind(ids)
-        .fetch_all(pool)
-        .await?;
+    .bind(ids)
+    .fetch_all(pool)
+    .await?;
 
     Ok(rows
         .into_iter()
         .map(|r| (r.get::<Uuid, _>("id"), r.get::<String, _>("key")))
         .collect())
-}
-
-pub async fn list_uploads_by_user_id(pool: &PgPool, user_id: i64) -> error::Result<Vec<Upload>> {
-    Ok(sqlx::query_as::<_, Upload>(
-        r#"
-        SELECT
-            id,
-            key,
-            content_type,
-            size_bytes,
-            created_by,
-            created_at
-        FROM uploads
-        WHERE created_by = $1
-        ORDER BY created_at DESC, id DESC
-        "#,
-    )
-        .bind(user_id)
-        .fetch_all(pool)
-        .await?)
-}
-
-/// Удалить запись Upload по id.
-/// Важно: FK в post_images/module_images стоит RESTRICT, поэтому если upload используется - удаление упадёт.
-pub async fn delete_upload_by_id(pool: &PgPool, id: Uuid) -> error::Result<u64> {
-    Ok(sqlx::query(
-        r#"
-        DELETE FROM uploads
-        WHERE id = $1
-        "#,
-    )
-        .bind(id)
-        .execute(pool)
-        .await?
-        .rows_affected())
 }
 
 pub async fn delete_uploads_by_ids(pool: &PgPool, ids: &[Uuid]) -> error::Result<u64> {
@@ -151,30 +73,10 @@ pub async fn delete_uploads_by_ids(pool: &PgPool, ids: &[Uuid]) -> error::Result
         WHERE id = ANY($1::uuid[])
         "#,
     )
-        .bind(ids)
-        .execute(pool)
-        .await?
-        .rows_affected())
-}
-
-/// Проверка "используется ли upload где-то" (посты/модули/аватар).
-pub async fn is_upload_in_use(pool: &PgPool, upload_id: Uuid) -> error::Result<bool> {
-    let (exists,): (bool,) = sqlx::query_as(
-        r#"
-        SELECT EXISTS (
-            SELECT 1 FROM post_images  WHERE upload_id = $1
-            UNION ALL
-            SELECT 1 FROM module_images WHERE upload_id = $1
-            UNION ALL
-            SELECT 1 FROM users WHERE avatar_upload_id = $1
-        ) AS in_use
-        "#,
-    )
-        .bind(upload_id)
-        .fetch_one(pool)
-        .await?;
-
-    Ok(exists)
+    .bind(ids)
+    .execute(pool)
+    .await?
+    .rows_affected())
 }
 
 /// Bulk: из переданного списка вернёт те upload_id, которые ещё где-то используются.
@@ -193,9 +95,9 @@ pub async fn list_in_use_upload_ids(pool: &PgPool, ids: &[Uuid]) -> error::Resul
          OR EXISTS (SELECT 1 FROM users         u  WHERE u.avatar_upload_id = x)
         "#,
     )
-        .bind(ids)
-        .fetch_all(pool)
-        .await?;
+    .bind(ids)
+    .fetch_all(pool)
+    .await?;
 
     Ok(rows
         .into_iter()
@@ -221,11 +123,11 @@ pub async fn attach_post_images(
         ON CONFLICT DO NOTHING
         "#,
     )
-        .bind(params.post_id)
-        .bind(params.upload_ids)
-        .execute(pool)
-        .await?
-        .rows_affected())
+    .bind(params.post_id)
+    .bind(params.upload_ids)
+    .execute(pool)
+    .await?
+    .rows_affected())
 }
 
 pub async fn list_post_image_ids(pool: &PgPool, post_id: i64) -> error::Result<Vec<Uuid>> {
@@ -237,9 +139,9 @@ pub async fn list_post_image_ids(pool: &PgPool, post_id: i64) -> error::Result<V
         ORDER BY created_at DESC
         "#,
     )
-        .bind(post_id)
-        .fetch_all(pool)
-        .await?;
+    .bind(post_id)
+    .fetch_all(pool)
+    .await?;
 
     Ok(rows
         .into_iter()
@@ -263,9 +165,9 @@ pub async fn list_post_images(pool: &PgPool, post_id: i64) -> error::Result<Vec<
         ORDER BY pi.created_at DESC
         "#,
     )
-        .bind(post_id)
-        .fetch_all(pool)
-        .await?)
+    .bind(post_id)
+    .fetch_all(pool)
+    .await?)
 }
 
 pub async fn detach_post_images(
@@ -284,24 +186,11 @@ pub async fn detach_post_images(
           AND upload_id = ANY($2::uuid[])
         "#,
     )
-        .bind(post_id)
-        .bind(upload_ids)
-        .execute(pool)
-        .await?
-        .rows_affected())
-}
-
-pub async fn clear_post_images(pool: &PgPool, post_id: i64) -> error::Result<u64> {
-    Ok(sqlx::query(
-        r#"
-        DELETE FROM post_images
-        WHERE post_id = $1
-        "#,
-    )
-        .bind(post_id)
-        .execute(pool)
-        .await?
-        .rows_affected())
+    .bind(post_id)
+    .bind(upload_ids)
+    .execute(pool)
+    .await?
+    .rows_affected())
 }
 
 // ------------------------------------ Module Images ------------------------------------------------
@@ -322,11 +211,11 @@ pub async fn attach_module_images(
         ON CONFLICT DO NOTHING
         "#,
     )
-        .bind(params.module_id)
-        .bind(params.upload_ids)
-        .execute(pool)
-        .await?
-        .rows_affected())
+    .bind(params.module_id)
+    .bind(params.upload_ids)
+    .execute(pool)
+    .await?
+    .rows_affected())
 }
 
 pub async fn list_module_image_ids(pool: &PgPool, module_id: i64) -> error::Result<Vec<Uuid>> {
@@ -338,9 +227,9 @@ pub async fn list_module_image_ids(pool: &PgPool, module_id: i64) -> error::Resu
         ORDER BY created_at DESC
         "#,
     )
-        .bind(module_id)
-        .fetch_all(pool)
-        .await?;
+    .bind(module_id)
+    .fetch_all(pool)
+    .await?;
 
     Ok(rows
         .into_iter()
@@ -364,9 +253,9 @@ pub async fn list_module_images(pool: &PgPool, module_id: i64) -> error::Result<
         ORDER BY mi.created_at DESC
         "#,
     )
-        .bind(module_id)
-        .fetch_all(pool)
-        .await?)
+    .bind(module_id)
+    .fetch_all(pool)
+    .await?)
 }
 
 pub async fn detach_module_images(
@@ -385,24 +274,11 @@ pub async fn detach_module_images(
           AND upload_id = ANY($2::uuid[])
         "#,
     )
-        .bind(module_id)
-        .bind(upload_ids)
-        .execute(pool)
-        .await?
-        .rows_affected())
-}
-
-pub async fn clear_module_images(pool: &PgPool, module_id: i64) -> error::Result<u64> {
-    Ok(sqlx::query(
-        r#"
-        DELETE FROM module_images
-        WHERE module_id = $1
-        "#,
-    )
-        .bind(module_id)
-        .execute(pool)
-        .await?
-        .rows_affected())
+    .bind(module_id)
+    .bind(upload_ids)
+    .execute(pool)
+    .await?
+    .rows_affected())
 }
 
 // --------------------------------------- User Avatar ------------------------------------------------
@@ -415,11 +291,11 @@ pub async fn set_user_avatar(pool: &PgPool, params: SetUserAvatarParams) -> erro
         WHERE id = $2
         "#,
     )
-        .bind(params.upload_id)
-        .bind(params.user_id)
-        .execute(pool)
-        .await?
-        .rows_affected())
+    .bind(params.upload_id)
+    .bind(params.user_id)
+    .execute(pool)
+    .await?
+    .rows_affected())
 }
 
 pub async fn clear_user_avatar(pool: &PgPool, user_id: i64) -> error::Result<u64> {
@@ -430,10 +306,10 @@ pub async fn clear_user_avatar(pool: &PgPool, user_id: i64) -> error::Result<u64
         WHERE id = $1
         "#,
     )
-        .bind(user_id)
-        .execute(pool)
-        .await?
-        .rows_affected())
+    .bind(user_id)
+    .execute(pool)
+    .await?
+    .rows_affected())
 }
 
 pub async fn get_user_avatar(pool: &PgPool, user_id: i64) -> error::Result<Option<Upload>> {
@@ -451,9 +327,9 @@ pub async fn get_user_avatar(pool: &PgPool, user_id: i64) -> error::Result<Optio
         WHERE us.id = $1
         "#,
     )
-        .bind(user_id)
-        .fetch_optional(pool)
-        .await?)
+    .bind(user_id)
+    .fetch_optional(pool)
+    .await?)
 }
 
 /// Для списка module_id вернёт по одной (последней) картинке на модуль:
@@ -478,9 +354,9 @@ pub async fn select_module_cover_uploads_by_module_ids(
         ORDER BY mi.module_id, mi.created_at DESC
         "#,
     )
-        .bind(module_ids)
-        .fetch_all(pool)
-        .await?;
+    .bind(module_ids)
+    .fetch_all(pool)
+    .await?;
 
     Ok(rows
         .into_iter()

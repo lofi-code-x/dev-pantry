@@ -1,8 +1,8 @@
 // src/domain/module/dto.rs
 
+use crate::domain::post::model::Post;
 use serde::Deserialize;
 use uuid::Uuid;
-use crate::domain::post::model::Post;
 
 #[derive(Deserialize)]
 pub struct InsertModuleParams {

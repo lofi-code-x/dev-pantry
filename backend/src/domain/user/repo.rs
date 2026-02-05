@@ -141,11 +141,7 @@ pub async fn list_users_page_filtered(
     .await?)
 }
 
-pub async fn update_user_role(
-    pool: &PgPool,
-    user_id: i64,
-    role: UserRole,
-) -> error::Result<u64> {
+pub async fn update_user_role(pool: &PgPool, user_id: i64, role: UserRole) -> error::Result<u64> {
     Ok(sqlx::query(
         r#"
         UPDATE users

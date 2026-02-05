@@ -2,13 +2,8 @@ use crate::app::Context;
 use crate::auth::crypt::verify;
 use crate::auth::jwt::create_jwt;
 use crate::domain::user::dto::{
-    AdminUserListItem,
-    AdminUserListResponse,
-    AuthResponse,
-    LoginRequest,
-    PublicUserContacts,
-    PublicUserProfile,
-    PublicUserStats,
+    AdminUserListItem, AdminUserListResponse, AuthResponse, LoginRequest, PublicUserContacts,
+    PublicUserProfile, PublicUserStats,
 };
 use crate::domain::user::model::UserRole;
 use crate::domain::user::repo;
@@ -80,7 +75,9 @@ pub async fn list_users_admin(
         return Err(error::Error::BadRequest("page must be >= 1".to_string()));
     }
     if !(1..=100).contains(&limit) {
-        return Err(error::Error::BadRequest("limit must be between 1 and 100".to_string()));
+        return Err(error::Error::BadRequest(
+            "limit must be between 1 and 100".to_string(),
+        ));
     }
 
     let offset = (page - 1) * limit;
@@ -126,12 +123,14 @@ pub async fn update_user_role_admin(
         ));
     }
 
-    let user = repo::select_by_id(&ctx.pool, user_id).await.map_err(|e| match e {
-        error::Error::Sqlx(sqlx::Error::RowNotFound) => {
-            error::Error::NotFound(format!("User {} not found", user_id))
-        }
-        other => other,
-    })?;
+    let user = repo::select_by_id(&ctx.pool, user_id)
+        .await
+        .map_err(|e| match e {
+            error::Error::Sqlx(sqlx::Error::RowNotFound) => {
+                error::Error::NotFound(format!("User {} not found", user_id))
+            }
+            other => other,
+        })?;
 
     if user.role == UserRole::Admin {
         return Err(error::Error::BadRequest(
@@ -141,18 +140,23 @@ pub async fn update_user_role_admin(
 
     let rows = repo::update_user_role(&ctx.pool, user_id, role).await?;
     if rows == 0 {
-        return Err(error::Error::NotFound(format!("User {} not found", user_id)));
+        return Err(error::Error::NotFound(format!(
+            "User {} not found",
+            user_id
+        )));
     }
     Ok(())
 }
 
 pub async fn delete_user_admin(ctx: &Context, user_id: i64) -> error::Result<()> {
-    let user = repo::select_by_id(&ctx.pool, user_id).await.map_err(|e| match e {
-        error::Error::Sqlx(sqlx::Error::RowNotFound) => {
-            error::Error::NotFound(format!("User {} not found", user_id))
-        }
-        other => other,
-    })?;
+    let user = repo::select_by_id(&ctx.pool, user_id)
+        .await
+        .map_err(|e| match e {
+            error::Error::Sqlx(sqlx::Error::RowNotFound) => {
+                error::Error::NotFound(format!("User {} not found", user_id))
+            }
+            other => other,
+        })?;
 
     if user.role == UserRole::Admin {
         return Err(error::Error::BadRequest(
@@ -162,7 +166,10 @@ pub async fn delete_user_admin(ctx: &Context, user_id: i64) -> error::Result<()>
 
     let rows = repo::delete_user(&ctx.pool, user_id).await?;
     if rows == 0 {
-        return Err(error::Error::NotFound(format!("User {} not found", user_id)));
+        return Err(error::Error::NotFound(format!(
+            "User {} not found",
+            user_id
+        )));
     }
     Ok(())
 }

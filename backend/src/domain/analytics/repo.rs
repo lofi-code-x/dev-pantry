@@ -1,7 +1,7 @@
+use crate::domain::analytics::model::DailyStats;
 use crate::error;
 use sqlx::PgPool;
 use uuid::Uuid;
-use crate::domain::analytics::model::DailyStats;
 
 pub async fn insert_pageview(
     pool: &PgPool,

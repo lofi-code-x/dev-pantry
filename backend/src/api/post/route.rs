@@ -19,9 +19,18 @@ pub fn routes() -> Router<Context> {
         .route("/set-public/{id}", put(handler::set_public))
         .route("/delete/{id}", delete(handler::delete))
         .route("/quiz/question/create", post(handler::create_quiz_question))
-        .route("/quiz/question/update/{id}", put(handler::update_quiz_question))
-        .route("/quiz/question/delete/{id}", delete(handler::delete_quiz_question))
+        .route(
+            "/quiz/question/update/{id}",
+            put(handler::update_quiz_question),
+        )
+        .route(
+            "/quiz/question/delete/{id}",
+            delete(handler::delete_quiz_question),
+        )
         .route("/quiz/option/create", post(handler::create_quiz_option))
         .route("/quiz/option/update/{id}", put(handler::update_quiz_option))
-        .route("/quiz/option/delete/{id}", delete(handler::delete_quiz_option))
+        .route(
+            "/quiz/option/delete/{id}",
+            delete(handler::delete_quiz_option),
+        )
 }

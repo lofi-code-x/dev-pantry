@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use crate::domain::uploads::dto::{
     InsertUploadParams, SetUserAvatarParams, UploadResponse, UploadView,
 };
@@ -6,6 +5,7 @@ use crate::domain::uploads::repo;
 use crate::error;
 use axum::extract::Multipart;
 use sqlx::PgPool;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use tokio::fs as tokio_fs;
 use uuid::Uuid;
@@ -147,7 +147,10 @@ pub async fn upload_user_avatar(
     if rows == 0 {
         // user not found -> откатываем загруженный upload
         let _ = delete_uploads_and_files(pool, &[uploaded.id]).await;
-        return Err(error::Error::NotFound(format!("User {} not found", user_id)));
+        return Err(error::Error::NotFound(format!(
+            "User {} not found",
+            user_id
+        )));
     }
 
     if let Some(prev) = previous {
@@ -167,7 +170,10 @@ pub async fn delete_user_avatar(pool: &PgPool, user_id: i64) -> error::Result<()
 
     let rows = repo::clear_user_avatar(pool, user_id).await?;
     if rows == 0 {
-        return Err(error::Error::NotFound(format!("User {} not found", user_id)));
+        return Err(error::Error::NotFound(format!(
+            "User {} not found",
+            user_id
+        )));
     }
 
     if let Some(prev) = previous {

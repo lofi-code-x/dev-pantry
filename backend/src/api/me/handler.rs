@@ -1,9 +1,13 @@
 use crate::api::error::{ApiError, JsonResult, StatusResult};
 use crate::app::Context;
 use crate::auth::extractor::Client;
-use crate::domain::me::dto::{OnlyPublishedQuery, PostIdBody, ProgressListQuery, UpdateContactsRequest};
-use crate::domain::me::model::{BookmarkedPost, ModuleProgress, PostState, ProgressPost, UserContacts};
-use crate::domain::me::service::{bookmarks, module, post_state, progress, contacts};
+use crate::domain::me::dto::{
+    OnlyPublishedQuery, PostIdBody, ProgressListQuery, UpdateContactsRequest,
+};
+use crate::domain::me::model::{
+    BookmarkedPost, ModuleProgress, PostState, ProgressPost, UserContacts,
+};
+use crate::domain::me::service::{bookmarks, contacts, module, post_state, progress};
 use crate::domain::xp;
 use axum::{
     Json,
@@ -119,10 +123,7 @@ pub async fn list_module_progress(
 // ------------------------------ Contacts -------------------------------
 
 /// GET /api/me/contacts
-pub async fn get_contacts(
-    client: Client,
-    State(ctx): State<Context>,
-) -> JsonResult<UserContacts> {
+pub async fn get_contacts(client: Client, State(ctx): State<Context>) -> JsonResult<UserContacts> {
     let user = client.require_user()?;
     let res = contacts::get(&ctx.pool, user.id)
         .await

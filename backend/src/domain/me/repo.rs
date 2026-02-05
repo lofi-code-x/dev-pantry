@@ -1,6 +1,8 @@
 use sqlx::PgPool;
 
-use crate::domain::me::model::{BookmarkedPost, ModuleProgress, PostState, ProgressPost, UserContacts};
+use crate::domain::me::model::{
+    BookmarkedPost, ModuleProgress, PostState, ProgressPost, UserContacts,
+};
 use crate::error;
 
 // ------------------------------ Bookmarks ------------------------------
@@ -145,7 +147,11 @@ pub async fn list_progress(
     .await?)
 }
 
-pub async fn select_post_state(pool: &PgPool, user_id: i64, post_id: i64) -> error::Result<PostState> {
+pub async fn select_post_state(
+    pool: &PgPool,
+    user_id: i64,
+    post_id: i64,
+) -> error::Result<PostState> {
     Ok(sqlx::query_as::<_, PostState>(
         r#"
         SELECT
@@ -165,13 +171,16 @@ pub async fn select_post_state(pool: &PgPool, user_id: i64, post_id: i64) -> err
           ) AS completed
         "#,
     )
-        .bind(user_id)
-        .bind(post_id)
-        .fetch_one(pool)
-        .await?)
+    .bind(user_id)
+    .bind(post_id)
+    .fetch_one(pool)
+    .await?)
 }
 
-pub async fn list_module_progress(pool: &PgPool, user_id: i64) -> error::Result<Vec<ModuleProgress>> {
+pub async fn list_module_progress(
+    pool: &PgPool,
+    user_id: i64,
+) -> error::Result<Vec<ModuleProgress>> {
     Ok(sqlx::query_as::<_, ModuleProgress>(
         r#"
         SELECT
@@ -190,9 +199,9 @@ pub async fn list_module_progress(pool: &PgPool, user_id: i64) -> error::Result<
         ORDER BY mi.module_id ASC
         "#,
     )
-        .bind(user_id)
-        .fetch_all(pool)
-        .await?)
+    .bind(user_id)
+    .fetch_all(pool)
+    .await?)
 }
 
 // ------------------------------ Contacts ------------------------------

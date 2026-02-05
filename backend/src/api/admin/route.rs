@@ -1,7 +1,7 @@
 use crate::api::admin::handler;
 use crate::app::Context;
-use axum::routing::{delete, get, put};
 use axum::Router;
+use axum::routing::{delete, get, put};
 
 pub fn routes() -> Router<Context> {
     Router::new()

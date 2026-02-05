@@ -7,12 +7,22 @@ export async function apiFetchAuthed<T>(
     init: RequestInit = {}
 ): Promise<T> {
     const token = getToken();
+    
+    const headers: Record<string, string> = {
+        ...(init.headers instanceof Headers
+            ? Object.fromEntries(init.headers.entries())
+            : (init.headers as Record<string, string> | undefined) ?? {}),
+    };
+    
+    if (init.body != null && !Object.keys(headers).some(k => k.toLowerCase() === "content-type")) {
+        headers["Content-Type"] = "application/json";
+    }
+
+    if (token) headers["Authorization"] = `Bearer ${token}`;
 
     return apiFetch<T>(path, {
         ...init,
-        headers: {
-            ...(init.headers ?? {}),
-            ...(token ? {Authorization: `Bearer ${token}`} : {}),
-        },
+        headers,
+        credentials: init.credentials ?? "include",
     });
 }

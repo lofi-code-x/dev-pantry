@@ -1,7 +1,6 @@
 // src/domain/post/service.rs
 
 use crate::domain::me;
-use crate::domain::xp;
 use crate::domain::post::dto::{
     InsertParams, InsertQuizOptionParams, InsertQuizQuestionParams, PostCreateRequest, PostRequest,
     QuizAttemptView, QuizOptionView, QuizQuestionView, QuizSubmitRequest, QuizSubmitResult,
@@ -11,6 +10,7 @@ use crate::domain::post::model::Post;
 use crate::domain::post::repo;
 use crate::domain::uploads;
 use crate::domain::uploads::dto::AttachPostImagesParams;
+use crate::domain::xp;
 use crate::error;
 use sqlx::PgPool;
 use std::collections::HashSet;
@@ -205,10 +205,10 @@ pub async fn submit_quiz(
 
     let mut correct_answers = 0;
     for (q_id, correct_option_id) in correct {
-        if let Some(chosen) = answer_map.get(&q_id) {
-            if *chosen == correct_option_id {
-                correct_answers += 1;
-            }
+        if let Some(chosen) = answer_map.get(&q_id)
+            && *chosen == correct_option_id
+        {
+            correct_answers += 1;
         }
     }
 

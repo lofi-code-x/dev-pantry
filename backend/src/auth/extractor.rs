@@ -32,7 +32,11 @@ impl Client {
     }
 
     pub fn is_staff(&self) -> bool {
-        matches!(self, Client::Staff(_))
+        self.require_staff().is_ok()
+    }
+
+    pub fn is_admin(&self) -> bool {
+        matches!(self, Client::Staff(u) if u.role == UserRole::Admin)
     }
 }
 
@@ -56,20 +60,12 @@ where
                 return Ok(Client::Anonymous);
             };
 
-            if is_staff_role(&u.role) {
-                Ok(Client::Staff(u))
-            } else {
-                Ok(Client::User(u))
+            match &u.role {
+                UserRole::Admin | UserRole::Moderator | UserRole::Editor => Ok(Client::Staff(u)),
+                UserRole::User => Ok(Client::User(u)),
             }
         }
     }
-}
-
-fn is_staff_role(role: &UserRole) -> bool {
-    matches!(
-        role,
-        UserRole::Admin | UserRole::Moderator | UserRole::Editor
-    )
 }
 
 /// Возвращает:

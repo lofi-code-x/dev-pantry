@@ -4,7 +4,7 @@ use crate::api::uploads::handler::{
 };
 use crate::app::Context;
 use axum::Router;
-use axum::routing::{delete, get, post};
+use axum::routing::{get, post};
 
 pub fn routes() -> Router<Context> {
     Router::new()

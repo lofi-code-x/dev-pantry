@@ -1,5 +1,5 @@
-use crate::domain::analytics::repo;
 use crate::domain::analytics::model::DailyStats;
+use crate::domain::analytics::repo;
 use crate::error;
 use sqlx::PgPool;
 use uuid::Uuid;
