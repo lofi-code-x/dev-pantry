@@ -81,14 +81,15 @@ export default async function HomePage() {
                 <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                     <div className="max-w-2xl">
                         <div className="flex flex-wrap gap-2">
+                            <Pill>IT</Pill>
                             <Pill>Посты</Pill>
                             <Pill>Модули</Pill>
                             <Pill>Прогресс</Pill>
-                            <Pill>Закладки</Pill>
+                            <Pill>Лидерборд</Pill>
                         </div>
 
                         <h1 className="mt-4 flex flex-wrap items-center gap-3 text-3xl font-semibold tracking-tight text-fg md:text-4xl">
-                            <span>StackForge</span>
+                            <span>Quest Lab</span>
 
                             <span
                                 className="inline-flex items-center rounded-full border border-border bg-[hsl(var(--ring)/0.10)] px-2.5 py-1 text-xs font-semibold text-fg">
@@ -104,11 +105,12 @@ export default async function HomePage() {
                         </h1>
 
                         <p className="mt-2 text-sm text-muted-fg">
-                            Ранняя версия: интерфейс и функции активно меняются, возможны баги.
+                            Экспериментальная версия: интерфейс и функции активно меняются, возможны баги.
                         </p>
 
                         <p className="mt-3 text-sm leading-6 text-muted-fg md:text-base">
-                            Кузница инженерных знаний: читай посты, собирай модули и отмечай прогресс.
+                            Quest Lab — экспериментальная платформа для изучения IT через модули. Проходи темы шаг за
+                            шагом, отмечай завершённое и соревнуйся в таблице лидеров.
                         </p>
 
                         <div className="mt-6 flex flex-wrap gap-3">
@@ -133,16 +135,26 @@ export default async function HomePage() {
                     <div className="grid w-full gap-3 md:w-[360px]">
                         <div className={cn("surface p-4", "ring-1 ring-inset ring-border")}>
                             <div className="text-xs font-medium text-muted-fg">Фокус</div>
-                            <div className="mt-1 text-sm font-semibold text-fg">Быстро найти нужную тему</div>
-                            <p className="mt-1 text-xs leading-5 text-muted-fg">Категории + поиск + удобная лента
-                                постов.</p>
+                            <div className="mt-1 text-sm font-semibold text-fg">Быстро найти нужную тему по IT</div>
+                            <p className="mt-1 text-xs leading-5 text-muted-fg">
+                                Категории + поиск + удобная лента постов.
+                            </p>
                         </div>
 
                         <div className={cn("surface p-4", "ring-1 ring-inset ring-border")}>
                             <div className="text-xs font-medium text-muted-fg">Обучение</div>
-                            <div className="mt-1 text-sm font-semibold text-fg">Учиться по модулям</div>
-                            <p className="mt-1 text-xs leading-5 text-muted-fg">Подборки постов с прогрессом и
-                                завершением.</p>
+                            <div className="mt-1 text-sm font-semibold text-fg">Учиться по модулям с прогрессом</div>
+                            <p className="mt-1 text-xs leading-5 text-muted-fg">
+                                Подборки постов, чекпоинты и завершение модулей.
+                            </p>
+                        </div>
+
+                        <div className={cn("surface p-4", "ring-1 ring-inset ring-border")}>
+                            <div className="text-xs font-medium text-muted-fg">Соревнование</div>
+                            <div className="mt-1 text-sm font-semibold text-fg">Расти в таблице лидеров</div>
+                            <p className="mt-1 text-xs leading-5 text-muted-fg">
+                                Зарабатывай очки за прогресс и сравнивай результаты.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -210,10 +222,21 @@ export default async function HomePage() {
               В <span className="text-fg">/me</span> смотри прогресс, закладки и завершённые модули.
             </span>
                     </li>
+                    <li className="flex gap-2">
+            <span
+                className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border border-border bg-bg text-xs font-semibold text-fg">
+              4
+            </span>
+                        <span>
+              Поднимайся в <span className="text-fg">лидерборде</span> — очки растут вместе с твоим прогрессом.
+            </span>
+                    </li>
                 </ol>
             </section>
 
-            <footer className="mt-10 text-center text-xs text-muted-fg">StackForge — knowledge & learning hub.</footer>
+            <footer className="mt-10 text-center text-xs text-muted-fg">
+                Quest Lab — experimental IT learning platform.
+            </footer>
         </main>
     );
 }
