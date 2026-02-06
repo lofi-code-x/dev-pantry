@@ -48,6 +48,11 @@ export function PostCard({ post, isCompleted }: { post: Post; isCompleted?: bool
           <span className="rounded-md border border-border bg-[hsl(var(--ring)/0.08)] px-2 py-1">
             {post.category_tag}
           </span>
+                    {!post.is_published ? (
+                        <span className="rounded-md border border-red-500/40 bg-red-500/10 px-2 py-1 text-red-600">
+                            private
+                        </span>
+                    ) : null}
                     <span>•</span>
                     <span className="truncate">by {post.author}</span>
                     <span>•</span>

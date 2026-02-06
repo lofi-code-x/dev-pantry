@@ -416,8 +416,14 @@ pub async fn list_post_ids_by_module_id(pool: &PgPool, module_id: i64) -> error:
         r#"
         SELECT post_id
         FROM module_items
-        WHERE module_id = $1
-        ORDER BY sort_order NULLS LAST, id
+        LEFT JOIN module_sections ms
+          ON ms.id = module_items.section_id
+        WHERE module_items.module_id = $1
+        ORDER BY
+          ms.sort_order NULLS LAST,
+          ms.id NULLS LAST,
+          module_items.sort_order NULLS LAST,
+          module_items.id
         "#,
     )
     .bind(module_id)
