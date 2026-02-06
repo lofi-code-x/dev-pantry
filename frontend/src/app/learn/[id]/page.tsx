@@ -3,7 +3,7 @@
 
 import React, {useEffect, useMemo, useState} from "react";
 import Link from "next/link";
-import {useParams, useRouter} from "next/navigation";
+import {notFound, useParams, useRouter} from "next/navigation";
 import {useAuth} from "@/components/auth/AuthProvider";
 import {ApiError, toAbsoluteUrl} from "@/lib/apiClient";
 import {
@@ -67,6 +67,8 @@ export default function ModulePage() {
     // ✅ фатальная ошибка загрузки модуля/постов
     const [loadPending, setLoadPending] = useState(false);
     const [loadErr, setLoadErr] = useState<string | null>(null);
+    const [notFoundModule, setNotFoundModule] = useState(false);
+    const [fatalError, setFatalError] = useState<Error | null>(null);
 
     // ✅ ошибки действия (delete/toggle) — НЕ фатальные, но можно тоже показывать сверху
     const [actionPending, setActionPending] = useState(false);
@@ -131,6 +133,7 @@ export default function ModulePage() {
         let cancelled = false;
 
         async function load() {
+            setNotFoundModule(false);
             setLoadErr(null);
             setLoadPending(true);
 
@@ -155,8 +158,29 @@ export default function ModulePage() {
                 setOpenSections(new Set(modulePosts.map((s, idx) => sectionKey(s, idx))));
             } catch (e) {
                 if (cancelled) return;
-                if (e instanceof ApiError) setLoadErr(e.message);
-                else setLoadErr("Failed to load module.");
+                if (e instanceof ApiError) {
+                    if (e.status === 404) {
+                        setNotFoundModule(true);
+                        return;
+                    }
+                    if (e.status === 401 || e.status === 403) {
+                        setLoadErr("Нет доступа к модулю.");
+                        setMod(null);
+                        setSections([]);
+                        setOpenSections(new Set());
+                        return;
+                    }
+                    setFatalError(e);
+                    return;
+                }
+                if (e instanceof TypeError) {
+                    setLoadErr("Проблема сети. Попробуйте позже.");
+                    setMod(null);
+                    setSections([]);
+                    setOpenSections(new Set());
+                    return;
+                }
+                setFatalError(e instanceof Error ? e : new Error("Failed to load module."));
                 setMod(null);
                 setSections([]);
                 setOpenSections(new Set());
@@ -245,6 +269,9 @@ export default function ModulePage() {
             setActionPending(false);
         }
     }
+
+    if (fatalError) throw fatalError;
+    if (notFoundModule) notFound();
 
     if (!ready) return null;
 

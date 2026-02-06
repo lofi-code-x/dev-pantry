@@ -163,6 +163,7 @@ export default function MePage() {
     const [avatarUploading, setAvatarUploading] = useState(false);
     const [avatarDeleting, setAvatarDeleting] = useState(false);
     const avatarInputRef = useRef<HTMLInputElement | null>(null);
+    const [fatalError, setFatalError] = useState<Error | null>(null);
 
     // guard
     useEffect(() => {
@@ -188,7 +189,19 @@ export default function MePage() {
                 if (!cancelled) setCompletedPosts(rows);
             } catch (e) {
                 if (cancelled) return;
-                setPostsErr(e instanceof ApiError ? e.message : "Failed to load completed posts.");
+                if (e instanceof ApiError) {
+                    if (e.status >= 500) {
+                        setFatalError(e);
+                        return;
+                    }
+                    setPostsErr(e.message);
+                    return;
+                }
+                if (e instanceof TypeError) {
+                    setPostsErr("Проблема сети. Попробуйте позже.");
+                    return;
+                }
+                setFatalError(e instanceof Error ? e : new Error("Failed to load completed posts."));
             } finally {
                 if (!cancelled) setPostsLoading(false);
             }
@@ -215,7 +228,19 @@ export default function MePage() {
                 if (!cancelled) setStats(res);
             } catch (e) {
                 if (cancelled) return;
-                setStatsErr(e instanceof ApiError ? e.message : "Failed to load stats.");
+                if (e instanceof ApiError) {
+                    if (e.status >= 500) {
+                        setFatalError(e);
+                        return;
+                    }
+                    setStatsErr(e.message);
+                    return;
+                }
+                if (e instanceof TypeError) {
+                    setStatsErr("Проблема сети. Попробуйте позже.");
+                    return;
+                }
+                setFatalError(e instanceof Error ? e : new Error("Failed to load stats."));
             } finally {
                 if (!cancelled) setStatsLoading(false);
             }
@@ -247,7 +272,19 @@ export default function MePage() {
                 setTelegram(res.telegram ?? "");
             } catch (e) {
                 if (cancelled) return;
-                setContactsErr(e instanceof ApiError ? e.message : "Failed to load contacts.");
+                if (e instanceof ApiError) {
+                    if (e.status >= 500) {
+                        setFatalError(e);
+                        return;
+                    }
+                    setContactsErr(e.message);
+                    return;
+                }
+                if (e instanceof TypeError) {
+                    setContactsErr("Проблема сети. Попробуйте позже.");
+                    return;
+                }
+                setFatalError(e instanceof Error ? e : new Error("Failed to load contacts."));
             } finally {
                 if (!cancelled) setContactsLoading(false);
             }
@@ -275,7 +312,17 @@ export default function MePage() {
             setContactsSaved(true);
             setContactsEditing(false);
         } catch (e) {
-            setContactsErr(e instanceof ApiError ? e.message : "Failed to save contacts.");
+            if (e instanceof ApiError) {
+                if (e.status >= 500) {
+                    setFatalError(e);
+                    return;
+                }
+                setContactsErr(e.message);
+            } else if (e instanceof TypeError) {
+                setContactsErr("Проблема сети. Попробуйте позже.");
+            } else {
+                setFatalError(e instanceof Error ? e : new Error("Failed to save contacts."));
+            }
         } finally {
             setContactsSaving(false);
         }
@@ -316,7 +363,21 @@ export default function MePage() {
                 if (!cancelled) setCompletedModules(done);
             } catch (e) {
                 if (cancelled) return;
-                setModulesErr(e instanceof ApiError ? e.message : "Failed to load completed modules.");
+                if (e instanceof ApiError) {
+                    if (e.status >= 500) {
+                        setFatalError(e);
+                        return;
+                    }
+                    setModulesErr(e.message);
+                    setCompletedModules([]);
+                    return;
+                }
+                if (e instanceof TypeError) {
+                    setModulesErr("Проблема сети. Попробуйте позже.");
+                    setCompletedModules([]);
+                    return;
+                }
+                setFatalError(e instanceof Error ? e : new Error("Failed to load completed modules."));
                 setCompletedModules([]);
             } finally {
                 if (!cancelled) setModulesLoading(false);
@@ -341,8 +402,9 @@ export default function MePage() {
 
     const avatarBusy = avatarUploading || avatarDeleting;
 
-    if (!ready) return null;
-    if (!user) return null;
+        if (!ready) return null;
+        if (!user) return null;
+        if (fatalError) throw fatalError;
 
     const postsCountLabel = postsLoading ? "Loading…" : `${completedPosts.length} items`;
     const modulesCountLabel = modulesLoading ? "Loading…" : `${completedModules.length} items`;

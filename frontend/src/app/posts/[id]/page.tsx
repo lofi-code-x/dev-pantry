@@ -3,7 +3,7 @@
 
 import React, {useEffect, useMemo, useState, useRef} from "react";
 import Link from "next/link";
-import {useParams, useRouter, useSearchParams} from "next/navigation";
+import {notFound, useParams, useRouter, useSearchParams} from "next/navigation";
 import {ApiError} from "@/lib/apiClient";
 import type {Post} from "@/lib/api/posts";
 import {
@@ -97,6 +97,8 @@ export default function PostPage() {
 
     const [actionPending, setActionPending] = useState(false);
     const [err, setErr] = useState<string | null>(null);
+    const [notFoundPost, setNotFoundPost] = useState(false);
+    const [fatalError, setFatalError] = useState<Error | null>(null);
 
     // user-specific state
     const [saved, setSaved] = useState(false);
@@ -124,6 +126,7 @@ export default function PostPage() {
         let cancelled = false;
 
         async function load() {
+            setNotFoundPost(false);
             setErr(null);
             setLoading(true);
             try {
@@ -131,7 +134,25 @@ export default function PostPage() {
                 if (!cancelled) setPost(p);
             } catch (e) {
                 if (cancelled) return;
-                setErr(e instanceof ApiError ? e.message : "Failed to load post.");
+                if (e instanceof ApiError) {
+                    if (e.status === 404) {
+                        setNotFoundPost(true);
+                        return;
+                    }
+                    if (e.status === 401 || e.status === 403) {
+                        setErr("Нет доступа к посту.");
+                        setPost(null);
+                        return;
+                    }
+                    setFatalError(e);
+                    return;
+                }
+                if (e instanceof TypeError) {
+                    setErr("Проблема сети. Попробуйте позже.");
+                    setPost(null);
+                    return;
+                }
+                setFatalError(e instanceof Error ? e : new Error("Failed to load post."));
                 setPost(null);
             } finally {
                 if (!cancelled) setLoading(false);
@@ -383,6 +404,9 @@ export default function PostPage() {
             setQuizPending(false);
         }
     }
+
+    if (fatalError) throw fatalError;
+    if (notFoundPost) notFound();
 
     return (
         <main className="mx-auto w-full max-w-6xl px-6 py-10">
