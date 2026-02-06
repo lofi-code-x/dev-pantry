@@ -28,7 +28,6 @@ impl Context {
     }
 }
 
-//postgres://admin:admin@localhost:5432/dev-pantry
 pub async fn connect(cfg: &Config) -> error::Result<Pool<Postgres>> {
     let pool = PgPoolOptions::new()
         .max_connections(10)

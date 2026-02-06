@@ -16,6 +16,6 @@ thiserror = "^2"
 argon2 = "^0.5"
 rand_core = "^0.9"
 jsonwebtoken = { version = "^10", features = ["aws_lc_rs"] }
-toml = "^0.9"
 regex = "^1"
 uuid = { version = "^1", features = ["v4", "serde"] }
+dotenvy = "^0.15"

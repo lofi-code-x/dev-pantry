@@ -17,7 +17,7 @@ pub enum Error {
     #[error("{0}")]
     Verify(password_hash::Error),
     #[error("{0}")]
-    Config(#[from] toml::de::Error),
+    Config(String),
     #[error("{0}")]
     JsonWebToken(String),
 
