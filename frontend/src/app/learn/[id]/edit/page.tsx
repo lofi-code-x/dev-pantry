@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import {useEffect, useState} from "react";
+import {useParams, useRouter} from "next/navigation";
 import ModuleEditor from "@/components/modules/ModuleEditor";
-import { ApiError } from "@/lib/apiClient";
-import { useAuth } from "@/components/auth/AuthProvider";
-import { getModule, getModulePosts } from "@/lib/api/modules";
-import type { Module, ModuleSectionPosts } from "@/lib/api/modules";
-import type { UserRole } from "@/lib/types";
+import {ApiError} from "@/lib/apiClient";
+import {useAuth} from "@/components/auth/AuthProvider";
+import {getModule, getModulePosts} from "@/lib/api/modules";
+import type {Module, ModuleSectionPosts} from "@/lib/api/modules";
+import type {UserRole} from "@/lib/types";
 
 const STAFF_ROLES: UserRole[] = ["admin", "moderator", "editor"];
+
 function isStaff(role: unknown) {
     return STAFF_ROLES.includes(String(role).toLowerCase() as UserRole);
 }
@@ -18,7 +19,7 @@ export default function EditModulePage() {
     const params = useParams<{ id: string }>();
     const moduleId = Number(params.id);
     const router = useRouter();
-    const { user, ready } = useAuth();
+    const {user, ready} = useAuth();
 
     const [mod, setMod] = useState<Module | null>(null);
     const [sections, setSections] = useState<ModuleSectionPosts[]>([]);
@@ -42,7 +43,7 @@ export default function EditModulePage() {
             setErr(null);
             try {
                 const m = await getModule(moduleId);
-                const ps = await getModulePosts(moduleId, {only_published: false});
+                const ps = await getModulePosts(moduleId);
                 if (cancelled) return;
                 setMod(m);
                 setSections(ps);

@@ -1,4 +1,3 @@
-// src/lib/apiClient.ts
 export class ApiError extends Error {
     status: number;
 
@@ -9,22 +8,55 @@ export class ApiError extends Error {
     }
 }
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+/**
+ * Default: one-origin через reverse-proxy (Caddy/Nginx)
+ * - API: /api
+ * - Uploads: same origin (""), т.е. "/uploads/..."
+ */
+export const API_BASE =
+    (process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api").replace(/\/+$/, "");
+
+export const UPLOADS_BASE =
+    (process.env.NEXT_PUBLIC_API_BASE_UPLOADS_URL ?? "").replace(/\/+$/, "");
+
+// export const API_BASE = "http://localhost:3001/api"
+// export const UPLOADS_BASE = "http://localhost:3001"
+
+/** join base + path without double-prefix (/api + /api/.. => /api/..) */
+function joinUrl(base: string, path: string) {
+    const b = (base ?? "").replace(/\/+$/, "");
+    const p = path.startsWith("/") ? path : `/${path}`;
+
+    if (!b) return p;
+
+    // если path уже начинается с base, не дублируем
+    if (p === b || p.startsWith(`${b}/`)) return p;
+
+    if (b.startsWith("http://") || b.startsWith("https://")) return `${b}${p}`;
+
+    return `${b}${p}`.replace(/\/{2,}/g, "/");
+}
 
 export function toAbsoluteUrl(url: string): string {
     const u = String(url ?? "").trim();
     if (!u) return "";
     if (u.startsWith("http://") || u.startsWith("https://")) return u;
-    if (u.startsWith("/")) return `${API_BASE}${u}`;
-    return `${API_BASE}/${u}`;
+
+    // same-origin uploads: "" + "/uploads/.." => "/uploads/.."
+    if (!UPLOADS_BASE) return u.startsWith("/") ? u : `/${u}`;
+
+    // absolute uploads base
+    return u.startsWith("/") ? `${UPLOADS_BASE}${u}` : `${UPLOADS_BASE}/${u}`;
 }
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-    const res = await fetch(`${API_BASE}${path}`, {
+    const url = joinUrl(API_BASE, path);
+
+    const res = await fetch(url, {
         ...init,
         credentials: init.credentials ?? "include",
         headers: {
-            "Content-Type": "application/json",
+            ...(init.body ? {"Content-Type": "application/json"} : {}),
             ...(init.headers ?? {}),
         },
     });

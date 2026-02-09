@@ -4,5 +4,5 @@ import { apiFetch } from "@/lib/apiClient";
 export type Version = { version: string };
 
 export async function getVersion(): Promise<Version> {
-    return apiFetch<Version>("/api/meta/version");
+    return apiFetch<Version>("/meta/version");
 }

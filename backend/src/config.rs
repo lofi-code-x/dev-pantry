@@ -7,6 +7,7 @@ pub struct Config {
     pub postgres_conn: String,
     pub jwt_secret: String,
     pub jwt_lifetime: i64,
+    pub admin_password: String,
 }
 
 impl Config {
@@ -36,11 +37,14 @@ impl Config {
             ));
         }
 
+        let admin_password = env_string("ADMIN_PASSWORD").expect("ADMIN_PASSWORD is required");
+
         Ok(Self {
             server_port,
             postgres_conn,
             jwt_secret,
             jwt_lifetime,
+            admin_password,
         })
     }
 }

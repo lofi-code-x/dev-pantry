@@ -1,3 +1,4 @@
+use crate::app::bootstrap::ensure_admin;
 use crate::auth::jwt::JwtKeys;
 use crate::config::Config;
 use crate::error;
@@ -19,6 +20,8 @@ impl Context {
 
         let pool = connect(&cfg).await?;
         let jwt_keys = Arc::new(JwtKeys::from(&cfg));
+
+        ensure_admin(&pool, &cfg).await?;
 
         Ok(Self {
             cfg,

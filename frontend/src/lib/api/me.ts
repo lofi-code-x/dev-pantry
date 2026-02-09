@@ -81,7 +81,7 @@ function qs(params: Record<string, string | undefined>) {
 
 // GET /api/me/post-state/{post_id}
 export async function getMyPostState(postId: number): Promise<PostState> {
-    return apiFetchAuthed<PostState>(`/api/me/post-state/${postId}`, { method: "GET" });
+    return apiFetchAuthed<PostState>(`/me/post-state/${postId}`, { method: "GET" });
 }
 
 // ----------------------------- Bookmarks --------------------------------
@@ -89,7 +89,7 @@ export async function getMyPostState(postId: number): Promise<PostState> {
 // GET /api/me/bookmarks?only_published=true|false
 export async function listMyBookmarks(q?: OnlyPublishedQuery): Promise<BookmarkedPost[]> {
     return apiFetchAuthed<BookmarkedPost[]>(
-        `/api/me/bookmarks${qs({
+        `/bookmarks${qs({
             only_published:
                 typeof q?.only_published === "boolean" ? String(q.only_published) : undefined,
         })}`,
@@ -99,7 +99,7 @@ export async function listMyBookmarks(q?: OnlyPublishedQuery): Promise<Bookmarke
 
 // POST /api/me/bookmarks  { post_id } -> 204
 export async function addMyBookmark(postId: number): Promise<void> {
-    await apiFetchAuthed<void>("/api/me/bookmarks", {
+    await apiFetchAuthed<void>("/me/bookmarks", {
         method: "POST",
         body: JSON.stringify({ post_id: postId } satisfies PostIdBody),
     });
@@ -107,7 +107,7 @@ export async function addMyBookmark(postId: number): Promise<void> {
 
 // DELETE /api/me/bookmarks/{post_id} -> 204
 export async function removeMyBookmark(postId: number): Promise<void> {
-    await apiFetchAuthed<void>(`/api/me/bookmarks/${postId}`, { method: "DELETE" });
+    await apiFetchAuthed<void>(`/me/bookmarks/${postId}`, { method: "DELETE" });
 }
 
 // ------------------------------ Reads -----------------------------------
@@ -115,7 +115,7 @@ export async function removeMyBookmark(postId: number): Promise<void> {
 // GET /api/me/reads?only_published=true&only_completed=true|false
 export async function listMyReads(q?: ProgressListQuery): Promise<ProgressPost[]> {
     return apiFetchAuthed<ProgressPost[]>(
-        `/api/me/reads${qs({
+        `/me/reads${qs({
             only_published:
                 typeof q?.only_published === "boolean" ? String(q.only_published) : undefined,
             only_completed:
@@ -127,12 +127,12 @@ export async function listMyReads(q?: ProgressListQuery): Promise<ProgressPost[]
 
 // POST /api/me/reads/complete/{post_id} -> 204
 export async function markMyReadCompleted(postId: number): Promise<void> {
-    await apiFetchAuthed<void>(`/api/me/reads/complete/${postId}`, { method: "POST" });
+    await apiFetchAuthed<void>(`/me/reads/complete/${postId}`, { method: "POST" });
 }
 
 // DELETE /api/me/reads/complete/{post_id} -> 204
 export async function uncompleteMyRead(postId: number): Promise<void> {
-    await apiFetchAuthed<void>(`/api/me/reads/complete/${postId}`, { method: "DELETE" });
+    await apiFetchAuthed<void>(`/me/reads/complete/${postId}`, { method: "DELETE" });
 }
 
 export type ModuleProgress = {
@@ -144,22 +144,22 @@ export type ModuleProgress = {
 
 // GET /api/me/modules/progress
 export async function listMyModuleProgress(): Promise<ModuleProgress[]> {
-    return apiFetchAuthed<ModuleProgress[]>("/api/me/modules/progress", { method: "GET" });
+    return apiFetchAuthed<ModuleProgress[]>("/me/modules/progress", { method: "GET" });
 }
 
 // GET /api/me/stats
 export async function getMyStats(): Promise<UserStats> {
-    return apiFetchAuthed<UserStats>("/api/me/stats", { method: "GET" });
+    return apiFetchAuthed<UserStats>("/me/stats", { method: "GET" });
 }
 
 // GET /api/me/contacts
 export async function getMyContacts(): Promise<UserContacts> {
-    return apiFetchAuthed<UserContacts>("/api/me/contacts", { method: "GET" });
+    return apiFetchAuthed<UserContacts>("/me/contacts", { method: "GET" });
 }
 
 // PUT /api/me/contacts
 export async function updateMyContacts(body: UpdateContactsRequest): Promise<UserContacts> {
-    return apiFetchAuthed<UserContacts>("/api/me/contacts", {
+    return apiFetchAuthed<UserContacts>("/me/contacts", {
         method: "PUT",
         body: JSON.stringify(body),
     });

@@ -26,22 +26,22 @@ export type AdminDailyStat = {
 };
 
 export async function listAdminUsers(page = 1, limit = 50): Promise<AdminUserListResponse> {
-    return apiFetchAuthed<AdminUserListResponse>(`/api/admin/users?page=${page}&limit=${limit}`, {
+    return apiFetchAuthed<AdminUserListResponse>(`/admin/users?page=${page}&limit=${limit}`, {
         method: "GET",
     });
 }
 
 export async function listAdminDailyStats(days = 30): Promise<AdminDailyStat[]> {
-    return apiFetchAuthed<AdminDailyStat[]>(`/api/admin/stats/daily?days=${days}`, { method: "GET" });
+    return apiFetchAuthed<AdminDailyStat[]>(`/admin/stats/daily?days=${days}`, { method: "GET" });
 }
 
 export async function updateUserRole(userId: number, role: string): Promise<void> {
-    await apiFetchAuthed<void>(`/api/admin/users/${userId}/role`, {
+    await apiFetchAuthed<void>(`/admin/users/${userId}/role`, {
         method: "PUT",
         body: JSON.stringify({ role }),
     });
 }
 
 export async function deleteUser(userId: number): Promise<void> {
-    await apiFetchAuthed<void>(`/api/admin/users/${userId}`, { method: "DELETE" });
+    await apiFetchAuthed<void>(`/admin/users/${userId}`, { method: "DELETE" });
 }

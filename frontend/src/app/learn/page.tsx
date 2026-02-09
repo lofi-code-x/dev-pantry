@@ -36,7 +36,7 @@ export default function LearnPage() {
             try {
                 // 1) mods + progress (как было)
                 const [mods, prog] = await Promise.all([
-                    listModules({only_published: onlyPublished}),
+                    listModules(),
                     user ? listMyModuleProgress() : Promise.resolve<ModuleProgress[]>([]),
                 ]);
 

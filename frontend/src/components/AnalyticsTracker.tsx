@@ -15,7 +15,7 @@ export function AnalyticsTracker() {
         if (last.current === pathname) return;
         last.current = pathname;
 
-        apiFetchAuthed<void>("/api/track/pageview", {
+        apiFetchAuthed<void>("/track/pageview", {
             method: "POST",
             body: JSON.stringify({path: pathname}),
             keepalive: true,

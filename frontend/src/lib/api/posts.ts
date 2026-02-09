@@ -115,17 +115,17 @@ export async function searchPosts(params: PostRequest): Promise<Post[]> {
     if (typeof params.limit === "number") sp.set("limit", String(params.limit));
 
     const qs = sp.toString();
-    return apiFetchAuthed<Post[]>(`/api/post/search${qs ? `?${qs}` : ""}`);
+    return apiFetchAuthed<Post[]>(`/post/search${qs ? `?${qs}` : ""}`);
 }
 
 // GET /api/posts/get/{id}
 export async function getPost(id: number): Promise<Post> {
-    return apiFetchAuthed<Post>(`/api/post/get/${id}`);
+    return apiFetchAuthed<Post>(`/post/get/${id}`);
 }
 
 // POST /api/posts/create (staff only) -> id
 export async function createPost(body: PostCreateRequest): Promise<number> {
-    return apiFetchAuthed<number>("/api/post/create", {
+    return apiFetchAuthed<number>("/post/create", {
         method: "POST",
         body: JSON.stringify(body),
     });
@@ -133,7 +133,7 @@ export async function createPost(body: PostCreateRequest): Promise<number> {
 
 // POST /api/posts/suggest (any auth) -> id
 export async function suggestPost(body: PostCreateRequest): Promise<number> {
-    return apiFetchAuthed<number>("/api/post/suggest", {
+    return apiFetchAuthed<number>("/suggest", {
         method: "POST",
         body: JSON.stringify(body),
     });
@@ -141,7 +141,7 @@ export async function suggestPost(body: PostCreateRequest): Promise<number> {
 
 // PUT /api/posts/update/{id} (staff) -> id (как на бэке service::update -> i64)
 export async function updatePost(id: number, body: PostCreateRequest): Promise<number> {
-    return apiFetchAuthed<number>(`/api/post/update/${id}`, {
+    return apiFetchAuthed<number>(`/post/update/${id}`, {
         method: "PUT",
         body: JSON.stringify(body),
     });
@@ -149,7 +149,7 @@ export async function updatePost(id: number, body: PostCreateRequest): Promise<n
 
 // PUT /api/posts/set-public/{id} (staff) -> 204
 export async function setPostPublic(id: number, isPublic: boolean): Promise<void> {
-    await apiFetchAuthed<void>(`/api/post/set-public/${id}`, {
+    await apiFetchAuthed<void>(`/post/set-public/${id}`, {
         method: "PUT",
         body: JSON.stringify({is_public: isPublic}),
     });
@@ -157,7 +157,7 @@ export async function setPostPublic(id: number, isPublic: boolean): Promise<void
 
 // DELETE /api/posts/delete/{id} (staff) -> 204
 export async function deletePost(id: number): Promise<void> {
-    await apiFetchAuthed<void>(`/api/post/delete/${id}`, {
+    await apiFetchAuthed<void>(`/post/delete/${id}`, {
         method: "DELETE",
     });
 }
@@ -165,29 +165,29 @@ export async function deletePost(id: number): Promise<void> {
 // ----------------------------- Quiz -------------------------------------
 
 export async function getPostQuiz(postId: number): Promise<QuizQuestion[]> {
-    return apiFetchAuthed<QuizQuestion[]>(`/api/post/${postId}/quiz`);
+    return apiFetchAuthed<QuizQuestion[]>(`/post/${postId}/quiz`);
 }
 
 export async function getPostQuizAdmin(postId: number): Promise<QuizQuestionAdmin[]> {
-    return apiFetchAuthed<QuizQuestionAdmin[]>(`/api/post/${postId}/quiz/admin`, { method: "GET" });
+    return apiFetchAuthed<QuizQuestionAdmin[]>(`/post/${postId}/quiz/admin`, { method: "GET" });
 }
 
 export async function submitPostQuiz(
     postId: number,
     body: QuizSubmitRequest
 ): Promise<QuizSubmitResult> {
-    return apiFetchAuthed<QuizSubmitResult>(`/api/post/${postId}/quiz/submit`, {
+    return apiFetchAuthed<QuizSubmitResult>(`/post/${postId}/quiz/submit`, {
         method: "POST",
         body: JSON.stringify(body),
     });
 }
 
 export async function getPostQuizAttempt(postId: number): Promise<QuizAttempt | null> {
-    return apiFetchAuthed<QuizAttempt | null>(`/api/post/${postId}/quiz/attempt`, { method: "GET" });
+    return apiFetchAuthed<QuizAttempt | null>(`/post/${postId}/quiz/attempt`, { method: "GET" });
 }
 
 export async function createQuizQuestion(body: QuizQuestionCreateRequest): Promise<number> {
-    return apiFetchAuthed<number>("/api/post/quiz/question/create", {
+    return apiFetchAuthed<number>("/post/quiz/question/create", {
         method: "POST",
         body: JSON.stringify(body),
     });
@@ -197,18 +197,18 @@ export async function updateQuizQuestion(
     id: number,
     body: QuizQuestionUpdateRequest
 ): Promise<void> {
-    await apiFetchAuthed<void>(`/api/post/quiz/question/update/${id}`, {
+    await apiFetchAuthed<void>(`/post/quiz/question/update/${id}`, {
         method: "PUT",
         body: JSON.stringify(body),
     });
 }
 
 export async function deleteQuizQuestion(id: number): Promise<void> {
-    await apiFetchAuthed<void>(`/api/post/quiz/question/delete/${id}`, { method: "DELETE" });
+    await apiFetchAuthed<void>(`/post/quiz/question/delete/${id}`, { method: "DELETE" });
 }
 
 export async function createQuizOption(body: QuizOptionCreateRequest): Promise<number> {
-    return apiFetchAuthed<number>("/api/post/quiz/option/create", {
+    return apiFetchAuthed<number>("/post/quiz/option/create", {
         method: "POST",
         body: JSON.stringify(body),
     });
@@ -218,14 +218,14 @@ export async function updateQuizOption(
     id: number,
     body: QuizOptionUpdateRequest
 ): Promise<void> {
-    await apiFetchAuthed<void>(`/api/post/quiz/option/update/${id}`, {
+    await apiFetchAuthed<void>(`/post/quiz/option/update/${id}`, {
         method: "PUT",
         body: JSON.stringify(body),
     });
 }
 
 export async function deleteQuizOption(id: number): Promise<void> {
-    await apiFetchAuthed<void>(`/api/post/quiz/option/delete/${id}`, { method: "DELETE" });
+    await apiFetchAuthed<void>(`/post/quiz/option/delete/${id}`, { method: "DELETE" });
 }
 
 // --- Module navigation for post page ---
@@ -252,5 +252,5 @@ export async function getPostModuleNav(
     }
 
     const qs = sp.toString();
-    return apiFetchAuthed<ModulePostNav>(`/api/module/nav/by-post/${postId}${qs ? `?${qs}` : ""}`);
+    return apiFetchAuthed<ModulePostNav>(`/module/nav/by-post/${postId}${qs ? `?${qs}` : ""}`);
 }

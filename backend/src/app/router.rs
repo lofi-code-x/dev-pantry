@@ -8,24 +8,30 @@ use tower_http::cors::CorsLayer;
 use tower_http::services::ServeDir;
 
 pub fn build_router(ctx: Context) -> Router {
-    let cors = CorsLayer::new()
-        .allow_origin([
-            "http://localhost:3000".parse::<HeaderValue>().unwrap(),
-            "http://127.0.0.1:3000".parse::<HeaderValue>().unwrap(),
-        ])
-        .allow_credentials(true)
-        .allow_methods([
-            Method::GET,
-            Method::POST,
-            Method::PUT,
-            Method::DELETE,
-            Method::OPTIONS,
-        ])
-        .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION, header::ACCEPT]);
-
-    Router::new()
+    let mut r = Router::new()
         .nest("/api", api::routes())
         .nest_service("/uploads", ServeDir::new("uploads"))
-        .layer(cors)
-        .with_state(ctx)
+        .with_state(ctx);
+
+    let app_env = std::env::var("APP_ENV").unwrap_or_else(|_| "dev".into());
+    if app_env != "prod" && app_env != "production" {
+        let cors = CorsLayer::new()
+            .allow_origin([
+                "http://localhost:3000".parse::<HeaderValue>().unwrap(),
+                "http://127.0.0.1:3000".parse::<HeaderValue>().unwrap(),
+            ])
+            .allow_credentials(true)
+            .allow_methods([
+                Method::GET,
+                Method::POST,
+                Method::PUT,
+                Method::DELETE,
+                Method::OPTIONS,
+            ])
+            .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION, header::ACCEPT]);
+
+        r = r.layer(cors);
+    }
+
+    r
 }

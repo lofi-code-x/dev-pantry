@@ -54,11 +54,6 @@ export type ModuleItemCreateRequest = {
     sort_order: number;
 };
 
-export type ModuleItemUpdateRequest = {
-    section_id?: number | null;
-    sort_order: number;
-};
-
 export type ModuleSection = {
     id: number;
     module_id: number;
@@ -84,41 +79,35 @@ export type ModuleSectionCreateRequest = {
     sort_order: number;
 };
 
-export type ModuleSectionUpdateRequest = {
-    title: string;
-    description: string | null;
-    sort_order: number;
-};
-
 // ----------------------------- Modules ----------------------------------
 
 // GET /api/module/list?only_published=true
 export async function listModules(): Promise<Module[]> {
-    return apiFetchAuthed<Module[]>(`/api/module/list`);
+    return apiFetchAuthed<Module[]>(`/module/list`);
 }
 
 export async function getModule(moduleId: number | null): Promise<Module> {
-    return apiFetchAuthed<Module>(`/api/module/get/${moduleId}`);
+    return apiFetchAuthed<Module>(`/module/get/${moduleId}`);
 }
 
 // GET /api/module/get-posts/{id}?only_published=true
 export async function getModulePosts(
     moduleId: number | null,
 ): Promise<ModuleSectionPosts[]> {
-    return apiFetchAuthed<ModuleSectionPosts[]>(`/api/module/get-posts/${moduleId}`);
+    return apiFetchAuthed<ModuleSectionPosts[]>(`/module/get-posts/${moduleId}`);
 }
 
 export async function listModuleItems(moduleId: number): Promise<ModuleItem[]> {
-    return apiFetchAuthed<ModuleItem[]>(`/api/module/${moduleId}/items`, {method: "GET"});
+    return apiFetchAuthed<ModuleItem[]>(`/module/${moduleId}/items`, {method: "GET"});
 }
 
 export async function listModuleSections(moduleId: number): Promise<ModuleSection[]> {
-    return apiFetchAuthed<ModuleSection[]>(`/api/module/${moduleId}/sections`, {method: "GET"});
+    return apiFetchAuthed<ModuleSection[]>(`/module/${moduleId}/sections`, {method: "GET"});
 }
 
 // POST /api/module/create (staff) -> id
 export async function createModule(body: ModuleCreateRequest): Promise<number> {
-    return apiFetchAuthed<number>("/api/module/create", {
+    return apiFetchAuthed<number>("/module/create", {
         method: "POST",
         body: JSON.stringify(body),
     });
@@ -126,7 +115,7 @@ export async function createModule(body: ModuleCreateRequest): Promise<number> {
 
 // PUT /api/module/update/{id} (staff) -> id
 export async function updateModule(id: number, body: ModuleUpdateRequest): Promise<number> {
-    return apiFetchAuthed<number>(`/api/module/update/${id}`, {
+    return apiFetchAuthed<number>(`/module/update/${id}`, {
         method: "PUT",
         body: JSON.stringify(body),
     });
@@ -134,7 +123,7 @@ export async function updateModule(id: number, body: ModuleUpdateRequest): Promi
 
 // PUT /api/module/set-public/{id} (staff) -> 204
 export async function setModulePublic(id: number, isPublic: boolean): Promise<void> {
-    await apiFetchAuthed<void>(`/api/module/set-public/${id}`, {
+    await apiFetchAuthed<void>(`/module/set-public/${id}`, {
         method: "PUT",
         body: JSON.stringify({is_public: isPublic} satisfies ModuleSetPublicRequest),
     });
@@ -142,51 +131,35 @@ export async function setModulePublic(id: number, isPublic: boolean): Promise<vo
 
 // DELETE /api/module/delete/{id} (staff) -> 204
 export async function deleteModule(id: number): Promise<void> {
-    await apiFetchAuthed<void>(`/api/module/delete/${id}`, {method: "DELETE"});
+    await apiFetchAuthed<void>(`/module/delete/${id}`, {method: "DELETE"});
 }
 
 // --------------------------- Module Items --------------------------------
 
 // POST /api/module/item/create (staff) -> id
 export async function createModuleItem(body: ModuleItemCreateRequest): Promise<number> {
-    return apiFetchAuthed<number>("/api/module/item/create", {
+    return apiFetchAuthed<number>("/module/item/create", {
         method: "POST",
-        body: JSON.stringify(body),
-    });
-}
-
-// PUT /api/module/item/update/{id} (staff) -> 204
-export async function updateModuleItem(id: number, body: ModuleItemUpdateRequest): Promise<void> {
-    await apiFetchAuthed<void>(`/api/module/item/update/${id}`, {
-        method: "PUT",
         body: JSON.stringify(body),
     });
 }
 
 // DELETE /api/module/item/delete/{id} (staff) -> 204
 export async function deleteModuleItem(id: number): Promise<void> {
-    await apiFetchAuthed<void>(`/api/module/item/delete/${id}`, {method: "DELETE"});
+    await apiFetchAuthed<void>(`/module/item/delete/${id}`, {method: "DELETE"});
 }
 
 // -------------------------- Module Sections -----------------------------
 
 // POST /api/module/section/create (staff) -> id
 export async function createModuleSection(body: ModuleSectionCreateRequest): Promise<number> {
-    return apiFetchAuthed<number>("/api/module/section/create", {
+    return apiFetchAuthed<number>("/module/section/create", {
         method: "POST",
-        body: JSON.stringify(body),
-    });
-}
-
-// PUT /api/module/section/update/{id} (staff) -> 204
-export async function updateModuleSection(id: number, body: ModuleSectionUpdateRequest): Promise<void> {
-    await apiFetchAuthed<void>(`/api/module/section/update/${id}`, {
-        method: "PUT",
         body: JSON.stringify(body),
     });
 }
 
 // DELETE /api/module/section/delete/{id} (staff) -> 204
 export async function deleteModuleSection(id: number): Promise<void> {
-    await apiFetchAuthed<void>(`/api/module/section/delete/${id}`, {method: "DELETE"});
+    await apiFetchAuthed<void>(`/module/section/delete/${id}`, {method: "DELETE"});
 }

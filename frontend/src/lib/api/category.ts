@@ -12,12 +12,12 @@ export type CategoryRequest = {
 
 // GET /api/category/get-all
 export async function getAllCategories(): Promise<Category[]> {
-    return apiFetchAuthed<Category[]>("/api/category/get-all");
+    return apiFetchAuthed<Category[]>("/category/get-all");
 }
 
 // POST /api/category/create (staff only) -> Category
 export async function createCategory(body: CategoryRequest): Promise<Category> {
-    return apiFetchAuthed<Category>("/api/category/create", {
+    return apiFetchAuthed<Category>("/category/create", {
         method: "POST",
         body: JSON.stringify(body),
     });
@@ -26,7 +26,7 @@ export async function createCategory(body: CategoryRequest): Promise<Category> {
 // DELETE /api/category/delete/{tag} (staff only) -> 204
 export async function deleteCategory(tag: string): Promise<void> {
     const safe = encodeURIComponent(tag);
-    await apiFetchAuthed<void>(`/api/category/delete/${safe}`, {
+    await apiFetchAuthed<void>(`/category/delete/${safe}`, {
         method: "DELETE",
     });
 }

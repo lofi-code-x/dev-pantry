@@ -16,7 +16,7 @@ export async function uploadImage(file: File): Promise<UploadResponse> {
     const form = new FormData();
     form.append("file", file);
 
-    return apiFetchFormAuthed<UploadResponse>("/api/uploads/images", {
+    return apiFetchFormAuthed<UploadResponse>("/uploads/images", {
         method: "POST",
         body: form,
     });
@@ -26,26 +26,26 @@ export async function uploadAvatar(file: File): Promise<UploadResponse> {
     const form = new FormData();
     form.append("file", file);
 
-    return apiFetchFormAuthed<UploadResponse>("/api/uploads/avatar", {
+    return apiFetchFormAuthed<UploadResponse>("/uploads/avatar", {
         method: "POST",
         body: form,
     });
 }
 
 export async function deleteAvatar(): Promise<void> {
-    await apiFetchAuthed<void>("/api/uploads/avatar", {method: "DELETE"});
+    await apiFetchAuthed<void>("/uploads/avatar", {method: "DELETE"});
 }
 
 // ✅ GET: картинки поста
 export async function getPostImages(postId: number): Promise<UploadView[]> {
-    return apiFetchAuthed<UploadView[]>(`/api/uploads/images/${postId}`, {
+    return apiFetchAuthed<UploadView[]>(`/uploads/images/${postId}`, {
         method: "GET",
     });
 }
 
 // ✅ GET: картинки модуля (если надо)
 export async function listModuleImages(moduleId: number | null): Promise<UploadView[]> {
-    return apiFetchAuthed<UploadView[]>(`/api/uploads/modules/${moduleId}/images`, {
+    return apiFetchAuthed<UploadView[]>(`/uploads/modules/${moduleId}/images`, {
         method: "GET",
     });
 }
@@ -63,7 +63,7 @@ export async function listModuleImagesBatch(
     if (!ids) return {};
 
     return apiFetchAuthed<Record<string, UploadView | null>>(
-        `/api/uploads/modules/images?ids=${encodeURIComponent(ids)}`,
+        `/uploads/modules/images?ids=${encodeURIComponent(ids)}`,
         {method: "GET"}
     );
 }

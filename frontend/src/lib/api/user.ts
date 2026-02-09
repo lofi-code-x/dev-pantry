@@ -24,5 +24,5 @@ export type PublicUserProfile = {
 // GET /api/user/{login}
 export async function getPublicUserProfile(login: string): Promise<PublicUserProfile> {
     const safe = encodeURIComponent(login);
-    return apiFetch<PublicUserProfile>(`/api/user/${safe}`, { method: "GET" });
+    return apiFetch<PublicUserProfile>(`/user/${safe}`, { method: "GET" });
 }

@@ -8,5 +8,5 @@ export type LeaderboardUser = {
 
 // GET /api/leaderboard
 export async function listLeaderboard(): Promise<LeaderboardUser[]> {
-    return apiFetch<LeaderboardUser[]>("/api/leaderboard", { method: "GET" });
+    return apiFetch<LeaderboardUser[]>("/leaderboard", { method: "GET" });
 }
