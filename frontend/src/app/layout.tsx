@@ -12,8 +12,8 @@ import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 import { Inter } from "next/font/google";
 
 export const metadata: Metadata = {
-    title: "StackForge",
-    description: "Кладовая знаний о разработке",
+    title: "Quest Lab",
+    description: "экспериментальная платформа для изучения IT",
 };
 
 const THEME_INIT_SCRIPT = `
@@ -21,8 +21,7 @@ const THEME_INIT_SCRIPT = `
   try {
     var key = "dp-theme";
     var saved = localStorage.getItem(key);
-    var theme = saved === "dark" ? "dark" : saved === "light" ? "light"
-      : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    var theme = saved === "dark" ? "dark" : "light";
 
     // ✅ твоя тема (Tailwind tokens)
     document.documentElement.setAttribute("data-theme", theme);

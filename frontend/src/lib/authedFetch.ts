@@ -1,6 +1,6 @@
 // src/lib/api/authedFetch.ts
-import {apiFetch} from "@/lib/apiClient";
-import {getToken} from "@/lib/authSession";
+import {ApiError, apiFetch} from "@/lib/apiClient";
+import {clearSession, getToken} from "@/lib/authSession";
 
 export async function apiFetchAuthed<T>(
     path: string,
@@ -20,9 +20,17 @@ export async function apiFetchAuthed<T>(
 
     if (token) headers["Authorization"] = `Bearer ${token}`;
 
-    return apiFetch<T>(path, {
-        ...init,
-        headers,
-        credentials: init.credentials ?? "include",
-    });
+    try {
+        return await apiFetch<T>(path, {
+            ...init,
+            headers,
+            credentials: init.credentials ?? "include",
+        });
+    } catch (error) {
+        if (error instanceof ApiError && error.status === 401 && typeof window !== "undefined") {
+            clearSession();
+            window.location.replace("/login");
+        }
+        throw error;
+    }
 }

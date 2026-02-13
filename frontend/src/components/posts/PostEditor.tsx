@@ -410,7 +410,7 @@ export default function PostEditor({
                         ) : null}
                     </section>
 
-                    <section className={cn(cardBase, "p-3")}>
+                    <section className={cn("border border-border rounded-3xl", "p-3")}>
                         <MdEditor value={content} onChange={setContent}/>
                     </section>
 
