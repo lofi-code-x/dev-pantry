@@ -14,13 +14,13 @@ export class ApiError extends Error {
  * - Uploads: same origin (""), т.е. "/uploads/..."
  */
 export const API_BASE =
-    (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001/api").replace(/\/+$/, "");
+    (process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api").replace(/\/+$/, "");
 
 export const UPLOADS_BASE =
-    (process.env.NEXT_PUBLIC_API_BASE_UPLOADS_URL ?? "http://localhost:3001").replace(/\/+$/, "");
+    (process.env.NEXT_PUBLIC_API_BASE_UPLOADS_URL ?? "").replace(/\/+$/, "");
 
-// export const API_BASE = ""
-// export const UPLOADS_BASE = ""
+// export const API_BASE = "http://localhost:3001/api"
+// export const UPLOADS_BASE = "http://localhost:3001"
 
 /** join base + path without double-prefix (/api + /api/.. => /api/..) */
 function joinUrl(base: string, path: string) {
