@@ -16,6 +16,8 @@ import {
     deleteQuizQuestion,
     type PostCreateRequest,
     type QuizQuestionAdmin,
+    type QuizQuestionType,
+    type QuizTextInputValidation,
 } from "@/lib/api/posts";
 import UploadImagesPanel, {type UploadedImage} from "@/components/posts/UploadImagesPanel";
 import {getAllCategories} from "@/lib/api/category";
@@ -55,15 +57,47 @@ type QuizOptionDraft = {
     is_correct: boolean;
 };
 
+type QuizTextValidationDraft = {
+    correct_answer: string;
+};
+
 type QuizQuestionDraft = {
     id?: number;
     text: string;
+    question_type: QuizQuestionType;
+    text_validation: QuizTextValidationDraft;
     options: QuizOptionDraft[];
 };
+
+function makeTextValidationDraft(
+    source?: QuizTextInputValidation | null
+): QuizTextValidationDraft {
+    return {
+        correct_answer: String(source?.correct_answer ?? ""),
+    };
+}
+
+function buildTextValidationPayload(
+    draft: QuizTextValidationDraft
+): QuizTextInputValidation {
+    return {
+        correct_answer: draft.correct_answer.trim(),
+    };
+}
+
+function toAnswerHint(answer: string): string {
+    const normalized = answer.trim().replace(/\s+/g, " ");
+    return normalized
+        .split("")
+        .map((ch) => (ch === " " ? " " : "_"))
+        .join("");
+}
 
 function makeQuizQuestion(): QuizQuestionDraft {
     return {
         text: "",
+        question_type: "single_choice",
+        text_validation: makeTextValidationDraft(),
         options: [
             { text: "", is_correct: true },
             { text: "", is_correct: false },
@@ -143,7 +177,7 @@ export default function PostEditor({
                 const list = await getAllCategories();
                 if (cancelled) return;
 
-                const normalized = (list ?? []).map((c: any) => ({
+                const normalized = (list ?? []).map((c: { tag?: unknown; title?: unknown }) => ({
                     tag: String(c.tag ?? "").trim(),
                     title: String(c.title ?? c.tag ?? "").trim(),
                 }));
@@ -214,6 +248,8 @@ export default function PostEditor({
                 const mapped: QuizQuestionDraft[] = (res ?? []).map((q) => ({
                     id: q.id,
                     text: q.question_text,
+                    question_type: q.question_type ?? "single_choice",
+                    text_validation: makeTextValidationDraft(q.text_validation),
                     options: (q.options ?? []).map((o) => ({
                         id: o.id,
                         text: o.option_text,
@@ -287,15 +323,23 @@ export default function PostEditor({
         for (let i = 0; i < data.length; i++) {
             const q = data[i];
             if (!q.text.trim()) return `Question ${i + 1} text is required.`;
-            if (q.options.length < 2) return `Question ${i + 1} must have at least 2 options.`;
-            const correctCount = q.options.filter((o) => o.is_correct).length;
-            if (correctCount !== 1) {
-                return `Question ${i + 1} must have exactly one correct option.`;
-            }
-            for (let j = 0; j < q.options.length; j++) {
-                if (!q.options[j].text.trim()) {
-                    return `Option ${j + 1} in question ${i + 1} is empty.`;
+            if (q.question_type === "single_choice") {
+                if (q.options.length < 2) return `Question ${i + 1} must have at least 2 options.`;
+                const correctCount = q.options.filter((o) => o.is_correct).length;
+                if (correctCount !== 1) {
+                    return `Question ${i + 1} must have exactly one correct option.`;
                 }
+                for (let j = 0; j < q.options.length; j++) {
+                    if (!q.options[j].text.trim()) {
+                        return `Option ${j + 1} in question ${i + 1} is empty.`;
+                    }
+                }
+                continue;
+            }
+
+            const validation = buildTextValidationPayload(q.text_validation);
+            if (!validation.correct_answer) {
+                return `Question ${i + 1} (text input) must have a correct answer.`;
             }
         }
         return null;
@@ -325,14 +369,21 @@ export default function PostEditor({
                 post_id: targetPostId,
                 question_text: q.text.trim(),
                 sort_order: i,
+                question_type: q.question_type,
+                text_validation:
+                    q.question_type === "text_input"
+                        ? buildTextValidationPayload(q.text_validation)
+                        : null,
             });
 
-            for (const opt of q.options) {
-                await createQuizOption({
-                    question_id: questionId,
-                    option_text: opt.text.trim(),
-                    is_correct: opt.is_correct,
-                });
+            if (q.question_type === "single_choice") {
+                for (const opt of q.options) {
+                    await createQuizOption({
+                        question_id: questionId,
+                        option_text: opt.text.trim(),
+                        is_correct: opt.is_correct,
+                    });
+                }
             }
         }
     }
@@ -491,98 +542,181 @@ export default function PostEditor({
                                                 </button>
                                             </div>
 
-                                            <div className="space-y-2">
-                                                {q.options.map((opt, oi) => (
-                                                    <div key={`q-${qi}-o-${oi}`} className="flex items-center gap-2">
-                                                        <input
-                                                            type="radio"
-                                                            name={`q-${qi}-correct`}
-                                                            checked={opt.is_correct}
-                                                            onChange={() => {
-                                                                setQuiz((prev) =>
-                                                                    prev.map((x, idx) => {
-                                                                        if (idx !== qi) return x;
-                                                                        return {
-                                                                            ...x,
-                                                                            options: x.options.map((o, oidx) => ({
-                                                                                ...o,
-                                                                                is_correct: oidx === oi,
-                                                                            })),
+                                            <div className="mb-3">
+                                                <label className="block text-xs text-muted-fg">Type</label>
+                                                <select
+                                                    value={q.question_type}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value as QuizQuestionType;
+                                                        setQuiz((prev) =>
+                                                            prev.map((x, idx) => {
+                                                                if (idx !== qi) return x;
+                                                                if (value === "single_choice") {
+                                                                    const baseOptions = x.options.length >= 2
+                                                                        ? x.options
+                                                                        : [
+                                                                              { text: "", is_correct: true },
+                                                                              { text: "", is_correct: false },
+                                                                          ];
+                                                                    const nextOptions = baseOptions.map((opt) => ({ ...opt }));
+                                                                    if (!nextOptions.some((o) => o.is_correct)) {
+                                                                        nextOptions[0] = {
+                                                                            ...nextOptions[0],
+                                                                            is_correct: true,
                                                                         };
-                                                                    })
-                                                                );
-                                                            }}
-                                                            disabled={pending}
-                                                        />
-                                                        <input
-                                                            value={opt.text}
-                                                            onChange={(e) => {
-                                                                const v = e.target.value;
-                                                                setQuiz((prev) =>
-                                                                    prev.map((x, idx) => {
-                                                                        if (idx !== qi) return x;
-                                                                        return {
-                                                                            ...x,
-                                                                            options: x.options.map((o, oidx) =>
-                                                                                oidx === oi ? { ...o, text: v } : o
-                                                                            ),
-                                                                        };
-                                                                    })
-                                                                );
-                                                            }}
-                                                            className="input h-9 flex-1"
-                                                            placeholder={`Option ${oi + 1}`}
-                                                            disabled={pending}
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setQuiz((prev) =>
-                                                                    prev.map((x, idx) => {
-                                                                        if (idx !== qi) return x;
-                                                                        const next = x.options.filter((_, oidx) => oidx !== oi);
-                                                                        if (!next.some((o) => o.is_correct) && next.length > 0) {
-                                                                            next[0] = { ...next[0], is_correct: true };
-                                                                        }
-                                                                        return { ...x, options: next };
-                                                                    })
-                                                                );
-                                                            }}
-                                                            disabled={pending || q.options.length <= 2}
-                                                            className={cn("btn h-8 px-2 text-xs")}
-                                                        >
-                                                            <DeleteOutlineIcon sx={{ fontSize: 16 }} className="text-muted-fg" />
-                                                            Delete
-                                                        </button>
-                                                    </div>
-                                                ))}
+                                                                    }
+                                                                    return {
+                                                                        ...x,
+                                                                        question_type: value,
+                                                                        options: nextOptions,
+                                                                    };
+                                                                }
+                                                                return {
+                                                                    ...x,
+                                                                    question_type: value,
+                                                                    options: [],
+                                                                };
+                                                            })
+                                                        );
+                                                    }}
+                                                    className="input mt-2 max-w-xs"
+                                                    disabled={pending}
+                                                >
+                                                    <option value="single_choice">single_choice</option>
+                                                    <option value="text_input">text_input</option>
+                                                </select>
                                             </div>
 
-                                            <div className="mt-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setQuiz((prev) =>
-                                                            prev.map((x, idx) =>
-                                                                idx === qi
-                                                                    ? {
-                                                                          ...x,
-                                                                          options: [
-                                                                              ...x.options,
-                                                                              { text: "", is_correct: false },
-                                                                          ],
-                                                                      }
-                                                                    : x
-                                                            )
-                                                        )
-                                                    }
-                                                    disabled={pending}
-                                                    className={cn("btn px-3 py-2 text-xs")}
-                                                >
-                                                    <AddIcon sx={{ fontSize: 16 }} className="text-muted-fg" />
-                                                    Add option
-                                                </button>
-                                            </div>
+                                            {q.question_type === "single_choice" ? (
+                                                <>
+                                                    <div className="space-y-2">
+                                                        {q.options.map((opt, oi) => (
+                                                            <div key={`q-${qi}-o-${oi}`} className="flex items-center gap-2">
+                                                                <input
+                                                                    type="radio"
+                                                                    name={`q-${qi}-correct`}
+                                                                    checked={opt.is_correct}
+                                                                    onChange={() => {
+                                                                        setQuiz((prev) =>
+                                                                            prev.map((x, idx) => {
+                                                                                if (idx !== qi) return x;
+                                                                                return {
+                                                                                    ...x,
+                                                                                    options: x.options.map((o, oidx) => ({
+                                                                                        ...o,
+                                                                                        is_correct: oidx === oi,
+                                                                                    })),
+                                                                                };
+                                                                            })
+                                                                        );
+                                                                    }}
+                                                                    disabled={pending}
+                                                                />
+                                                                <input
+                                                                    value={opt.text}
+                                                                    onChange={(e) => {
+                                                                        const v = e.target.value;
+                                                                        setQuiz((prev) =>
+                                                                            prev.map((x, idx) => {
+                                                                                if (idx !== qi) return x;
+                                                                                return {
+                                                                                    ...x,
+                                                                                    options: x.options.map((o, oidx) =>
+                                                                                        oidx === oi ? { ...o, text: v } : o
+                                                                                    ),
+                                                                                };
+                                                                            })
+                                                                        );
+                                                                    }}
+                                                                    className="input h-9 flex-1"
+                                                                    placeholder={`Option ${oi + 1}`}
+                                                                    disabled={pending}
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setQuiz((prev) =>
+                                                                            prev.map((x, idx) => {
+                                                                                if (idx !== qi) return x;
+                                                                                const next = x.options.filter((_, oidx) => oidx !== oi);
+                                                                                if (!next.some((o) => o.is_correct) && next.length > 0) {
+                                                                                    next[0] = { ...next[0], is_correct: true };
+                                                                                }
+                                                                                return { ...x, options: next };
+                                                                            })
+                                                                        );
+                                                                    }}
+                                                                    disabled={pending || q.options.length <= 2}
+                                                                    className={cn("btn h-8 px-2 text-xs")}
+                                                                >
+                                                                    <DeleteOutlineIcon sx={{ fontSize: 16 }} className="text-muted-fg" />
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+
+                                                    <div className="mt-3">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setQuiz((prev) =>
+                                                                    prev.map((x, idx) =>
+                                                                        idx === qi
+                                                                            ? {
+                                                                                ...x,
+                                                                                options: [
+                                                                                    ...x.options,
+                                                                                    { text: "", is_correct: false },
+                                                                                ],
+                                                                            }
+                                                                            : x
+                                                                    )
+                                                                )
+                                                            }
+                                                            disabled={pending}
+                                                            className={cn("btn px-3 py-2 text-xs")}
+                                                        >
+                                                            <AddIcon sx={{ fontSize: 16 }} className="text-muted-fg" />
+                                                            Add option
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    <label className="block text-xs text-muted-fg">
+                                                        Correct answer (exact, case-insensitive)
+                                                    </label>
+                                                    <input
+                                                        value={q.text_validation.correct_answer}
+                                                        onChange={(e) => {
+                                                            const v = e.target.value;
+                                                            setQuiz((prev) =>
+                                                                prev.map((x, idx) =>
+                                                                    idx === qi
+                                                                        ? {
+                                                                            ...x,
+                                                                            text_validation: {
+                                                                                ...x.text_validation,
+                                                                                correct_answer: v,
+                                                                            },
+                                                                        }
+                                                                        : x
+                                                                )
+                                                            );
+                                                        }}
+                                                        className="input h-9 w-full"
+                                                        placeholder="e.g. Сетевые технологии"
+                                                        disabled={pending}
+                                                    />
+                                                    <div className="text-xs text-muted-fg">
+                                                        Hint preview:{" "}
+                                                        <span className="font-mono">
+                                                            {toAnswerHint(q.text_validation.correct_answer) || "_____"}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>

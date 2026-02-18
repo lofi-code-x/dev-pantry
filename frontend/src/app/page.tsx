@@ -6,8 +6,6 @@ import MenuBookIcon from "@mui/icons-material/MenuBook";
 import TravelExploreIcon from "@mui/icons-material/TravelExplore";
 import BoltIcon from "@mui/icons-material/Bolt";
 
-import {getVersion} from "@/lib/api/meta";
-
 function cn(...parts: Array<string | false | null | undefined>) {
     return parts.filter(Boolean).join(" ");
 }
@@ -26,6 +24,8 @@ const cardHover =
     "hover:bg-[hsl(var(--ring)/0.10)] hover:border-[hsl(var(--ring)/0.45)] " +
     "hover:ring-2 hover:ring-inset hover:ring-ring/30 " +
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55";
+
+const ver = '0.1.3';
 
 function FeatureCard({
                          title,
@@ -65,15 +65,6 @@ function FeatureCard({
 }
 
 export default async function HomePage() {
-    let ver: string | null;
-
-    try {
-        const v = await getVersion();
-        ver = v?.version ? `v${v.version}` : null;
-    } catch {
-        ver = null;
-    }
-
     return (
         <main className="mx-auto w-full max-w-6xl px-6 py-10">
             {/* HERO */}

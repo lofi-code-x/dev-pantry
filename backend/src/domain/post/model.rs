@@ -22,6 +22,8 @@ pub struct PostQuizQuestion {
     pub post_id: i64,
     pub question_text: String,
     pub sort_order: i32,
+    pub question_type: String,
+    pub text_validation: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -33,8 +35,17 @@ pub struct PostQuizOption {
     pub is_correct: bool,
 }
 
+#[derive(FromRow)]
+pub struct QuizScoringQuestion {
+    pub question_id: i64,
+    pub question_type: String,
+    pub text_validation: Option<String>,
+    pub correct_option_id: Option<i64>,
+}
+
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct QuizAnswer {
     pub question_id: i64,
-    pub option_id: i64,
+    pub option_id: Option<i64>,
+    pub answer_text: Option<String>,
 }

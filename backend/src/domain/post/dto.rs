@@ -108,19 +108,44 @@ pub struct PostSetPublicRequest {
     pub is_public: bool,
 }
 
-// ----------------------------- Quiz (minimal) -----------------------------
+// ----------------------------- Quiz ----------------------------------------
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum QuizQuestionType {
+    #[default]
+    SingleChoice,
+    TextInput,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default)]
+pub struct TextInputValidationRule {
+    #[serde(default)]
+    pub correct_answer: String,
+    // Deprecated fallback for old drafts/configs.
+    #[serde(default)]
+    pub accepted: Vec<String>,
+}
 
 #[derive(serde::Deserialize)]
 pub struct InsertQuizQuestionParams {
     pub post_id: i64,
     pub question_text: String,
     pub sort_order: i32,
+    #[serde(default)]
+    pub question_type: QuizQuestionType,
+    #[serde(default)]
+    pub text_validation: Option<TextInputValidationRule>,
 }
 
 #[derive(serde::Deserialize)]
 pub struct UpdateQuizQuestionParams {
     pub question_text: String,
     pub sort_order: i32,
+    #[serde(default)]
+    pub question_type: QuizQuestionType,
+    #[serde(default)]
+    pub text_validation: Option<TextInputValidationRule>,
 }
 
 #[derive(serde::Deserialize)]
@@ -147,6 +172,8 @@ pub struct QuizQuestionView {
     pub id: i64,
     pub question_text: String,
     pub sort_order: i32,
+    pub question_type: QuizQuestionType,
+    pub answer_hint: Option<String>,
     pub options: Vec<QuizOptionView>,
 }
 
@@ -162,6 +189,8 @@ pub struct QuizQuestionAdminView {
     pub id: i64,
     pub question_text: String,
     pub sort_order: i32,
+    pub question_type: QuizQuestionType,
+    pub text_validation: Option<TextInputValidationRule>,
     pub options: Vec<QuizOptionAdminView>,
 }
 
@@ -175,12 +204,14 @@ pub struct QuizSubmitResult {
     pub total_questions: i32,
     pub correct_answers: i32,
     pub is_passed: bool,
+    pub correct_question_ids: Vec<i64>,
 }
 
 #[derive(serde::Serialize)]
 pub struct QuizAttemptView {
     pub is_passed: bool,
     pub answers: Vec<QuizAnswer>,
+    pub correct_question_ids: Vec<i64>,
 }
 
 fn make_preview_text(md: &str, max_chars: usize) -> String {

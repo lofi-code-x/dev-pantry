@@ -14,6 +14,7 @@ import {
     setPostPublic,
     submitPostQuiz,
     getPostModuleNav,
+    type QuizAnswer,
     type QuizQuestion,
     type ModulePostNav,
 } from "@/lib/api/posts";
@@ -95,15 +96,29 @@ export default function PostPage() {
     const [fatalError, setFatalError] = useState<Error | null>(null);
     const [saved, setSaved] = useState(false);
     const [completed, setCompleted] = useState(false);
+
     const [nav, setNav] = useState<ModulePostNav | null>(null);
     const [navLoading, setNavLoading] = useState(false);
+
     const [quiz, setQuiz] = useState<QuizQuestion[]>([]);
     const [quizLoading, setQuizLoading] = useState(false);
     const [quizErr, setQuizErr] = useState<string | null>(null);
-    const [quizAnswers, setQuizAnswers] = useState<Map<number, number>>(new Map());
+
+    const [quizChoiceAnswers, setQuizChoiceAnswers] = useState<Map<number, number>>(new Map());
+    const [quizTextAnswers, setQuizTextAnswers] = useState<Map<number, string>>(new Map());
+    const [quizCorrectIds, setQuizCorrectIds] = useState<Set<number>>(new Set());
+
     const [quizPending, setQuizPending] = useState(false);
     const [quizResult, setQuizResult] = useState<string | null>(null);
-    const [quizAttemptLoaded, setQuizAttemptLoaded] = useState(false);
+
+    // ✅ Single place to reset quiz UI on post change (prevents races with loadQuiz/loadAttempt)
+    useEffect(() => {
+        setQuizChoiceAnswers(new Map());
+        setQuizTextAnswers(new Map());
+        setQuizCorrectIds(new Set());
+        setQuizResult(null);
+        setQuizErr(null);
+    }, [postId]);
 
     useEffect(() => {
         if (!Number.isFinite(postId)) {
@@ -165,10 +180,14 @@ export default function PostPage() {
                 const qs = await getPostQuiz(postId);
                 if (cancelled) return;
                 setQuiz(qs ?? []);
+                // ✅ IMPORTANT: do NOT reset quizCorrectIds here.
+                // Reset happens only on postId change (effect above),
+                // otherwise this can race and wipe greens after attempt loads.
             } catch (e) {
                 if (cancelled) return;
                 setQuizErr(e instanceof ApiError ? e.message : "Failed to load quiz.");
                 setQuiz([]);
+                // ✅ Do not touch quizCorrectIds here either; UI reset is handled on postId change.
             } finally {
                 if (!cancelled) setQuizLoading(false);
             }
@@ -180,14 +199,18 @@ export default function PostPage() {
         };
     }, [postId]);
 
-
     useEffect(() => {
         if (!ready) return;
+
+        // Not logged in -> clear quiz state (you can also leave it to postId reset, but this is fine)
         if (!user) {
-            setQuizAttemptLoaded(false);
-            setQuizAnswers(new Map());
+            setQuizChoiceAnswers(new Map());
+            setQuizTextAnswers(new Map());
+            setQuizCorrectIds(new Set());
+            setQuizResult(null);
             return;
         }
+
         if (!Number.isFinite(postId)) return;
 
         let cancelled = false;
@@ -196,17 +219,31 @@ export default function PostPage() {
             try {
                 const attempt = await getPostQuizAttempt(postId);
                 if (cancelled) return;
-                if (attempt?.answers?.length) {
-                    const next = new Map<number, number>();
-                    for (const a of attempt.answers) {
-                        next.set(a.question_id, a.option_id);
+
+                const answersArr = attempt?.answers ?? [];
+
+                // Restore selected answers in UI
+                const nextChoice = new Map<number, number>();
+                const nextText = new Map<number, string>();
+                for (const a of answersArr) {
+                    if (typeof a.option_id === "number") {
+                        nextChoice.set(a.question_id, a.option_id);
+                    } else if (typeof a.answer_text === "string") {
+                        nextText.set(a.question_id, a.answer_text);
                     }
-                    setQuizAnswers(next);
-                    setQuizResult(attempt.is_passed ? "✅ Previously passed." : null);
                 }
-                setQuizAttemptLoaded(true);
+                setQuizChoiceAnswers(nextChoice);
+                setQuizTextAnswers(nextText);
+
+                // ✅ Always set correct ids from API (even if not passed)
+                const correct = new Set(
+                    (attempt?.correct_question_ids ?? []).map((id: unknown) => Number(id)).filter(Number.isFinite)
+                );
+                setQuizCorrectIds(correct);
+
+                setQuizResult(attempt?.is_passed ? "✅ Previously passed." : null);
             } catch {
-                if (!cancelled) setQuizAttemptLoaded(true);
+                // best-effort: do nothing
             }
         }
 
@@ -233,7 +270,8 @@ export default function PostPage() {
                 if (cancelled) return;
                 setSaved(Boolean(st.saved));
                 setCompleted(Boolean(st.completed));
-            } catch {}
+            } catch {
+            }
         }
 
         loadMeState();
@@ -241,7 +279,6 @@ export default function PostPage() {
             cancelled = true;
         };
     }, [ready, user, postId]);
-
 
     useEffect(() => {
         if (!Number.isFinite(postId)) return;
@@ -359,27 +396,50 @@ export default function PostPage() {
             return;
         }
 
-        const answers = quiz.map((q) => ({
-            question_id: q.id,
-            option_id: quizAnswers.get(q.id),
-        }));
+        const answers: QuizAnswer[] = [];
+        for (const q of quiz) {
+            if (q.question_type === "text_input") {
+                const answerText = (quizTextAnswers.get(q.id) ?? "").trim();
+                if (answerText) {
+                    answers.push({question_id: q.id, answer_text: answerText});
+                }
+                continue;
+            }
 
-        if (answers.some((a) => typeof a.option_id !== "number")) {
-            setQuizResult("Answer all questions to submit.");
+            const optionId = quizChoiceAnswers.get(q.id);
+            if (typeof optionId === "number") {
+                answers.push({question_id: q.id, option_id: optionId});
+            }
+        }
+
+        if (answers.length === 0) {
+            setQuizResult("Answer at least one question to submit.");
             return;
         }
 
         setQuizPending(true);
         setQuizResult(null);
         try {
-            const res = await submitPostQuiz(postId, {
-                answers: answers as { question_id: number; option_id: number }[],
+            const res = await submitPostQuiz(postId, {answers});
+
+            const submittedIds = new Set(answers.map((a) => a.question_id));
+            const correctIds = new Set((res.correct_question_ids ?? []).map((id) => Number(id)));
+
+            // Update only questions submitted now
+            setQuizCorrectIds((prev) => {
+                const next = new Set(prev);
+                for (const qid of submittedIds) {
+                    if (correctIds.has(qid)) next.add(qid);
+                    else next.delete(qid);
+                }
+                return next;
             });
+
             if (res.is_passed) {
                 setQuizResult("✅ Correct! Post marked as completed.");
                 setCompleted(true);
             } else {
-                setQuizResult("❌ Not all answers are correct. Try again.");
+                setQuizResult(`Progress: ${res.correct_answers}/${res.total_questions} correct.`);
             }
         } catch (e) {
             setQuizResult(e instanceof ApiError ? e.message : "Failed to submit quiz.");
@@ -409,9 +469,8 @@ export default function PostPage() {
                             <div
                                 className="mt-2 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-fg">
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <span className="rounded-md border border-border bg-card px-2 py-1">
-                                        {post.category_tag}
-                                    </span>
+                                    <span
+                                        className="rounded-md border border-border bg-card px-2 py-1">{post.category_tag}</span>
                                     <span>•</span>
                                     <Link
                                         href={`/user/${encodeURIComponent(post.author)}`}
@@ -425,8 +484,8 @@ export default function PostPage() {
                                         <>
                                             <span>•</span>
                                             <span className="rounded-md border border-border bg-card px-2 py-1">
-                                                {post.is_published ? "public" : "private"}
-                                            </span>
+                        {post.is_published ? "public" : "private"}
+                      </span>
                                         </>
                                     ) : null}
                                 </div>
@@ -463,9 +522,7 @@ export default function PostPage() {
                                             {nav.prev ? (
                                                 <Link
                                                     href={
-                                                        moduleIdFromQs
-                                                            ? `/posts/${nav.prev.id}?module_id=${nav.module_id}`
-                                                            : `/posts/${nav.prev.id}`
+                                                        moduleIdFromQs ? `/posts/${nav.prev.id}?module_id=${nav.module_id}` : `/posts/${nav.prev.id}`
                                                     }
                                                     className={cn("btn", btnHover)}
                                                     title={nav.prev.title}
@@ -474,24 +531,15 @@ export default function PostPage() {
                                                     Prev
                                                 </Link>
                                             ) : (
-                                                <button
-                                                    type="button"
-                                                    disabled
-                                                    className={cn(
-                                                        "btn",
-                                                        "disabled:cursor-not-allowed disabled:opacity-60"
-                                                    )}
-                                                >
+                                                <button type="button" disabled
+                                                        className={cn("btn", "disabled:cursor-not-allowed disabled:opacity-60")}>
                                                     <NavigateBeforeIcon sx={{fontSize: 20}}/>
                                                     Prev
                                                 </button>
                                             )}
 
-                                            <Link
-                                                href={`/learn/${nav.module_id}`}
-                                                className={cn("btn", btnHover)}
-                                                title={`Open module #${nav.module_id}`}
-                                            >
+                                            <Link href={`/learn/${nav.module_id}`} className={cn("btn", btnHover)}
+                                                  title={`Open module #${nav.module_id}`}>
                                                 <MenuBookIcon sx={{fontSize: 18}} className="text-muted-fg"/>
                                                 Module
                                             </Link>
@@ -499,9 +547,7 @@ export default function PostPage() {
                                             {nav.next ? (
                                                 <Link
                                                     href={
-                                                        moduleIdFromQs
-                                                            ? `/posts/${nav.next.id}?module_id=${nav.module_id}`
-                                                            : `/posts/${nav.next.id}`
+                                                        moduleIdFromQs ? `/posts/${nav.next.id}?module_id=${nav.module_id}` : `/posts/${nav.next.id}`
                                                     }
                                                     className={cn("btn", btnHover)}
                                                     title={nav.next.title}
@@ -510,22 +556,15 @@ export default function PostPage() {
                                                     <NavigateNextIcon sx={{fontSize: 20}}/>
                                                 </Link>
                                             ) : (
-                                                <button
-                                                    type="button"
-                                                    disabled
-                                                    className={cn(
-                                                        "btn",
-                                                        "disabled:cursor-not-allowed disabled:opacity-60"
-                                                    )}
-                                                >
+                                                <button type="button" disabled
+                                                        className={cn("btn", "disabled:cursor-not-allowed disabled:opacity-60")}>
                                                     Next
                                                     <NavigateNextIcon sx={{fontSize: 20}}/>
                                                 </button>
                                             )}
 
-                                            {navLoading ? (
-                                                <span className="ml-2 text-xs text-muted-fg">Loading nav…</span>
-                                            ) : null}
+                                            {navLoading ?
+                                                <span className="ml-2 text-xs text-muted-fg">Loading nav…</span> : null}
                                         </>
                                     ) : navLoading ? (
                                         <span className="text-xs text-muted-fg">Loading module navigation…</span>
@@ -543,11 +582,7 @@ export default function PostPage() {
                                             type="button"
                                             onClick={onTogglePublic}
                                             disabled={actionPending}
-                                            className={cn(
-                                                "btn",
-                                                btnHover,
-                                                "disabled:cursor-not-allowed disabled:opacity-60"
-                                            )}
+                                            className={cn("btn", btnHover, "disabled:cursor-not-allowed disabled:opacity-60")}
                                         >
                                             {post.is_published ? (
                                                 <LockIcon sx={{fontSize: 18}} className="text-muted-fg"/>
@@ -587,9 +622,8 @@ export default function PostPage() {
                         {quizLoading ? (
                             <div className="text-sm text-muted-fg">Loading quiz…</div>
                         ) : quizErr ? (
-                            <div className="rounded-lg border border-border bg-muted p-3 text-sm text-fg">
-                                {quizErr}
-                            </div>
+                            <div
+                                className="rounded-lg border border-border bg-muted p-3 text-sm text-fg">{quizErr}</div>
                         ) : quiz.length === 0 ? (
                             <div className="flex flex-wrap items-center gap-3">
                                 <div className="text-sm text-muted-fg">No quiz for this post.</div>
@@ -617,48 +651,75 @@ export default function PostPage() {
                                         key={q.id}
                                         className={cn(
                                             "rounded-lg border border-border p-4",
-                                            "bg-[hsl(var(--ring)/0.03)]"
+                                            quizCorrectIds.has(q.id)
+                                                ? "border-[hsl(142_70%_40%/0.75)] bg-[hsl(142_70%_45%/0.16)] ring-2 ring-[hsl(142_70%_40%/0.30)]"
+                                                : "bg-[hsl(var(--ring)/0.03)]"
                                         )}
                                     >
                                         <div className="mb-2 text-sm font-medium text-fg">
                                             {qi + 1}. {q.question_text}
                                         </div>
-                                        <div className="space-y-2">
-                                            {q.options.map((opt) => (
-                                                <label
-                                                    key={opt.id}
-                                                    className="flex items-center gap-2 text-sm text-fg"
-                                                >
-                                                    <input
-                                                        type="radio"
-                                                        name={`q-${q.id}`}
-                                                        checked={quizAnswers.get(q.id) === opt.id}
-                                                        onChange={() =>
-                                                            setQuizAnswers((prev) => {
-                                                                const next = new Map(prev);
-                                                                next.set(q.id, opt.id);
-                                                                return next;
-                                                            })
-                                                        }
-                                                        disabled={quizPending}
-                                                    />
-                                                    {opt.option_text}
-                                                </label>
-                                            ))}
-                                        </div>
+
+                                        {q.question_type === "text_input" ? (
+                                            <input
+                                                value={quizTextAnswers.get(q.id) ?? ""}
+                                                onChange={(e) => {
+                                                    setQuizTextAnswers((prev) => {
+                                                        const next = new Map(prev);
+                                                        next.set(q.id, e.target.value);
+                                                        return next;
+                                                    });
+                                                    setQuizCorrectIds((prev) => {
+                                                        const next = new Set(prev);
+                                                        next.delete(q.id);
+                                                        return next;
+                                                    });
+                                                }}
+                                                className="input h-9 w-full"
+                                                placeholder={q.answer_hint ?? "Type your answer"}
+                                                disabled={quizPending}
+                                            />
+                                        ) : (
+                                            <div className="space-y-2">
+                                                {q.options.map((opt) => (
+                                                    <label key={opt.id}
+                                                           className="flex items-center gap-2 text-sm text-fg">
+                                                        <input
+                                                            type="radio"
+                                                            name={`q-${q.id}`}
+                                                            checked={quizChoiceAnswers.get(q.id) === opt.id}
+                                                            onChange={() => {
+                                                                setQuizChoiceAnswers((prev) => {
+                                                                    const next = new Map(prev);
+                                                                    next.set(q.id, opt.id);
+                                                                    return next;
+                                                                });
+                                                                setQuizCorrectIds((prev) => {
+                                                                    const next = new Set(prev);
+                                                                    next.delete(q.id);
+                                                                    return next;
+                                                                });
+                                                            }}
+                                                            disabled={quizPending}
+                                                        />
+                                                        {opt.option_text}
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
 
-                                {quizResult ? (
-                                    <div className="text-sm text-muted-fg">{quizResult}</div>
-                                ) : null}
+                                <div className="min-h-5 text-sm text-muted-fg" aria-live="polite">
+                                    {quizResult ?? "\u00A0"}
+                                </div>
 
                                 <button
                                     type="button"
                                     onClick={onSubmitQuiz}
                                     disabled={quizPending}
                                     className={cn(
-                                        "btn px-4 py-2",
+                                        "btn min-w-40 justify-center px-4 py-2",
                                         btnHover,
                                         "disabled:cursor-not-allowed disabled:opacity-60"
                                     )}

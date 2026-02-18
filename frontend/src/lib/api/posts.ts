@@ -40,10 +40,18 @@ export type QuizOption = {
     option_text: string;
 };
 
+export type QuizQuestionType = "single_choice" | "text_input";
+
+export type QuizTextInputValidation = {
+    correct_answer: string;
+};
+
 export type QuizQuestion = {
     id: number;
     question_text: string;
     sort_order: number;
+    question_type: QuizQuestionType;
+    answer_hint?: string | null;
     options: QuizOption[];
 };
 
@@ -57,12 +65,15 @@ export type QuizQuestionAdmin = {
     id: number;
     question_text: string;
     sort_order: number;
+    question_type: QuizQuestionType;
+    text_validation?: QuizTextInputValidation | null;
     options: QuizOptionAdmin[];
 };
 
 export type QuizAnswer = {
     question_id: number;
-    option_id: number;
+    option_id?: number | null;
+    answer_text?: string | null;
 };
 
 export type QuizSubmitRequest = {
@@ -73,22 +84,28 @@ export type QuizSubmitResult = {
     total_questions: number;
     correct_answers: number;
     is_passed: boolean;
+    correct_question_ids: number[];
 };
 
 export type QuizAttempt = {
     is_passed: boolean;
     answers: QuizAnswer[];
+    correct_question_ids: number[];
 };
 
 export type QuizQuestionCreateRequest = {
     post_id: number;
     question_text: string;
     sort_order: number;
+    question_type?: QuizQuestionType;
+    text_validation?: QuizTextInputValidation | null;
 };
 
 export type QuizQuestionUpdateRequest = {
     question_text: string;
     sort_order: number;
+    question_type?: QuizQuestionType;
+    text_validation?: QuizTextInputValidation | null;
 };
 
 export type QuizOptionCreateRequest = {
