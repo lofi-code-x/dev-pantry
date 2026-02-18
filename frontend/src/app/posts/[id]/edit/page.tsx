@@ -25,12 +25,14 @@ export default function EditPostPage() {
     const { user } = useAuth();
 
     const id = Number(params.id);
-
     const staff = useMemo(() => (user ? isStaff(user.role) : false), [user]);
+
+    const invalidId = staff && !Number.isFinite(id);
 
     const [initial, setInitial] = useState<Partial<PostCreateRequest> | null>(null);
     const [err, setErr] = useState<string | null>(null);
 
+    // Redirects (router side-effect is fine)
     useEffect(() => {
         if (!user) {
             router.replace("/login");
@@ -42,12 +44,10 @@ export default function EditPostPage() {
         }
     }, [user, staff, router]);
 
+    // Load post data
     useEffect(() => {
         if (!staff) return;
-        if (!Number.isFinite(id)) {
-            setErr("Invalid post id.");
-            return;
-        }
+        if (!Number.isFinite(id)) return;
 
         let cancelled = false;
 
@@ -75,8 +75,25 @@ export default function EditPostPage() {
         };
     }, [id, staff]);
 
+    // Rendering guards
     if (!user) return null;
     if (!staff) return null;
+
+    if (invalidId) {
+        return (
+            <main className="mx-auto w-full max-w-6xl px-6 py-10">
+                <section
+                    className={cn(
+                        "surface p-6",
+                        "ring-1 ring-inset ring-ring/15",
+                        "bg-[hsl(var(--ring)/0.06)]"
+                    )}
+                >
+                    <div className="text-sm text-fg">Invalid post id.</div>
+                </section>
+            </main>
+        );
+    }
 
     if (err) {
         return (
