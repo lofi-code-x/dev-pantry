@@ -1,7 +1,7 @@
 // src/app/posts/[id]/page.tsx
 "use client";
 
-import React, {useEffect, useMemo, useState, useRef} from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import Link from "next/link";
 import {notFound, useParams, useRouter, useSearchParams} from "next/navigation";
 import {ApiError} from "@/lib/apiClient";
@@ -20,7 +20,6 @@ import {
 import MdPreview from "@/components/posts/MdPreview";
 import {useAuth} from "@/components/auth/AuthProvider";
 
-// me api
 import {
     addMyBookmark,
     removeMyBookmark,
@@ -29,8 +28,6 @@ import {
     getMyPostState,
 } from "@/lib/api/me";
 
-// ✅ Icons (MUI)
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
@@ -40,7 +37,6 @@ import PublicIcon from "@mui/icons-material/Public";
 import LockIcon from "@mui/icons-material/Lock";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
-// ✅ Module nav icons
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
@@ -69,7 +65,6 @@ function formatDateTime(iso: string) {
     }
 }
 
-/** Button hover WITHOUT lift (no jumping on reading page) */
 const btnHover =
     "transition-[background-color,border-color,box-shadow] duration-150 " +
     "hover:bg-[hsl(var(--ring)/0.10)] hover:border-[hsl(var(--ring)/0.45)] " +
@@ -94,20 +89,14 @@ export default function PostPage() {
 
     const [post, setPost] = useState<Post | null>(null);
     const [loading, setLoading] = useState(false);
-
     const [actionPending, setActionPending] = useState(false);
     const [err, setErr] = useState<string | null>(null);
     const [notFoundPost, setNotFoundPost] = useState(false);
     const [fatalError, setFatalError] = useState<Error | null>(null);
-
-    // user-specific state
     const [saved, setSaved] = useState(false);
     const [completed, setCompleted] = useState(false);
-
-    // module navigation
     const [nav, setNav] = useState<ModulePostNav | null>(null);
     const [navLoading, setNavLoading] = useState(false);
-
     const [quiz, setQuiz] = useState<QuizQuestion[]>([]);
     const [quizLoading, setQuizLoading] = useState(false);
     const [quizErr, setQuizErr] = useState<string | null>(null);
@@ -116,7 +105,6 @@ export default function PostPage() {
     const [quizResult, setQuizResult] = useState<string | null>(null);
     const [quizAttemptLoaded, setQuizAttemptLoaded] = useState(false);
 
-    // load post
     useEffect(() => {
         if (!Number.isFinite(postId)) {
             setErr("Invalid post id.");
@@ -165,7 +153,6 @@ export default function PostPage() {
         };
     }, [postId]);
 
-    // load quiz
     useEffect(() => {
         if (!Number.isFinite(postId)) return;
 
@@ -193,7 +180,7 @@ export default function PostPage() {
         };
     }, [postId]);
 
-    // load last quiz attempt (prefill)
+
     useEffect(() => {
         if (!ready) return;
         if (!user) {
@@ -229,7 +216,6 @@ export default function PostPage() {
         };
     }, [ready, user, postId]);
 
-    // load user-specific state
     useEffect(() => {
         if (!ready) return;
 
@@ -247,9 +233,7 @@ export default function PostPage() {
                 if (cancelled) return;
                 setSaved(Boolean(st.saved));
                 setCompleted(Boolean(st.completed));
-            } catch {
-                // best-effort
-            }
+            } catch {}
         }
 
         loadMeState();
@@ -258,7 +242,7 @@ export default function PostPage() {
         };
     }, [ready, user, postId]);
 
-    // load module nav
+
     useEffect(() => {
         if (!Number.isFinite(postId)) return;
 
@@ -285,7 +269,6 @@ export default function PostPage() {
         };
     }, [postId, moduleIdFromQs]);
 
-    // ✅ show header divider only when the "top panel" exists
     const hasTopPanel = Boolean(nav || navLoading || staff);
 
     async function onDelete() {
@@ -410,7 +393,6 @@ export default function PostPage() {
 
     return (
         <main className="mx-auto w-full max-w-6xl px-6 py-10">
-            {/* Content */}
             {loading ? (
                 <section className="rounded-xl border border-border bg-card p-6 text-sm text-muted-fg shadow-sm">
                     Loading…

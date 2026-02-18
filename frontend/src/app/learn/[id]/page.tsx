@@ -275,7 +275,6 @@ export default function ModulePage() {
 
     if (!ready) return null;
 
-    // ✅ если загрузка модуля/постов упала — показываем ТОЛЬКО ошибку
     if (loadErr) {
         return (
             <main className="mx-auto w-full max-w-6xl px-6 py-10">
@@ -292,7 +291,6 @@ export default function ModulePage() {
         );
     }
 
-    // можно показывать скелет во время первой загрузки (пока нет mod)
     if (loadPending && !mod) {
         return (
             <main className="mx-auto w-full max-w-6xl px-6 py-10">

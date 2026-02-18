@@ -20,24 +20,16 @@ const PAGE_SIZE = 10;
 
 export default function PostsExplorePage() {
     const { user, ready } = useAuth();
-
     const [query, setQuery] = useState("");
     const [tag, setTag] = useState<string>("all");
-
     const [categories, setCategories] = useState<Category[]>([]);
     const [catLoading, setCatLoading] = useState(false);
-
     const [items, setItems] = useState<Post[]>([]);
     const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(true);
-
-    // post_id -> completed
     const [progressMap, setProgressMap] = useState<Map<number, boolean>>(new Map());
-
     const [error, setError] = useState<string | null>(null);
-
-    // sentinel ref for infinite scroll
     const sentinelRef = useRef<HTMLDivElement | null>(null);
 
     // загрузка категорий
@@ -69,7 +61,6 @@ export default function PostsExplorePage() {
         };
     }, []);
 
-    // ✅ загрузка прогресса пользователя (только completed) — один раз при логине/готовности
     useEffect(() => {
         if (!ready) return;
 
@@ -105,7 +96,6 @@ export default function PostsExplorePage() {
         };
     }, [ready, user?.id]);
 
-    // debounce query
     const debouncedQuery = useDebouncedValue(query, 250);
 
     const baseReq: Omit<PostRequest, "offset" | "limit"> = useMemo(
@@ -116,7 +106,6 @@ export default function PostsExplorePage() {
         [debouncedQuery, tag]
     );
 
-    // reload when filters change
     useEffect(() => {
         let cancelled = false;
 
@@ -183,7 +172,6 @@ export default function PostsExplorePage() {
         }
     }
 
-    // IntersectionObserver -> auto loadMore
     useEffect(() => {
         const el = sentinelRef.current;
         if (!el) return;
@@ -217,7 +205,6 @@ export default function PostsExplorePage() {
                 <PostPrimaryAction />
             </header>
 
-            {/* Filters */}
             <section className={cn("card-gloss p-6", "ring-1 ring-inset ring-border")}>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
                     <div className="flex-1">
@@ -256,7 +243,6 @@ export default function PostsExplorePage() {
                 </div>
             </section>
 
-            {/* Results */}
             <section className="mt-6 grid gap-4">
                 {error ? (
                     <div className={cn("surface p-4 text-sm text-fg", "ring-1 ring-inset ring-ring/15", "bg-[hsl(var(--ring)/0.06)]")}>
@@ -276,10 +262,8 @@ export default function PostsExplorePage() {
                     ))
                 )}
 
-                {/* sentinel for infinite scroll */}
                 <div ref={sentinelRef} className="h-1" />
 
-                {/* footer status */}
                 {!loading && items.length > 0 ? (
                     <div className="flex justify-center pt-2">
                         <div className={cn("surface px-4 py-2 text-sm text-muted-fg", "ring-1 ring-inset ring-border")}>

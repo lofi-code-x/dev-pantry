@@ -17,9 +17,7 @@ function PageShell({ children }: { children: React.ReactNode }) {
         <main className="mx-auto w-full max-w-6xl px-6 py-10">
             <div
                 className={[
-                    // ✅ glossy system surface
                     "surface p-6 text-sm text-muted-fg",
-                    // ✅ subtle accent ring (inside)
                     "ring-1 ring-inset ring-ring/15",
                     "bg-[hsl(var(--ring)/0.05)]",
                 ].join(" ")}

@@ -22,8 +22,6 @@ export default function LearnPage() {
     const [error, setError] = useState<string | null>(null);
 
     const [progressMap, setProgressMap] = useState<Map<number, boolean>>(new Map());
-
-    // ✅ module_id -> UploadView|null
     const [moduleImageMap, setModuleImageMap] = useState<Record<string, UploadView | null>>({});
 
     useEffect(() => {
@@ -34,7 +32,6 @@ export default function LearnPage() {
             setError(null);
 
             try {
-                // 1) mods + progress (как было)
                 const [mods, prog] = await Promise.all([
                     listModules(),
                     user ? listMyModuleProgress() : Promise.resolve<ModuleProgress[]>([]),
@@ -48,7 +45,6 @@ export default function LearnPage() {
                 for (const p of prog) m.set(p.module_id, Boolean(p.is_completed));
                 setProgressMap(m);
 
-                // 2) ✅ batch images (1 запрос)
                 const ids = mods.map((x) => x.id);
                 const imgMap = await listModuleImagesBatch(ids);
 

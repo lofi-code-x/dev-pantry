@@ -32,7 +32,6 @@ export default function EditPostPage() {
     const [err, setErr] = useState<string | null>(null);
 
     useEffect(() => {
-        // доступ: только staff
         if (!user) {
             router.replace("/login");
             return;
@@ -62,7 +61,7 @@ export default function EditPostPage() {
                     title: p.title,
                     category_tag: p.category_tag,
                     content_markdown: p.content_markdown,
-                    author: p.author, // важно: сохраним автора, PostEditor не будет перетирать
+                    author: p.author,
                 });
             } catch (e) {
                 if (cancelled) return;

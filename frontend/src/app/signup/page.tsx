@@ -29,16 +29,9 @@ export default function SignUpPage() {
         setPending(true);
 
         try {
-            // create
             const created = await signupApi({ login, password });
-
-            // если create не вернул токен — логинимся
             const auth = created ?? (await loginApi({ login, password }));
-
-            // 1) persist token + normalized user into localStorage
             saveSession(auth);
-
-            // 2) update in-memory auth state immediately (navbar etc.)
             setUser(auth.user);
 
             router.push("/posts");

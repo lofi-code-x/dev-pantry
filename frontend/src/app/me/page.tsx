@@ -165,13 +165,11 @@ export default function MePage() {
     const avatarInputRef = useRef<HTMLInputElement | null>(null);
     const [fatalError, setFatalError] = useState<Error | null>(null);
 
-    // guard
     useEffect(() => {
         if (!ready) return;
         if (!user) router.replace("/login");
     }, [ready, user, router]);
 
-    // load completed posts
     useEffect(() => {
         if (!ready) return;
         if (!user) return;
@@ -252,7 +250,6 @@ export default function MePage() {
         };
     }, [ready, user]);
 
-    // load contacts
     useEffect(() => {
         if (!ready) return;
         if (!user) return;
@@ -328,7 +325,6 @@ export default function MePage() {
         }
     }
 
-    // load completed modules (best-effort; N+1 but OK for now)
     useEffect(() => {
         if (!ready) return;
         if (!user) return;
@@ -390,7 +386,6 @@ export default function MePage() {
         };
     }, [ready, user]);
 
-    // load avatar from local storage (best-effort)
     useEffect(() => {
         if (!ready || !user) return;
         if (typeof window === "undefined") return;
@@ -411,19 +406,18 @@ export default function MePage() {
 
     const tabBase =
         "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium " +
-        "transition-[background-color,border-color] duration-150 " + // ✅ no transform
+        "transition-[background-color,border-color] duration-150 " +
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55";
 
     const tabActive = "border-primary bg-primary text-primary-fg";
 
-    // ✅ hover without lift (no jump)
+
     const tabInactive =
         "border-border bg-card text-fg " +
         "hover:bg-[hsl(var(--ring)/0.10)] hover:border-[hsl(var(--ring)/0.45)]";
 
     return (
         <main className="mx-auto w-full max-w-6xl px-6 py-10">
-            {/* Header — STATIC (no card-gloss) */}
             <section
                 className={cn(
                     "rounded-xl border border-border bg-card p-6 shadow-sm",
@@ -431,7 +425,6 @@ export default function MePage() {
                 )}
             >
                 <div className="grid gap-6 lg:grid-cols-12">
-                    {/* Left */}
                     <div className="lg:col-span-8">
                         <div className="flex items-start gap-4">
                             <div className="flex flex-col items-start gap-2">
@@ -506,7 +499,6 @@ export default function MePage() {
                 </div>
 
                 <div className="mt-5 grid gap-4 lg:grid-cols-12 lg:items-stretch">
-                    {/* Contacts */}
                     <div className="lg:col-span-8">
                         <div className={cn("surface p-4", "ring-1 ring-inset ring-border")}>
                             <div className="flex items-center justify-between">
@@ -661,7 +653,6 @@ export default function MePage() {
                         </div>
                     </div>
 
-                    {/* User rating */}
                     <div className="lg:col-span-4">
                         <div
                             className={cn(
@@ -687,7 +678,6 @@ export default function MePage() {
                 </div>
             </section>
 
-            {/* Tabs */}
             <section className="mt-6">
                 <div className="flex flex-wrap items-center gap-2">
                     <button
@@ -732,7 +722,6 @@ export default function MePage() {
                 </div>
             </section>
 
-            {/* Tab content */}
             {tab === "posts" ? (
                 <section className="mt-4">
                     {postsErr ? (

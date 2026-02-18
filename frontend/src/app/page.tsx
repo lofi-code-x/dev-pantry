@@ -71,7 +71,7 @@ export default async function HomePage() {
         const v = await getVersion();
         ver = v?.version ? `v${v.version}` : null;
     } catch {
-        ver = null; // не ломаем главную страницу из-за версии
+        ver = null;
     }
 
     return (
@@ -131,8 +131,7 @@ export default async function HomePage() {
                         </div>
                     </div>
 
-                    {/* Right-side info cards (static) */}
-                    <div className="grid w-full gap-3 md:w-[360px]">
+                    <div className="grid w-full gap-3 md:w-90">
                         <div className={cn("surface p-4", "ring-1 ring-inset ring-border")}>
                             <div className="text-xs font-medium text-muted-fg">Фокус</div>
                             <div className="mt-1 text-sm font-semibold text-fg">Быстро найти нужную тему по IT</div>
@@ -160,7 +159,6 @@ export default async function HomePage() {
                 </div>
             </section>
 
-            {/* FEATURES */}
             <section className="mt-8">
                 <h2 className="text-base font-semibold text-fg">Что ты можешь сделать прямо сейчас</h2>
                 <p className="mt-1 text-sm text-muted-fg">Выбери сценарий — чтение, обучение или контроль прогресса.</p>
@@ -190,7 +188,6 @@ export default async function HomePage() {
                 </div>
             </section>
 
-            {/* HOW IT WORKS */}
             <section className={cn("mt-8 surface p-6", "ring-1 ring-inset ring-border")}>
                 <h2 className="text-base font-semibold text-fg">Как это работает</h2>
 

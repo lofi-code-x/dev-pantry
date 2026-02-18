@@ -68,11 +68,8 @@ export default function EditModulePage() {
             <main className="mx-auto w-full max-w-6xl px-6 py-10">
                 <div
                     className={[
-                        // ✅ new tokens
                         "surface p-4 text-sm text-fg",
-                        // ✅ ring accent, inside (won't clip)
                         "ring-1 ring-inset ring-ring/20",
-                        // ✅ slight ring tint
                         "bg-[hsl(var(--ring)/0.06)]",
                     ].join(" ")}
                 >

@@ -46,7 +46,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     return (
         <html lang="ru" suppressHydrationWarning className={inter.variable}>
         <head>
-            {/* Google Material Symbols */}
             <link
                 rel="stylesheet"
                 href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0,0"
