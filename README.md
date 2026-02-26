@@ -7,7 +7,25 @@
 #### Серия постов Offensive tools
 - [dirb](https://tryhackme.com/room/offensivesecurityintro)
 
-
+#### Серия постов Linux
+- команда ifconfig - https://tryhackme.com/room/networkingconcepts
+- telnet - https://tryhackme.com/room/networkingconcepts
+- tshark
+- tcpdump
+- traceroute
+- nslookup - https://tryhackme.com/room/networkingcoreprotocols
+- whois
+- ftp/smtp
+- ssh
+- Cyber Security 101
+- nmap
+- netcat
+- netstat
+- dig
+- arp-scan
+- arping
+- ipcalc
+- ip
 
 ``docker compose down``
 
