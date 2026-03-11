@@ -6,6 +6,7 @@
 
 #### Серия постов Offensive tools
 - [dirb](https://tryhackme.com/room/offensivesecurityintro)
+- wfuzz ffuf
 
 #### Серия постов Linux
 - команда ifconfig - https://tryhackme.com/room/networkingconcepts
