@@ -25,7 +25,7 @@ const cardHover =
     "hover:ring-2 hover:ring-inset hover:ring-ring/30 " +
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55";
 
-const ver = '0.1.4';
+const ver = '0.1.5';
 
 function FeatureCard({
                          title,
