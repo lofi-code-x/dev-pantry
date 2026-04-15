@@ -25,7 +25,7 @@ async function searchPostsForSitemap(params: PostRequest): Promise<Post[]> {
     const qs = sp.toString();
 
     const apiBase = (
-        process.env.NEXT_PUBLIC_API_BASE_URL || `${SITE_URL}/api`
+        process.env.NEXT_PUBLIC_API_BASE_URL || `${SITE_URL}`
     ).replace(/\/+$/, "");
 
     const url = `${apiBase}/post/search${qs ? `?${qs}` : ""}`;
