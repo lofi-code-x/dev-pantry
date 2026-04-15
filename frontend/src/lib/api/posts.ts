@@ -27,12 +27,7 @@ export type PostCreateRequest = {
     content_markdown: string;
     category_tag: string;
     author: string;
-
-    image_upload_ids: string[]; // <-- добавили
-};
-
-export type SetPublicRequest = {
-    is_public: boolean;
+    image_upload_ids: string[];
 };
 
 export type QuizOption = {
@@ -101,20 +96,8 @@ export type QuizQuestionCreateRequest = {
     text_validation?: QuizTextInputValidation | null;
 };
 
-export type QuizQuestionUpdateRequest = {
-    question_text: string;
-    sort_order: number;
-    question_type?: QuizQuestionType;
-    text_validation?: QuizTextInputValidation | null;
-};
-
 export type QuizOptionCreateRequest = {
     question_id: number;
-    option_text: string;
-    is_correct: boolean;
-};
-
-export type QuizOptionUpdateRequest = {
     option_text: string;
     is_correct: boolean;
 };
@@ -186,7 +169,7 @@ export async function getPostQuiz(postId: number): Promise<QuizQuestion[]> {
 }
 
 export async function getPostQuizAdmin(postId: number): Promise<QuizQuestionAdmin[]> {
-    return apiFetchAuthed<QuizQuestionAdmin[]>(`/post/${postId}/quiz/admin`, { method: "GET" });
+    return apiFetchAuthed<QuizQuestionAdmin[]>(`/post/${postId}/quiz/admin`, {method: "GET"});
 }
 
 export async function submitPostQuiz(
@@ -200,7 +183,7 @@ export async function submitPostQuiz(
 }
 
 export async function getPostQuizAttempt(postId: number): Promise<QuizAttempt | null> {
-    return apiFetchAuthed<QuizAttempt | null>(`/post/${postId}/quiz/attempt`, { method: "GET" });
+    return apiFetchAuthed<QuizAttempt | null>(`/post/${postId}/quiz/attempt`, {method: "GET"});
 }
 
 export async function createQuizQuestion(body: QuizQuestionCreateRequest): Promise<number> {
@@ -210,18 +193,8 @@ export async function createQuizQuestion(body: QuizQuestionCreateRequest): Promi
     });
 }
 
-export async function updateQuizQuestion(
-    id: number,
-    body: QuizQuestionUpdateRequest
-): Promise<void> {
-    await apiFetchAuthed<void>(`/post/quiz/question/update/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(body),
-    });
-}
-
 export async function deleteQuizQuestion(id: number): Promise<void> {
-    await apiFetchAuthed<void>(`/post/quiz/question/delete/${id}`, { method: "DELETE" });
+    await apiFetchAuthed<void>(`/post/quiz/question/delete/${id}`, {method: "DELETE"});
 }
 
 export async function createQuizOption(body: QuizOptionCreateRequest): Promise<number> {
@@ -229,20 +202,6 @@ export async function createQuizOption(body: QuizOptionCreateRequest): Promise<n
         method: "POST",
         body: JSON.stringify(body),
     });
-}
-
-export async function updateQuizOption(
-    id: number,
-    body: QuizOptionUpdateRequest
-): Promise<void> {
-    await apiFetchAuthed<void>(`/post/quiz/option/update/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(body),
-    });
-}
-
-export async function deleteQuizOption(id: number): Promise<void> {
-    await apiFetchAuthed<void>(`/post/quiz/option/delete/${id}`, { method: "DELETE" });
 }
 
 // --- Module navigation for post page ---
