@@ -2,31 +2,7 @@
 
 ## Release 0.2.0
 
-#### После заполнения fundametal статей можно их видоизменить/дополнить и получить оригинальность
-
-#### Серия постов Offensive tools
-- [dirb](https://tryhackme.com/room/offensivesecurityintro)
-- wfuzz ffuf
-
-#### Серия постов Linux
-- команда ifconfig - https://tryhackme.com/room/networkingconcepts
-- telnet - https://tryhackme.com/room/networkingconcepts
-- tshark
-- tcpdump
-- traceroute
-- nslookup - https://tryhackme.com/room/networkingcoreprotocols
-- whois
-- ftp/smtp
-- ssh
-- Cyber Security 101
-- nmap
-- netcat
-- netstat
-- dig
-- arp-scan
-- arping
-- ipcalc
-- ip
+Пересобрать полностью
 
 ``docker compose down``
 
@@ -34,9 +10,16 @@
 
 ``docker compose up -d``
 
+Пересобрать только фронт
+
+``docker compose build frontend``
+
+``docker compose up -d frontend``
+
 ---
 
 #### Future
+- переделать статистику, она бесполезная
 ~~- добавить вместо квиза, ввод правильного ответа для продвинутых модулей/постов~~
 - в личный профиль описание О себе
 - сделать ссылки с контактной информацией кликабельными

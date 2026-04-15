@@ -10,22 +10,13 @@ function cn(...parts: Array<string | false | null | undefined>) {
     return parts.filter(Boolean).join(" ");
 }
 
-function Pill({children}: { children: React.ReactNode }) {
-    return (
-        <span
-            className="inline-flex items-center rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-muted-fg">
-      {children}
-    </span>
-    );
-}
-
 const cardHover =
     "transition-[background-color,border-color,box-shadow] duration-150 " +
     "hover:bg-[hsl(var(--ring)/0.10)] hover:border-[hsl(var(--ring)/0.45)] " +
     "hover:ring-2 hover:ring-inset hover:ring-ring/30 " +
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/55";
 
-const ver = '0.1.5';
+const ver = '0.1.6';
 
 function FeatureCard({
                          title,
@@ -71,17 +62,12 @@ export default async function HomePage() {
             <section className={cn("card-gloss p-7 md:p-10", "ring-1 ring-inset ring-border")}>
                 <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                     <div className="max-w-2xl">
-                        <div className="flex flex-wrap gap-2">
-                            <Pill>IT</Pill>
-                            <Pill>Посты</Pill>
-                            <Pill>Модули</Pill>
-                            <Pill>Прогресс</Pill>
-                            <Pill>Лидерборд</Pill>
-                        </div>
-
                         <h1 className="mt-4 flex flex-wrap items-center gap-3 text-3xl font-semibold tracking-tight text-fg md:text-4xl">
                             <span>Quest Lab</span>
-
+                            <img
+                                src={"icon0.svg"}
+                                className="h-10 w-10"
+                            />
                             <span
                                 className="inline-flex items-center rounded-full border border-border bg-[hsl(var(--ring)/0.10)] px-2.5 py-1 text-xs font-semibold text-fg">
                 ALPHA
@@ -100,60 +86,15 @@ export default async function HomePage() {
                         </p>
 
                         <p className="mt-3 text-sm leading-6 text-muted-fg md:text-base">
-                            Quest Lab — экспериментальная платформа для изучения IT через модули. Проходи темы шаг за
-                            шагом, отмечай завершённое и соревнуйся в таблице лидеров.
+                            Quest Lab — это бесплатная платформа с техническими постами по различным IT-темам. Контент
+                            организован в модули, что позволяет изучать материалы последовательно, отмечать пройденное и
+                            отслеживать прогресс.
                         </p>
-
-                        <div className="mt-6 flex flex-wrap gap-3">
-                            <Link href="/posts" className="btn">
-                                Открыть Explore
-                            </Link>
-
-                            <Link
-                                href="/learn"
-                                className={cn("btn", "border-transparent bg-primary text-primary-fg hover:bg-primary/90")}
-                            >
-                                Начать обучение
-                            </Link>
-
-                            <Link href="/me" className="btn">
-                                Профиль / Прогресс
-                            </Link>
-                        </div>
-                    </div>
-
-                    <div className="grid w-full gap-3 md:w-90">
-                        <div className={cn("surface p-4", "ring-1 ring-inset ring-border")}>
-                            <div className="text-xs font-medium text-muted-fg">Фокус</div>
-                            <div className="mt-1 text-sm font-semibold text-fg">Быстро найти нужную тему по IT</div>
-                            <p className="mt-1 text-xs leading-5 text-muted-fg">
-                                Категории + поиск + удобная лента постов.
-                            </p>
-                        </div>
-
-                        <div className={cn("surface p-4", "ring-1 ring-inset ring-border")}>
-                            <div className="text-xs font-medium text-muted-fg">Обучение</div>
-                            <div className="mt-1 text-sm font-semibold text-fg">Учиться по модулям с прогрессом</div>
-                            <p className="mt-1 text-xs leading-5 text-muted-fg">
-                                Подборки постов, чекпоинты и завершение модулей.
-                            </p>
-                        </div>
-
-                        <div className={cn("surface p-4", "ring-1 ring-inset ring-border")}>
-                            <div className="text-xs font-medium text-muted-fg">Соревнование</div>
-                            <div className="mt-1 text-sm font-semibold text-fg">Расти в таблице лидеров</div>
-                            <p className="mt-1 text-xs leading-5 text-muted-fg">
-                                Зарабатывай очки за прогресс и сравнивай результаты.
-                            </p>
-                        </div>
                     </div>
                 </div>
             </section>
 
             <section className="mt-8">
-                <h2 className="text-base font-semibold text-fg">Что ты можешь сделать прямо сейчас</h2>
-                <p className="mt-1 text-sm text-muted-fg">Выбери сценарий — чтение, обучение или контроль прогресса.</p>
-
                 <div className="mt-4 grid gap-4 md:grid-cols-3">
                     <FeatureCard
                         title="Explore"

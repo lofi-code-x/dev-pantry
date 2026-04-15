@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { toAbsoluteUrl } from "@/lib/apiClient";
+import { getPublicUserProfile } from "@/lib/api/user";
 
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
@@ -36,6 +37,8 @@ const menuItem =
 export function NavbarAuth() {
     const router = useRouter();
     const { user, logout } = useAuth();
+    const userId = user?.id ?? null;
+    const userLogin = user?.login ?? null;
 
     const [open, setOpen] = useState(false);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -53,11 +56,45 @@ export function NavbarAuth() {
     }, [open]);
 
     useEffect(() => {
-        if (!user) return;
+        let cancelled = false;
+
+        if (userId === null || !userLogin) {
+            Promise.resolve().then(() => {
+                if (!cancelled) setAvatarUrl(null);
+            });
+            return () => {
+                cancelled = true;
+            };
+        }
+
         if (typeof window === "undefined") return;
-        const key = `devpantry_avatar_url_${user.id}`;
-        setAvatarUrl(localStorage.getItem(key));
-    }, [user, open]);
+
+        const key = `devpantry_avatar_url_${userId}`;
+        Promise.resolve().then(() => {
+            if (!cancelled) setAvatarUrl(localStorage.getItem(key));
+        });
+
+        void getPublicUserProfile(userLogin)
+            .then((profile) => {
+                if (cancelled) return;
+                const fresh = profile.avatar_url;
+                setAvatarUrl(fresh);
+
+                if (fresh) {
+                    localStorage.setItem(key, fresh);
+                    return;
+                }
+
+                localStorage.removeItem(key);
+            })
+            .catch(() => {
+                // ignore network/profile errors and keep cached avatar
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [userId, userLogin]);
 
     function onLogout() {
         logout();
@@ -78,7 +115,13 @@ export function NavbarAuth() {
         <div ref={rootRef} className="relative">
             <button
                 type="button"
-                onClick={() => setOpen((v) => !v)}
+                onClick={() => {
+                    if (typeof window !== "undefined" && userId !== null) {
+                        const key = `devpantry_avatar_url_${userId}`;
+                        setAvatarUrl(localStorage.getItem(key));
+                    }
+                    setOpen((v) => !v);
+                }}
                 aria-haspopup="menu"
                 aria-expanded={open}
                 className={cn(
