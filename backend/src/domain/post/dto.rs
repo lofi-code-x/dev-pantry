@@ -5,7 +5,7 @@ use std::sync::LazyLock;
 use uuid::Uuid;
 
 const DEFAULT_LIMIT: i32 = 10;
-const MAX_LIMIT: i32 = 20;
+const MAX_LIMIT: i32 = 100;
 
 pub struct SearchParams {
     pub query: String,
