@@ -1,4 +1,4 @@
-import type { MetadataRoute } from "next";
+import type {MetadataRoute} from "next";
 
 type Post = {
     id: number;
@@ -12,7 +12,9 @@ type PostRequest = {
     limit?: number;
 };
 
-const SITE_URL = "https://tryquestlab.ru/api";
+const SITE_URL = "https://tryquestlab.ru";
+const API_BASE_URL =
+    (process.env.NEXT_PUBLIC_API_BASE_URL || `${SITE_URL}/api`).replace(/\/+$/, "");
 
 async function searchPostsForSitemap(params: PostRequest): Promise<Post[]> {
     const sp = new URLSearchParams();
@@ -23,12 +25,7 @@ async function searchPostsForSitemap(params: PostRequest): Promise<Post[]> {
     if (typeof params.limit === "number") sp.set("limit", String(params.limit));
 
     const qs = sp.toString();
-
-    const apiBase = (
-        process.env.NEXT_PUBLIC_API_BASE_URL || `${SITE_URL}`
-    ).replace(/\/+$/, "");
-
-    const url = `${apiBase}/post/search${qs ? `?${qs}` : ""}`;
+    const url = `${API_BASE_URL}/post/search${qs ? `?${qs}` : ""}`;
 
     try {
         const res = await fetch(url, {
