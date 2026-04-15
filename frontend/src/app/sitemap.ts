@@ -12,7 +12,7 @@ type PostRequest = {
     limit?: number;
 };
 
-const SITE_URL = "https://tryquestlab.ru";
+const SITE_URL = "https://tryquestlab.ru/api";
 
 async function searchPostsForSitemap(params: PostRequest): Promise<Post[]> {
     const sp = new URLSearchParams();
