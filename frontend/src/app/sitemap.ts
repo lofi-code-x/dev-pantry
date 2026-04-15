@@ -13,8 +13,7 @@ type PostRequest = {
 };
 
 const SITE_URL = "https://tryquestlab.ru";
-const API_BASE_URL =
-    (process.env.NEXT_PUBLIC_API_BASE_URL || `${SITE_URL}/api`).replace(/\/+$/, "");
+const API_BASE_URL = `${SITE_URL}/api`;
 
 async function searchPostsForSitemap(params: PostRequest): Promise<Post[]> {
     const sp = new URLSearchParams();
