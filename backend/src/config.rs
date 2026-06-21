@@ -14,7 +14,10 @@ impl Config {
     pub fn load() -> error::Result<Self> {
         let app_env = std::env::var("APP_ENV").unwrap_or_else(|_| "dev".to_string());
         if app_env != "prod" && app_env != "production" {
-            dotenvy::dotenv().ok();
+            match dotenvy::dotenv() {
+                Ok(path) => println!("Loaded .env from {:?}", path),
+                Err(err) => println!("Failed to load .env: {:?}", err),
+            }
         }
 
         let server_port = env_i32("SERVER_PORT").unwrap_or(3001);

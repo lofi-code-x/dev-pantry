@@ -1,0 +1,79 @@
+# dev-pantry/deploy/docker-compose.yml
+services:
+  postgres:
+    image: postgres:16
+    container_name: questlab-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: questlab
+      POSTGRES_USER: questlab
+      POSTGRES_PASSWORD: <PASSWORD>
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U questlab -d questlab" ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: questlab-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: prod
+      ADMIN_PASSWORD: <PASSWORD>
+      SERVER_PORT: "3001"
+      DATABASE_URL: postgres://questlab:<PASSWORD>@postgres:5432/questlab
+      JWT_SECRET: "<JWT_SECRET>"
+      JWT_LIFETIME_DAYS: "1"
+      RUST_LOG: "info,tower_http=info,sqlx=warn"
+    expose:
+      - "3001"
+    volumes:
+      - ../backend/uploads:/app/uploads
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:3001/api/meta/version || exit 1" ]
+      interval: 10s
+      timeout: 3s
+      retries: 30
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: questlab-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: "/api"
+      NEXT_PUBLIC_API_BASE_UPLOADS_URL: ""
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2
+    container_name: questlab-caddy
+    restart: unless-stopped
+    depends_on:
+      - frontend
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
