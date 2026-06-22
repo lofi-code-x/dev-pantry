@@ -2,6 +2,8 @@
 
 Dev Pantry is a client-server learning platform for publishing educational posts and grouping them into learning modules. It includes user accounts, admin-managed content, markdown editing, image uploads, post bookmarks/progress, module progress, categories, quizzes, and basic analytics/leaderboard features.
 
+![demo.gif](assets/demo.gif)
+
 ## Tech Stack
 
 - **Frontend:** Next.js 16, React 19, TypeScript, Tailwind CSS 4, Material UI, Zustand, React Markdown, UIW Markdown Editor
